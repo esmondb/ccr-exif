@@ -1,0 +1,59 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ProjectGuid>{757bd3a2-b78f-4765-9300-cd4f45207b49}</ProjectGuid>
+    <MainSource>JpegDump.dpr</MainSource>
+    <Configuration Condition=" '$(Configuration)' == '' ">Release</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <DCC_DCCCompiler>DCC32</DCC_DCCCompiler>
+    <DCC_DependencyCheckOutputName>JpegDump.exe</DCC_DependencyCheckOutputName>
+    <DCC_UsePackage>vcl;rtl;vclx;vclactnband;dbrtl;vcldb;bdertl;dsnap;teeUI;teedb;tee;adortl;dbxcds;dbexpress;DbxCommonDriver;VclSmp;vclie;webdsnap;xmlrtl;inet;inetdbbde;inetdbxpress;soaprtl;vcldbx</DCC_UsePackage>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <Version>7.0</Version>
+    <DCC_Define>RELEASE</DCC_Define>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <Version>7.0</Version>
+    <DCC_Define>DEBUG</DCC_Define>
+    <DCC_IntegerOverflowCheck>True</DCC_IntegerOverflowCheck>
+    <DCC_RangeChecking>True</DCC_RangeChecking>
+    <DCC_UnitSearchPath>$(BDS)\lib\Debug;$(BDS)\Lib\Debug\Indy10</DCC_UnitSearchPath>
+    <DCC_ResourcePath>$(BDS)\lib\Debug;$(BDS)\Lib\Debug\Indy10</DCC_ResourcePath>
+    <DCC_ObjPath>$(BDS)\lib\Debug;$(BDS)\Lib\Debug\Indy10</DCC_ObjPath>
+    <DCC_IncludePath>$(BDS)\lib\Debug;$(BDS)\Lib\Debug\Indy10</DCC_IncludePath>
+  </PropertyGroup>
+  <ProjectExtensions>
+    <Borland.Personality>Delphi.Personality</Borland.Personality>
+    <Borland.ProjectType>VCLApplication</Borland.ProjectType>
+    <BorlandProject>
+<BorlandProject><Delphi.Personality><Parameters><Parameters Name="UseLauncher">False</Parameters><Parameters Name="LoadAllSymbols">True</Parameters><Parameters Name="LoadUnspecifiedSymbols">False</Parameters><Parameters Name="RunParams">"C:\Users\CCR\Desktop\Test\Bertram 21-2-10.JPG"</Parameters></Parameters><VersionInfo><VersionInfo Name="IncludeVerInfo">True</VersionInfo><VersionInfo Name="AutoIncBuild">False</VersionInfo><VersionInfo Name="MajorVer">1</VersionInfo><VersionInfo Name="MinorVer">1</VersionInfo><VersionInfo Name="Release">0</VersionInfo><VersionInfo Name="Build">2010</VersionInfo><VersionInfo Name="Debug">False</VersionInfo><VersionInfo Name="PreRelease">False</VersionInfo><VersionInfo Name="Special">False</VersionInfo><VersionInfo Name="Private">False</VersionInfo><VersionInfo Name="DLL">False</VersionInfo><VersionInfo Name="Locale">2057</VersionInfo><VersionInfo Name="CodePage">1252</VersionInfo></VersionInfo><VersionInfoKeys><VersionInfoKeys Name="CompanyName">Christopher Rolliston</VersionInfoKeys><VersionInfoKeys Name="FileDescription">Jpeg Header Dump</VersionInfoKeys><VersionInfoKeys Name="FileVersion">1.1.0.2010</VersionInfoKeys><VersionInfoKeys Name="InternalName">JpegDump</VersionInfoKeys><VersionInfoKeys Name="LegalCopyright">Copyright (c) CC Rolliston</VersionInfoKeys><VersionInfoKeys Name="LegalTrademarks"></VersionInfoKeys><VersionInfoKeys Name="OriginalFilename">JpegDump.exe</VersionInfoKeys><VersionInfoKeys Name="ProductName">Exif Utilities</VersionInfoKeys><VersionInfoKeys Name="ProductVersion">1.1.0.2010</VersionInfoKeys><VersionInfoKeys Name="Comments"></VersionInfoKeys><VersionInfoKeys Name="Website">http://delphihaven.wordpress.com/</VersionInfoKeys></VersionInfoKeys><Excluded_Packages>
+      
+      
+      <Excluded_Packages Name="$(BDS)\bin\dcloffice2k100.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
+      <Excluded_Packages Name="$(BDS)\bin\dclofficexp100.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
+    </Excluded_Packages><Source><Source Name="MainSource">JpegDump.dpr</Source></Source></Delphi.Personality></BorlandProject></BorlandProject>
+  </ProjectExtensions>
+  <Import Project="$(MSBuildBinPath)\Borland.Delphi.Targets" />
+  <ItemGroup>
+    <DelphiCompile Include="JpegDump.dpr">
+      <MainSource>MainSource</MainSource>
+    </DelphiCompile>
+    <DCCReference Include="..\..\CCR.Exif.Consts.pas" />
+    <DCCReference Include="..\..\CCR.Exif.IPTC.pas" />
+    <DCCReference Include="..\..\CCR.Exif.JPEGUtils.pas" />
+    <DCCReference Include="..\..\CCR.Exif.pas" />
+    <DCCReference Include="..\..\CCR.Exif.StreamHelper.pas" />
+    <DCCReference Include="..\..\CCR.Exif.TagIDs.pas" />
+    <DCCReference Include="..\..\CCR.Exif.XMPUtils.pas" />
+    <DCCReference Include="..\CCR.Exif.Demos.pas">
+      <Form>frmRoundtripOptions</Form>
+    </DCCReference>
+    <DCCReference Include="JpegDumpForm.pas">
+      <Form>frmJpegDump</Form>
+    </DCCReference>
+    <DCCReference Include="JpegDumpOutputFrame.pas">
+      <Form>OutputFrame</Form>
+    </DCCReference>
+  </ItemGroup>
+</Project>
