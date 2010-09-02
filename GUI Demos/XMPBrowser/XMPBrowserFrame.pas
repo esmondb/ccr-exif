@@ -1,7 +1,7 @@
 {**************************************************************************************}
 {                                                                                      }
 { CCR Exif - Delphi class library for reading and writing Exif metadata in JPEG files  }
-{ Version 1.1.1 (2010-08-02)                                                           }
+{ Version 1.1.2 beta (2010-09-02)                                                      }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -109,7 +109,7 @@ procedure TOutputFrame.LoadPacket(Source: TCustomMemoryStream);
   end;
 const
   KnownSchemaTitles: array[TXMPKnownSchemaKind] of string = (
-    'Camera Raw', 'Dublin Core', 'Exif', 'Microsoft Photo',
+    'Camera Raw', 'Dublin Core', 'Exif', 'Exif Auxiliary', 'Microsoft Photo',
     'PDF', 'Photoshop', 'TIFF', 'XMP Basic', 'XMP Basic Job Ticket', 'XMP Dynamic Media',
     'XMP Media Management', 'XMP Paged Text', 'XMP Rights');
   TabStops: array[0..0] of UINT = (8);

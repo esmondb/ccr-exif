@@ -1,7 +1,7 @@
 ﻿{**************************************************************************************}
 {                                                                                      }
 { CCR Exif - Delphi class library for reading and writing Exif metadata in JPEG files  }
-{ Version 1.1.1 (2010-08-02)                                                           }
+{ Version 1.1.2 beta (2010-09-02)                                                      }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -119,9 +119,9 @@ type
     property SubPropertyCount: Integer read GetSubPropertyCount write SetSubPropertyCount;
   end;
 
-  TXMPSchemaKind = (xsUnknown, xsCameraRaw, xsDublinCore, xsExif, xsMicrosoftPhoto,
-    xsPDF, xsPhotoshop, xsTIFF, xsXMPBasic, xsXMPBasicJobTicket, xsXMPDynamicMedia,
-    xsXMPMediaManagement, xsXMPPagedText, xsXMPRights);
+  TXMPSchemaKind = (xsUnknown, xsCameraRaw, xsDublinCore, xsExif, xsExifAux,
+    xsMicrosoftPhoto, xsPDF, xsPhotoshop, xsTIFF, xsXMPBasic, xsXMPBasicJobTicket,
+    xsXMPDynamicMedia, xsXMPMediaManagement, xsXMPPagedText, xsXMPRights);
   TXMPKnownSchemaKind = xsCameraRaw..High(TXMPSchemaKind);
   TXMPKnownSchemaKinds = set of TXMPKnownSchemaKind;
 
@@ -256,6 +256,8 @@ const
       URI: 'http://purl.org/dc/elements/1.1/'),
     (Kind: xsExif; PreferredPrefix: 'exif';
       URI: 'http://ns.adobe.com/exif/1.0/'),
+    (Kind: xsExifAux; PreferredPrefix: 'aux';
+      URI: 'http://www.adobe.com/exif/1.0/aux/'),
     (Kind: xsMicrosoftPhoto; PreferredPrefix: 'MicrosoftPhoto';
       URI: 'http://ns.microsoft.com/photo/1.0'),
     (Kind: xsPDF; PreferredPrefix: 'pdf';
