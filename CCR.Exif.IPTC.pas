@@ -1,7 +1,7 @@
 {**************************************************************************************}
 {                                                                                      }
 { CCR Exif - Delphi class library for reading and writing Exif metadata in JPEG files  }
-{ Version 1.1.1 (2010-08-02)                                                           }
+{ Version 1.1.2 beta (2010-09-02)                                                      }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -25,6 +25,13 @@ interface
   As saved, IPTC data is a flat list of tags ('datasets'), no more no less, which is
   reflected in the implementation of TIPTCData.LoadFromStream. However, as found in JPEG
   files, they are put in an Adobe data structure, itself put inside an APP13 segment.
+
+  Note that by default, string tags are 'only' interpreted as having UTF-8 data if the
+  encoding tag is set, with the UTF-8 marker as its data. If you don't load any tags
+  before adding others, however, the default is to persist to UTF-8, writing said marker
+  tag of course. To force interpreting loaded tags as UTF-8, set the
+  AlwaysAssumeUTF8Encoding property of TIPTCData to True *before* calling LoadFromJPEG
+  or LoadFromStream.
 }
 uses
   Types, SysUtils, Classes, Graphics, JPEG,
@@ -137,7 +144,6 @@ type
     procedure UpdateData(NewDataSize: Integer; Source: TStream); overload;
     { ReadString treats the raw data as AnsiChar data, whatever the spec says. }
     function ReadString: string; overload;
-    procedure ReadString(var Result: AnsiString); overload;
     procedure WriteString(const NewValue: RawByteString); overload;
     procedure WriteString(const NewValue: UnicodeString); overload;
     { AsString assumes the underlying data type is as per the spec (unlike the case of
@@ -230,11 +236,14 @@ type
       property Current: TIPTCSection read GetCurrent;
     end;
   strict private
+    FAlwaysAssumeUTF8Encoding: Boolean;
     FSections: array[TIPTCSectionID] of TIPTCSection;
+    FUTF8Encoded: Boolean;
     function GetEmpty: Boolean;
     function GetSection(ID: TIPTCSectionID): TIPTCSection;
     function GetModified: Boolean;
     procedure SetModified(Value: Boolean);
+    procedure SetUTF8Encoded(Value: Boolean);
     function GetEnvelopeString(TagID: Integer): string;
     procedure SetEnvelopeString(TagID: Integer; const Value: string);
     function GetEnvelopeWord(TagID: Integer): TWordTagValue;
@@ -259,6 +268,8 @@ type
     function CreateIPTCSegment: IJPEGSegment;
     procedure DefineProperties(Filer: TFiler); override;
     procedure DoSaveToJPEG(InStream, OutStream: TStream);
+  public const
+    UTF8Marker: array[1..3] of Byte = ($1B, $25, $47);
   public
     constructor Create;
     destructor Destroy; override;
@@ -283,6 +294,8 @@ type
     property SecondDescriptorSection: TIPTCSection read FSections[9];
     property Sections[ID: TIPTCSectionID]: TIPTCSection read GetSection; default;
   published
+    property AlwaysAssumeUTF8Encoding: Boolean read FAlwaysAssumeUTF8Encoding write FAlwaysAssumeUTF8Encoding default False;
+    property UTF8Encoded: Boolean read FUTF8Encoded write SetUTF8Encoded default True;
     { record 1 }
     property ModelVersion: TWordTagValue index itModelVersion read GetEnvelopeWord write SetEnvelopeWord stored False;
     property Destination: string index itDestination read GetEnvelopeString write SetEnvelopeString stored False;
@@ -702,24 +715,45 @@ begin
     Result := FSection.FTags.IndexOf(Self);
 end;
 
-procedure TIPTCTag.ReadString(var Result: AnsiString);
-begin
-  SetString(Result, PAnsiChar(FData), FDataSize);
-end;
+//procedure TIPTCTag.ReadString(var Result: AnsiString);
+//begin
+//  if (Section <> nil) and (Section.Owner <> nil) and Section.Owner.UTF8Encoded then
+//  else
+//    SetString(Result, PAnsiChar(FData), FDataSize);
+//end;
+//
+//function TIPTCTag.ReadString: string;
+//{$IFDEF UNICODE}
+//var
+//  AnsiStr: AnsiString;
+//begin
+//  ReadString(AnsiStr);
+//  Result := string(AnsiStr);
+//end;
+//{$ELSE}
+//begin
+//  ReadString(Result)
+//end;
+//{$ENDIF}
 
 function TIPTCTag.ReadString: string;
-{$IFDEF UNICODE}
 var
-  AnsiStr: AnsiString;
+  Ansi: AnsiString;
+  UTF8: UTF8String;
 begin
-  ReadString(AnsiStr);
-  Result := string(AnsiStr);
+  if (Section <> nil) and (Section.Owner <> nil) and Section.Owner.UTF8Encoded then
+  begin
+    SetString(UTF8, PAnsiChar(FData), FDataSize);
+    {$IFDEF UNICODE}
+    Result := string(UTF8);
+    {$ELSE}
+    Result := Utf8ToAnsi(UTF8);
+    {$ENDIF}
+    Exit;
+  end;
+  SetString(Ansi, PAnsiChar(FData), FDataSize);
+  Result := string(Ansi);
 end;
-{$ELSE}
-begin
-  ReadString(Result)
-end;
-{$ENDIF}
 
 procedure TIPTCTag.SetAsString(const Value: string);
 var
@@ -796,7 +830,10 @@ end;
 
 procedure TIPTCTag.WriteString(const NewValue: UnicodeString);
 begin
-  WriteString(AnsiString(NewValue));
+  if (Section <> nil) and (Section.Owner <> nil) and Section.Owner.UTF8Encoded then
+    WriteString(UTF8Encode(NewValue))
+  else
+    WriteString(AnsiString(NewValue));
 end;
 
 { TIPTCSection.TEnumerator }
@@ -823,6 +860,7 @@ end;
 constructor TIPTCSection.Create(AOwner: TIPTCData; AID: TIPTCSectionID);
 begin
   inherited Create;
+  FOwner := AOwner;
   FID := AID;
   FTags := TObjectList.Create(True);
 end;
@@ -1219,6 +1257,7 @@ begin
   inherited Create;
   for ID := Low(ID) to High(ID) do
     FSections[ID] := TIPTCSection.Create(Self, ID);
+  FUTF8Encoded := True;
 end;
 
 destructor TIPTCData.Destroy;
@@ -1264,6 +1303,9 @@ begin
       NewTag.Free;
       raise;
     end;
+    if (RecID = 1) and (TagID = 90) and (DataSize = SizeOf(UTF8Marker)) and
+      CompareMem(NewTag.Data, @UTF8Marker, DataSize) then
+      FUTF8Encoded := True;
   end;
 end;
 
@@ -1521,9 +1563,13 @@ procedure TIPTCData.LoadFromStream(Stream: TStream);
 var
   I: Integer;
   Section: TIPTCSection;
+  WasUTF8Encoded: Boolean;
 begin
   Clear;
+  WasUTF8Encoded := FUTF8Encoded;
+  FUTF8Encoded := AlwaysAssumeUTF8Encoding;
   AddFromStream(Stream);
+  if Empty then FUTF8Encoded := WasUTF8Encoded;
   for Section in FSections do
   begin
     Section.Modified := False;
@@ -1585,6 +1631,10 @@ var
   Section: TIPTCSection;
   Tag: TIPTCTag;
 begin
+  if UTF8Encoded then
+    Sections[1].AddOrUpdate(90, SizeOf(UTF8Marker), UTF8Marker)
+  else if Sections[1].Find(90, Tag) and (Tag.DataSize = SizeOf(UTF8Marker)) and
+    CompareMem(Tag.Data, @UTF8Marker, SizeOf(UTF8Marker)) then Tag.Free;
   for Section in FSections do
     for Tag in Section do
     begin
@@ -1666,6 +1716,34 @@ var
 begin
   for ID := Low(ID) to High(ID) do
     FSections[ID].Modified := Value;
+end;
+
+procedure TIPTCData.SetUTF8Encoded(Value: Boolean);
+var
+  I: Integer;
+  SectID: TIPTCSectionID;
+  Tag: TIPTCTag;
+  Strings: array[TIPTCSectionID] of TStringDynArray;
+begin
+  if Value = FUTF8Encoded then Exit;
+  for SectID := Low(SectID) to High(SectID) do
+  begin
+    SetLength(Strings[SectID], FSections[SectID].Count);
+    for I := 0 to High(Strings[SectID]) do
+    begin
+      Tag := FSections[SectID].Tags[I];
+      if FindProperDataType(Tag) = idString then
+        Strings[SectID][I] := Tag.ReadString;
+    end;
+  end;
+  FUTF8Encoded := Value;
+  for SectID := Low(SectID) to High(SectID) do
+    for I := 0 to High(Strings[SectID]) do
+    begin
+      Tag := FSections[SectID].Tags[I];
+      if FindProperDataType(Tag) = idString then
+        Tag.WriteString(Strings[SectID][I]);
+    end;
 end;
 
 end.
