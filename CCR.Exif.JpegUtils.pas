@@ -1,7 +1,7 @@
 {**************************************************************************************}
 {                                                                                      }
 { CCR Exif - Delphi class library for reading and writing Exif metadata in JPEG files  }
-{ Version 1.1.1 (2010-08-02)                                                           }
+{ Version 1.1.2 beta (2010-09-06)                                                      }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -155,11 +155,11 @@ type
   ['{138192CD-85DD-4CEB-B1A7-4678C7D67C88}']
     function GetOffset: Int64;
     function GetOffsetOfData: Int64;
-    function GetTotalSize: Word;
+    function GetTotalSize: Integer;
 
     property Offset: Int64 read GetOffset;
     property OffsetOfData: Int64 read GetOffsetOfData;
-    property TotalSize: Word read GetTotalSize;
+    property TotalSize: Integer read GetTotalSize;
   end;
 
   IJPEGHeaderParser = interface
@@ -284,7 +284,7 @@ type
     { IFoundJPEGSegment }
     function GetOffset: Int64;
     function GetOffsetOfData: Int64;
-    function GetTotalSize: Word;
+    function GetTotalSize: Integer;
   public
     constructor Create(AMakerNum: TJPEGMarker; ASource: TStream; ADataSize: Integer); overload;
   end;
@@ -590,9 +590,9 @@ begin
   Result := FOffset + SizeOf(TJPEGSegmentHeader);
 end;
 
-function TFoundJPEGSegment.GetTotalSize: Word;
+function TFoundJPEGSegment.GetTotalSize: Integer;
 begin
-  Result := Word(Data.Size + SizeOf(TJPEGSegmentHeader));
+  Result := Data.Size + SizeOf(TJPEGSegmentHeader);
   if MarkerNum in MarkersWithNoData then Dec(Result, 2);
 end;
 
