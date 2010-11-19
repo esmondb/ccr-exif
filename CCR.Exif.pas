@@ -1,7 +1,7 @@
 {**************************************************************************************}
 {                                                                                      }
 { CCR Exif - Delphi class library for reading and writing Exif metadata in JPEG files  }
-{ Version 1.1.1 (2010-08-02)                                                           }
+{ Version 1.1.2 beta (2010-11-19)                                                      }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -100,7 +100,8 @@ type
   TiffString = type AnsiString;
 
   TTiffLongWordFraction = packed record
-    constructor Create(ANumerator: LongWord; ADenominator: LongWord = 1);
+    constructor Create(ANumerator: LongWord; ADenominator: LongWord = 1); overload;
+    constructor Create(const AQuotient: Currency); overload;
     constructor CreateFromString(const AString: string);
     function AsString: string;
     function MissingOrInvalid: Boolean; {$IFDEF CANINLINE}inline;{$ENDIF}
@@ -111,7 +112,8 @@ type
   end;
 
   TTiffLongIntFraction = packed record
-    constructor Create(ANumerator: LongWord; ADenominator: LongInt = 1);
+    constructor Create(ANumerator: LongInt; ADenominator: LongInt = 1); overload;
+    constructor Create(const AQuotient: Currency); overload;
     constructor CreateFromString(const AString: string);
     function AsString: string;
     function MissingOrInvalid: Boolean; {$IFDEF CANINLINE}inline;{$ENDIF}
@@ -587,6 +589,10 @@ type
   public
     procedure Assign(const ADegrees, AMinutes, ASeconds: TExifFraction;
       ADirection: TGPSLatitudeRef); reintroduce; overload;
+    procedure Assign(ADegrees, AMinutes: LongWord; const ASeconds: TExifFraction;
+      ADirection: TGPSLatitudeRef); reintroduce; overload; inline;
+    procedure Assign(ADegrees, AMinutes: LongWord; const ASeconds: Currency;
+      ADirection: TGPSLatitudeRef); reintroduce; overload; inline;
     procedure Assign(ADegrees, AMinutes, ASeconds: LongWord;
       ADirection: TGPSLatitudeRef); reintroduce; overload; inline;
     property Direction: TGPSLatitudeRef read GetDirection;
@@ -598,6 +604,10 @@ type
   public
     procedure Assign(const ADegrees, AMinutes, ASeconds: TExifFraction;
       ADirection: TGPSLongitudeRef); reintroduce; overload;
+    procedure Assign(ADegrees, AMinutes: LongWord; const ASeconds: TExifFraction;
+      ADirection: TGPSLongitudeRef); reintroduce; overload; inline;
+    procedure Assign(ADegrees, AMinutes: LongWord; const ASeconds: Currency;
+      ADirection: TGPSLongitudeRef); reintroduce; overload; inline;
     procedure Assign(ADegrees, AMinutes, ASeconds: LongWord;
       ADirection: TGPSLongitudeRef); reintroduce; overload; inline;
     property Direction: TGPSLongitudeRef read GetDirection;
@@ -1186,6 +1196,30 @@ begin
     end;
 end;
 
+function GCD(A, B: Int64): Int64;
+var
+  Temp: Int64;
+begin
+  while B <> 0 do
+  begin
+    Temp := B;
+    B := A mod B;
+    A := Temp;
+  end;
+  Result := A;
+end;
+
+procedure CurrencyToFraction(const Source: Currency; var N, D: Int64);
+var
+  Factor: Int64;
+begin          
+  N := Trunc(Source * 10000);
+  D := 10000;
+  Factor := GCD(N, D);
+  N := N div Factor;
+  D := D div Factor;
+end;
+
 function GetGPSTagXMPName(TagID: TExifTagID): UnicodeString;
 begin
   case TagID of
@@ -1404,10 +1438,21 @@ end;
 
 { TTiffLongXXXFraction }
 
-constructor TTiffLongIntFraction.Create(ANumerator: LongWord; ADenominator: LongInt);
+constructor TTiffLongIntFraction.Create(ANumerator, ADenominator: LongInt);
 begin
   Numerator := ANumerator;
   Denominator := ADenominator;
+end;
+
+constructor TTiffLongIntFraction.Create(const AQuotient: Currency);
+var
+  N, D: Int64;
+begin
+  CurrencyToFraction(AQuotient, N, D);
+  {$RANGECHECKS ON}
+  Numerator := N;
+  Denominator := D;
+  {$IFDEF RANGECHECKINGOFF}{$RANGECHECKS OFF}{$ENDIF}
 end;
 
 constructor TTiffLongIntFraction.CreateFromString(const AString: string);
@@ -1460,10 +1505,21 @@ begin
   if Result then Value := LongWord(Int64Value);
 end;
 
-constructor TTiffLongWordFraction.Create(ANumerator: LongWord; ADenominator: LongWord);
+constructor TTiffLongWordFraction.Create(ANumerator, ADenominator: LongWord);
 begin
   Numerator := ANumerator;
   Denominator := ADenominator;
+end;
+
+constructor TTiffLongWordFraction.Create(const AQuotient: Currency);
+var
+  N, D: Int64;
+begin
+  CurrencyToFraction(AQuotient, N, D);
+  {$RANGECHECKS ON}
+  Numerator := N;
+  Denominator := D;
+  {$IFDEF RANGECHECKINGOFF}{$RANGECHECKS OFF}{$ENDIF}
 end;
 
 constructor TTiffLongWordFraction.CreateFromString(const AString: string);
@@ -3433,6 +3489,20 @@ begin
   Assign(ADegrees, AMinutes, ASeconds, DirectionChars[ADirection]);
 end;
 
+procedure TGPSLatitude.Assign(ADegrees, AMinutes: LongWord;
+  const ASeconds: TExifFraction; ADirection: TGPSLatitudeRef);
+begin
+  Assign(TExifFraction.Create(ADegrees), TExifFraction.Create(AMinutes),
+    ASeconds, ADirection);
+end;
+
+procedure TGPSLatitude.Assign(ADegrees, AMinutes: LongWord; const ASeconds: Currency;
+  ADirection: TGPSLatitudeRef);
+begin
+  Assign(TExifFraction.Create(ADegrees), TExifFraction.Create(AMinutes),
+    TExifFraction.Create(ASeconds), ADirection);
+end;
+
 procedure TGPSLatitude.Assign(ADegrees, AMinutes, ASeconds: LongWord;
   ADirection: TGPSLatitudeRef);
 begin
@@ -3457,6 +3527,20 @@ const
   DirectionChars: array[TGPSLongitudeRef] of AnsiChar = (#0, 'W', 'E');
 begin
   Assign(ADegrees, AMinutes, ASeconds, DirectionChars[ADirection]);
+end;
+
+procedure TGPSLongitude.Assign(ADegrees, AMinutes: LongWord;
+  const ASeconds: TExifFraction; ADirection: TGPSLongitudeRef);
+begin
+  Assign(TExifFraction.Create(ADegrees), TExifFraction.Create(AMinutes),
+    ASeconds, ADirection);
+end;
+
+procedure TGPSLongitude.Assign(ADegrees, AMinutes: LongWord; const ASeconds: Currency;
+  ADirection: TGPSLongitudeRef);
+begin
+  Assign(TExifFraction.Create(ADegrees), TExifFraction.Create(AMinutes),
+    TExifFraction.Create(ASeconds), ADirection);
 end;
 
 procedure TGPSLongitude.Assign(ADegrees, AMinutes, ASeconds: LongWord;
