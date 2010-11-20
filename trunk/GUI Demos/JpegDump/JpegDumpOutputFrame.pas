@@ -1,7 +1,7 @@
 {**************************************************************************************}
 {                                                                                      }
 { CCR Exif - Delphi class library for reading and writing Exif metadata in JPEG files  }
-{ Version 1.1.2 beta (2010-09-02)                                                      }
+{ Version 1.1.2 beta (2010-11-20)                                                      }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -430,6 +430,31 @@ begin
   DoDefault(Segment, 'Start of scan (SOS)');
 end;
 
+function GetXMPNamespaceTitle(Schema: TXMPSchema): string;
+begin
+  case Schema.NamespaceInfo.Kind of
+    xsCameraRaw: Result := 'Camera Raw';
+    xsColorant: Result :='Dublin Core';
+    xsDimensions: Result := 'Dimensions';
+    xsDublinCore: Result := 'Dublin Core';
+    xsExif: Result := 'Exif';
+    xsExifAux: Result := 'Exif Auxiliary';
+    xsMicrosoftPhoto: Result := 'Microsoft Photo';
+    xsPDF: Result := 'PDF';
+    xsPhotoshop: Result := 'Photoshop';
+    xsResourceEvent: Result := 'Resource Event';
+    xsResourceRef: Result := 'Resource Reference';
+    xsTIFF: Result := 'TIFF';
+    xsXMPBasic: Result := 'XMP Basic';
+    xsXMPBasicJobTicket: Result := 'XMP Basic Job Ticket';
+    xsXMPDynamicMedia: Result := 'XMP Dynamic Media';
+    xsXMPMediaManagement: Result := 'XMP Media Management';
+    xsXMPPagedText: Result := 'XMP Paged Text';
+    xsXMPRights: Result := 'XMP Rights';
+  else Result := Schema.NamespaceInfo.Prefix;
+  end;
+end;
+
 procedure TOutputFrame.LoadXMP(const Segment: IFoundJPEGSegment);
   procedure DoIt(Level: Integer; const Name: string; const Props: IXMPPropertyCollection);
   const
@@ -464,11 +489,6 @@ procedure TOutputFrame.LoadXMP(const Segment: IFoundJPEGSegment);
       DoIt(Level + 1, S, Prop);
     end;
   end;
-const
-  KnownSchemaTitles: array[TXMPKnownSchemaKind] of string = (
-    'Camera raw', 'Dublin Core', 'Exif', 'Exif Auxiliary', 'Microsoft Photo',
-    'PDF', 'Photoshop', 'TIFF', 'XMP basic', 'XMP basic job ticket', 'XMP dynamic media',
-    'XMP media management', 'XMP paged text', 'XMP rights');
 var
   I: Integer;
   Schema: TXMPSchema;
@@ -506,11 +526,7 @@ begin
     for Schema in XMPPacket do
     begin
       AddBlankLine;
-      if Schema.Kind = xsUnknown then
-        S := Schema.PreferredPrefix
-      else
-        S := KnownSchemaTitles[Schema.Kind];
-      DoIt(0, S + ':', Schema);
+      DoIt(0, GetXMPNamespaceTitle(Schema) + ':', Schema);
     end;
   finally
     XMPPacket.Free;

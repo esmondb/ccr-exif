@@ -1,7 +1,7 @@
 {**************************************************************************************}
 {                                                                                      }
 { CCR Exif - Delphi class library for reading and writing Exif metadata in JPEG files  }
-{ Version 1.1.1 (2010-08-02)                                                           }
+{ Version 1.1.2 beta (2010-11-20)                                                      }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -23,7 +23,7 @@ unit CCR.Exif.Consts;
 interface
 
 const
-  CCRExifVersion = '1.1.1';
+  CCRExifVersion = '1.1.2 beta';
 
 resourcestring
   SInvalidJPEGHeader = 'JPEG header is not valid';

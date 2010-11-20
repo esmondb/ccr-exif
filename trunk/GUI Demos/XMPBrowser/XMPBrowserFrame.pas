@@ -1,7 +1,7 @@
 {**************************************************************************************}
 {                                                                                      }
 { CCR Exif - Delphi class library for reading and writing Exif metadata in JPEG files  }
-{ Version 1.1.2 beta (2010-09-02)                                                      }
+{ Version 1.1.2 beta (2010-11-20)                                                      }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -62,6 +62,33 @@ uses StrUtils, Themes, CCR.Exif.Consts;
 
 {$R *.dfm}
 
+function GetNamespaceTitle(Schema: TXMPSchema): string;
+begin
+  case Schema.NamespaceInfo.Kind of
+    xsCameraRaw: Result := 'Camera Raw';
+    xsColorant: Result := 'Dublin Core';
+    xsDimensions: Result := 'Dimensions';
+    xsDublinCore: Result := 'Dublin Core';
+    xsExif: Result := 'Exif';
+    xsExifAux: Result := 'Exif (Additional)';
+    xsIPTC: Result := 'IPTC';
+    xsMicrosoftPhoto: Result := 'Microsoft Photo';
+    xsPDF: Result := 'PDF';
+    xsPhotoshop: Result := 'Photoshop';
+    xsResourceEvent: Result := 'Resource Event';
+    xsResourceRef: Result := 'Resource Reference';
+    xsTIFF: Result := 'TIFF';
+    xsXMPBasic: Result := 'XMP Basic';
+    xsXMPBasicJobTicket: Result := 'XMP Basic Job Ticket';
+    xsXMPDynamicMedia: Result := 'XMP Dynamic Media';
+    xsXMPMediaManagement: Result := 'XMP Media Management';
+    xsXMPPagedText: Result := 'XMP Paged Text';
+    xsXMPRights: Result := 'XMP Rights';
+  else
+    Result := Schema.NamespaceInfo.Prefix;
+  end;
+end;
+
 { TTabSet }
 
 procedure TTabSet.CMDialogChar(var Message: TCMDialogChar);
@@ -108,14 +135,9 @@ procedure TOutputFrame.LoadPacket(Source: TCustomMemoryStream);
     end;
   end;
 const
-  KnownSchemaTitles: array[TXMPKnownSchemaKind] of string = (
-    'Camera Raw', 'Dublin Core', 'Exif', 'Exif Auxiliary', 'Microsoft Photo',
-    'PDF', 'Photoshop', 'TIFF', 'XMP Basic', 'XMP Basic Job Ticket', 'XMP Dynamic Media',
-    'XMP Media Management', 'XMP Paged Text', 'XMP Rights');
   TabStops: array[0..0] of UINT = (8);
 var
   Schema: TXMPSchema;
-  S: string;
 begin
   SendMessage(redRawXML.Handle, EM_SETTABSTOPS, Length(TabStops), LPARAM(@TabStops));
   if not FXMPPacket.TryLoadFromStream(Source) then
@@ -133,13 +155,7 @@ begin
   redRawXML.Text := UTF8ToString(FXMPPacket.RawXML);
   TreeView.Items.Add(nil, '''About'' attribute');
   for Schema in FXMPPacket do
-  begin
-    if Schema.Kind = xsUnknown then
-      S := Schema.PreferredPrefix
-    else
-      S := KnownSchemaTitles[Schema.Kind];
-    LoadNodes(TreeView.Items.AddObject(nil, S, Schema), Schema);
-  end;
+    LoadNodes(TreeView.Items.AddObject(nil, GetNamespaceTitle(Schema), Schema), Schema);
   TreeView.AlphaSort;
   if TreeView.Items.Count > 0 then
     TreeView.Items[0].Expand(False);
@@ -164,11 +180,13 @@ var
   Stream: TMemoryStream;
   Segment: IFoundJPEGSegment;
 begin
-  TreeView.Items.Clear;
-  memValue.Clear;
-  FXMPPacket.Clear;
-  Stream := TMemoryStream.Create;
+  Stream := nil;
+  TreeView.Items.BeginUpdate;
   try
+    TreeView.Items.Clear;
+    memValue.Clear;
+    FXMPPacket.Clear;
+    Stream := TMemoryStream.Create;
     Stream.LoadFromFile(FileName);
     if MatchText(ExtractFileExt(FileName), ['.xmp', '.xml', '.txt']) then
       LoadPacket(Stream)
@@ -187,6 +205,7 @@ begin
         'sidecar file', [FileName]);
   finally
     Stream.Free;
+    TreeView.Items.EndUpdate;
   end;
 end;
 
