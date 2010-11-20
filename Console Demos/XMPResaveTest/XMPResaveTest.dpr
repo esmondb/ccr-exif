@@ -66,7 +66,7 @@ begin
     end;
     for I := 0 to Packet1.SchemaCount - 1 do
     begin
-      if Packet1[I].URI <> Packet2[I].URI then
+      if Packet1[I].NamespaceInfo.URI <> Packet2[I].NamespaceInfo.URI then
       begin
         Writeln('  FAILED: Schemas[', I, '].URI different');
         Exit;
