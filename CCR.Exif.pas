@@ -1,7 +1,7 @@
 {**************************************************************************************}
 {                                                                                      }
 { CCR Exif - Delphi class library for reading and writing Exif metadata in JPEG files  }
-{ Version 1.1.2 beta (2010-11-19)                                                      }
+{ Version 1.1.2 beta (2011-01-17)                                                      }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -130,6 +130,7 @@ const
   TiffSmallEndianCode = Word($4949);
   TiffBigEndianCode = Word($4D4D);
   TiffMagicNum: Word = $002A;
+  TiffMagicNumBigEndian = Word($2A00);
 
 procedure LoadTiffInfo(Stream: TStream; var Info: TTiffInfo);
 function LoadTiffDirectory(const Info: TTiffInfo; const Offset: Int64;
@@ -1415,9 +1416,21 @@ const
   ExifHeader: array[0..5] of AnsiChar = 'Exif'#0#0;
 
 function HasExifHeader(Stream: TStream; MovePosOnSuccess: Boolean = False): Boolean;
+var
+  Buffer: array[0..4] of Word;
+  BytesRead: Integer;
 begin
-  Result := Stream.TryReadHeader(ExifHeader, SizeOf(ExifHeader));
-  if Result and not MovePosOnSuccess then Stream.Seek(-SizeOf(ExifHeader), soCurrent);
+  Result := False;
+  BytesRead := Stream.Read(Buffer, SizeOf(Buffer));
+  if (BytesRead = SizeOf(Buffer)) and CompareMem(@Buffer, @ExifHeader, SizeOf(ExifHeader)) then
+    case Buffer[3] of
+      TiffSmallEndianCode, TiffBigEndianCode:
+        Result := (Buffer[4] = TiffMagicNum) or (Buffer[4] = TiffMagicNumBigEndian);
+    end;
+  if Result and MovePosOnSuccess then
+    Stream.Seek(-4, soCurrent)
+  else
+    Stream.Seek(-BytesRead, soCurrent)
 end;
 
 { TTiffTagInfo }
