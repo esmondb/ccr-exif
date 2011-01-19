@@ -1129,8 +1129,12 @@ function RemoveMetadataFromJPEG(JPEGImage: TJPEGImage;
 
 implementation
 
+{$IFOPT Q+}
+  {$DEFINE OverflowCheckingOn}
+{$ENDIF}
+
 {$IFOPT R-}
-  {$DEFINE RANGECHECKINGOFF}
+  {$DEFINE RangeCheckingOff}
 {$ENDIF}
 
 uses
@@ -1443,11 +1447,16 @@ begin
     Result := 0;
 end;
 
+{$Q-}
 function TTiffTagInfo.IsWellFormed: Boolean;
 begin
-  Result := (ElementCount >= 0) and (Word(DataType) >= Word(Low(DataType))) and
-    (Word(DataType) <= Word(High(DataType)));
+  case Ord(DataType) of
+    Ord(Low(DataType))..Ord(High(DataType)):
+      Result := (LongInt(ElementCount * TiffElementSizes[DataType]) >= 0);
+  else Result := False;
+  end;
 end;
+{$IFDEF OverflowCheckingOn}{$Q+}{$ENDIF}
 
 { TTiffLongXXXFraction }
 
@@ -1465,7 +1474,7 @@ begin
   {$RANGECHECKS ON}
   Numerator := N;
   Denominator := D;
-  {$IFDEF RANGECHECKINGOFF}{$RANGECHECKS OFF}{$ENDIF}
+  {$IFDEF RangeCheckingOff}{$RANGECHECKS OFF}{$ENDIF}
 end;
 
 constructor TTiffLongIntFraction.CreateFromString(const AString: string);
@@ -1532,7 +1541,7 @@ begin
   {$RANGECHECKS ON}
   Numerator := N;
   Denominator := D;
-  {$IFDEF RANGECHECKINGOFF}{$RANGECHECKS OFF}{$ENDIF}
+  {$IFDEF RangeCheckingOff}{$RANGECHECKS OFF}{$ENDIF}
 end;
 
 constructor TTiffLongWordFraction.CreateFromString(const AString: string);
@@ -1928,7 +1937,7 @@ begin
               tdSingle: PSingle(SeekPtr)^ := StrToFloat(S);
               tdDouble: PDouble(SeekPtr)^ := StrToFloat(S);
             end;
-            {$IFDEF RANGECHECKINGOFF}{$RANGECHECKS OFF}{$ENDIF}
+            {$IFDEF RangeCheckingOff}{$RANGECHECKS OFF}{$ENDIF}
             Inc(SeekPtr, TiffElementSizes[DataType]);
           end;
         finally
@@ -2995,7 +3004,7 @@ var
     begin
       {$RANGECHECKS ON}
       Result := Ord(SeekPtr^) - Ord('0');
-      {$IFDEF RANGECHECKINGOFF}{$RANGECHECKS OFF}{$ENDIF}
+      {$IFDEF RangeCheckingOff}{$RANGECHECKS OFF}{$ENDIF}
       Inc(SeekPtr);
     end;
   end;
