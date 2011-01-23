@@ -1,7 +1,7 @@
 {**************************************************************************************}
 {                                                                                      }
-{ CCR Exif - Delphi class library for reading and writing Exif metadata in JPEG files  }
-{ Version 1.1.2 (2011-01-23)                                                           }
+{ CCR Exif - Delphi class library for reading and writing image metadata               }
+{ Version 1.5.0 beta                                                                   }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -23,7 +23,7 @@ unit CCR.Exif.TagIDs;
 interface
 
 const
-  { Exif main directory tags }
+  { TIFF/Exif main directory tags }
   ttImageDescription          = $010E;
   ttMake                      = $010F;
   ttModel                     = $0110;
@@ -39,7 +39,9 @@ const
   ttYCbCrCoefficients         = $0211;
   ttYCbCrPositioning          = $0213;
   ttReferenceBlackWhite       = $0214;
+  ttXMP                       = $02BC; //should be tdByte according to the XMP spec, with the packet itself UTF-8 encoded
   ttCopyright                 = $8298;
+  ttIPTC                      = $83BB;
   ttExifOffset                = $8769;
   ttGPSOffset                 = $8825;
   ttPrintIM                   = $C4A5;
@@ -164,11 +166,16 @@ const
   ttBitsPerSample             = $0102; //shouldn't be used for a JPEG thumbnail
   ttCompression               = $0103; //value should be 6 for JPEG (1 = uncompressed TIFF
   ttPhotometricInterp         = $0106; //1=b/w, 2 = RGB, 6 = YCbCr; shouldn't be used for a JPEG thumbnail
-  ttStripOffset               = $0111; //for when thumbnail is a TIFF
+  ttStripOffsets              = $0111; //for when thumbnail is a TIFF
+  ttStripOffset = ttStripOffsets deprecated;
   ttSamplesPerPixel           = $0115; //shouldn't be used for a JPEG thumbnail
   ttRowsPerStrip              = $0116; //shouldn't be used for a JPEG thumbnail
-  ttStripByteCount            = $0117; //for when thumbnail is a TIFF
+  ttStripByteCounts           = $0117; //for when thumbnail is a TIFF
+  ttStripByteCount = ttStripByteCounts deprecated;
   ttPlanarConfiguration       = $011C; //shouldn't be used for a JPEG thumbnail
+  ttTileOffsets               = $0144; //shouldn't be used for a JPEG thumbnail
+  ttTileByteCounts            = $0145; //shouldn't be used for a JPEG thumbnail
+  ttJPEGProc                  = $0200; //for old-style TIFF-JPEG
   ttJPEGIFOffset              = $0201;
   ttJPEGIFByteCount           = $0202;
   ttThumbnailOffset = ttJPEGIFOffset;

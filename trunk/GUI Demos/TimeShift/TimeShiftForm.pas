@@ -1,7 +1,7 @@
 {**************************************************************************************}
 {                                                                                      }
 { CCR Exif - Delphi class library for reading and writing Exif metadata in JPEG files  }
-{ Version 1.1.2 (2011-01-23)                                                           }
+{ Version 1.5.0 beta                                                                   }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }

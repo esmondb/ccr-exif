@@ -1,7 +1,7 @@
 {**************************************************************************************}
 {                                                                                      }
-{ CCR Exif - Delphi class library for reading and writing Exif metadata in JPEG files  }
-{ Version 1.1.2 (2011-01-23)                                                           }
+{ CCR Exif - Delphi class library for reading and writing image metadata               }
+{ Version 1.5.0 beta                                                                   }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -29,10 +29,11 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs, ExtDlgs,
-  ActnList, StdCtrls, ExtCtrls, ComCtrls, Buttons, CCR.Exif.Demos, XMPBrowserFrame;
+  ActnList, StdCtrls, ExtCtrls, ComCtrls, Buttons, CCR.Exif.Demos, XMPBrowserFrame,
+  Menus;
 
 type
-  TfrmXMPBrowser = class(TForm)
+  TfrmXMPBrowser = class(TForm, IOutputFrameOwner)
     panFooter: TPanel;
     dlgOpen: TOpenPictureDialog;
     btnOpen: TBitBtn;
@@ -42,12 +43,19 @@ type
     tabResaved: TTabSheet;
     ActionList: TActionList;
     actOpen: TAction;
+    lblURI: TLabel;
+    mnuURI: TPopupMenu;
+    itmCopyURI: TMenuItem;
     procedure actOpenExecute(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure btnExitClick(Sender: TObject);
+    procedure itmCopyURIClick(Sender: TObject);
+    procedure lblURIContextPopup(Sender: TObject; MousePos: TPoint;
+      var Handled: Boolean);
   private
     FOriginalFrame, FResavedFrame: TOutputFrame;
   protected
+    procedure ActiveURIChanged(const NewURI: string);
     procedure DoFileOpen(const FileName1, FileName2: string); override;
   end;
 
@@ -55,6 +63,8 @@ var
   frmXMPBrowser: TfrmXMPBrowser;
 
 implementation
+
+uses ClipBrd;
 
 {$R *.dfm}
 
@@ -85,7 +95,12 @@ begin
   SupportOpeningFiles := True;
 end;
 
-procedure TfrmXMPBrowser.DoFileOpen(const FileName1, FileName2: string); 
+procedure TfrmXMPBrowser.ActiveURIChanged(const NewURI: string);
+begin
+  lblURI.Caption := NewURI;
+end;
+
+procedure TfrmXMPBrowser.DoFileOpen(const FileName1, FileName2: string);
 begin
   FOriginalFrame.LoadFromFile(FileName1);
   if FileName2 = '' then Exit;
@@ -102,6 +117,17 @@ end;
 procedure TfrmXMPBrowser.actOpenExecute(Sender: TObject);
 begin
   if dlgOpen.Execute then OpenFile(dlgOpen.FileName);
+end;
+
+procedure TfrmXMPBrowser.itmCopyURIClick(Sender: TObject);
+begin
+  Clipboard.AsText := lblURI.Caption;
+end;
+
+procedure TfrmXMPBrowser.lblURIContextPopup(Sender: TObject; MousePos: TPoint;
+  var Handled: Boolean);
+begin
+  if lblURI.GetTextLen = 0 then Handled := True; //suppress if nothing to copy
 end;
 
 end.

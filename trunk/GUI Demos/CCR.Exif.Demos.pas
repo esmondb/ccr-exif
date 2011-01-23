@@ -1,7 +1,7 @@
 {**************************************************************************************}
 {                                                                                      }
-{ CCR Exif - Delphi class library for reading and writing Exif metadata in JPEG files  }
-{ Version 1.1.2 (2011-01-23)                                                           }
+{ CCR Exif - Delphi class library for reading and writing image metadata               }
+{ Version 1.5.0 beta                                                                   }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -14,29 +14,31 @@
 { The Original Code is CCR.Exif.Demos.pas.                                             }
 {                                                                                      }
 { The Initial Developer of the Original Code is Chris Rolliston. Portions created by   }
-{ Chris Rolliston are Copyright (C) 2009-2011 Chris Rolliston. All Rights Reserved.    }
+{ Chris Rolliston are Copyright (C) 2010 Chris Rolliston. All Rights Reserved.         }
 {                                                                                      }
 {**************************************************************************************}
 
 unit CCR.Exif.Demos;
-{
-  Small support unit for the demo programs.
-}
+
 interface
+
+{$IF CompilerVersion < 18.5}
+  {$DEFINE PreVistaVCL}
+{$IFEND}
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms
-  {$IF CompilerVersion < 18.5}, XPMan{$IFEND};
+  {$IFDEF PreVistaVCL}, XPMan{$ENDIF};
 
 type
-  {$IF CompilerVersion < 18.5}
+  {$IFDEF PreVistaVCL}
   TApplicationHelper = class helper for TApplication
   private
     procedure DummySetter(Value: Boolean);
   public
     property MainFormOnTaskbar: Boolean write DummySetter;
   end;
-  {$IFEND}
+  {$ENDIF}
 
   TForm = class(Forms.TForm)
   strict private const
@@ -62,13 +64,13 @@ function TestMode: Boolean;
 implementation
 
 uses
-  ShellApi, CCR.Exif.Consts, CCR.Exif.StreamHelper;
+  ShellApi, CCR.Exif.Consts, CCR.Exif.BaseUtils;
 
-{$IF CompilerVersion < 18.5}
+{$IFDEF PreVistaVCL}
 procedure TApplicationHelper.DummySetter(Value: Boolean);
 begin
 end;
-{$IFEND}
+{$ENDIF}
 
 procedure CreateNewExeInstance(const FileName: string);
 var
@@ -146,7 +148,12 @@ begin
   try
     Caption := ExtractFileName(FileName) + ' - ' + Application.Title;
     FFileName := FileName;
-    DoFileOpen(FileName, FileToCompare);
+    try
+      DoFileOpen(FileName, FileToCompare);
+    except
+      Caption := Application.Title;
+      raise;
+    end;
   finally
     Screen.Cursor := SavedCursor;
   end;

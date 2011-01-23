@@ -1,7 +1,7 @@
 {**************************************************************************************}
 {                                                                                      }
 { CCR Exif - Delphi class library for reading and writing Exif metadata in JPEG files  }
-{ Version 1.1.2 (2011-01-23)                                                           }
+{ Version 1.5.0 beta                                                                   }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -17,8 +17,13 @@
 { Chris Rolliston are Copyright (C) 2009-2011 Chris Rolliston. All Rights Reserved.    }
 {                                                                                      }
 {**************************************************************************************}
-
-unit CCR.Exif.JPEGUtils;
+{$I CCR.Exif.inc}
+unit CCR.Exif.JPEGUtils
+{$IFDEF DEPCON}
+deprecated 'Use CCR.Exif.BaseUtils instead'
+{$ELSE}
+{$MESSAGE WARN 'CCR.Exif.JPEGUtils is deprecated: use CCR.Exif.BaseUtils instead'}
+{$ENDIF};
 
 interface
 
@@ -106,8 +111,6 @@ type
     property Data: TCustomMemoryStream read GetData;
   end;
 
-  IJPEGSegment = interface;
-
   TAdobeApp13Enumerator = class
   strict private
     FCurrent: IAdobeBlock;
@@ -155,11 +158,11 @@ type
   ['{138192CD-85DD-4CEB-B1A7-4678C7D67C88}']
     function GetOffset: Int64;
     function GetOffsetOfData: Int64;
-    function GetTotalSize: Integer;
+    function GetTotalSize: Word;
 
     property Offset: Int64 read GetOffset;
     property OffsetOfData: Int64 read GetOffsetOfData;
-    property TotalSize: Integer read GetTotalSize;
+    property TotalSize: Word read GetTotalSize;
   end;
 
   IJPEGHeaderParser = interface
@@ -170,7 +173,7 @@ type
   end;
 
 const
-  JPEGSegmentHeaderSize = 4;
+  JPEGSegmentHeaderSize = 4 deprecated {$IFDEF DEPCON}'Use TJPEGSegment.HeaderSize in CCR.Exif.BaseUtils instead'{$ENDIF};
 
   AllJPEGMarkers = [Low(TJPEGMarker)..High(TJPEGMarker)];
   AnyJPEGMarker = AllJPEGMarkers;
@@ -225,12 +228,12 @@ function HasJPEGHeader(const FileName: string): Boolean; overload;
 function GetJPEGDataSize(Data: TStream): Int64; overload;
 function GetJPEGDataSize(JPEG: TJPEGImage): Int64; overload;
 
-procedure WriteJPEGFileHeaderToStream(Stream: TStream); inline;
+procedure WriteJPEGFileHeaderToStream(Stream: TStream); inline; deprecated {$IFDEF DEPCON}'Use WriteJPEGFileHeader in CCR.Exif.BaseUtils instead'{$ENDIF};
 procedure WriteJPEGSegmentToStream(Stream: TStream; MarkerNum: TJPEGMarker;
-  const Data; DataSize: Word); overload;
+  const Data; DataSize: Word); overload; deprecated {$IFDEF DEPCON}'Use WriteJPEGSegment in CCR.Exif.BaseUtils instead'{$ENDIF};
 procedure WriteJPEGSegmentToStream(Stream: TStream; MarkerNum: TJPEGMarker;
-  Data: TStream; DataSize: Word = 0); overload;
-procedure WriteJPEGSegmentToStream(Stream: TStream; Segment: IJPEGSegment); overload;
+  Data: TStream; DataSize: Word = 0); overload; deprecated {$IFDEF DEPCON}'Use WriteJPEGSegment in CCR.Exif.BaseUtils instead'{$ENDIF};
+procedure WriteJPEGSegmentToStream(Stream: TStream; Segment: IJPEGSegment); overload; deprecated {$IFDEF DEPCON}'Use WriteJPEGSegment in CCR.Exif.BaseUtils instead'{$ENDIF};
 
 const
   NewIPTCTagMarker: Byte = 28;
@@ -248,7 +251,7 @@ function RemoveJPEGSegments(Image: TJPEGImage; Markers: TJPEGMarkers): TJPEGMark
 
 implementation
 
-uses CCR.Exif.Consts;
+uses RTLConsts, CCR.Exif.Consts;
 
 type
   TAdobeBlock = class(TInterfacedObject, IStreamPersist, IAdobeBlock)
@@ -284,7 +287,7 @@ type
     { IFoundJPEGSegment }
     function GetOffset: Int64;
     function GetOffsetOfData: Int64;
-    function GetTotalSize: Integer;
+    function GetTotalSize: Word;
   public
     constructor Create(AMakerNum: TJPEGMarker; ASource: TStream; ADataSize: Integer); overload;
   end;
@@ -590,9 +593,9 @@ begin
   Result := FOffset + SizeOf(TJPEGSegmentHeader);
 end;
 
-function TFoundJPEGSegment.GetTotalSize: Integer;
+function TFoundJPEGSegment.GetTotalSize: Word;
 begin
-  Result := Data.Size + SizeOf(TJPEGSegmentHeader);
+  Result := Word(Data.Size + SizeOf(TJPEGSegmentHeader));
   if MarkerNum in MarkersWithNoData then Dec(Result, 2);
 end;
 

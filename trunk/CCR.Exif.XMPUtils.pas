@@ -1,7 +1,7 @@
 ﻿{**************************************************************************************}
 {                                                                                      }
-{ CCR Exif - Delphi class library for reading and writing Exif metadata in JPEG files  }
-{ Version 1.1.2 (2011-01-23)                                                           }
+{ CCR Exif - Delphi class library for reading and writing image metadata               }
+{ Version 1.5.0 beta                                                                   }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -18,6 +18,7 @@
 {                                                                                      }
 {**************************************************************************************}
 
+{$I CCR.Exif.inc}
 unit CCR.Exif.XMPUtils;
 {
   This unit implements a IDOMDocument/IDOMNode-based XMP packet parser and editor. Since
@@ -40,11 +41,7 @@ unit CCR.Exif.XMPUtils;
 interface
 
 uses
-  SysUtils, Classes, xmldom, CCR.Exif.StreamHelper;
-
-{$IF CompilerVersion > 19}
-  {$DEFINE DEPCON}
-{$IFEND}
+  SysUtils, Classes, Graphics, xmldom, CCR.Exif.BaseUtils, CCR.Exif.TiffUtils;
 
 type
   EInvalidXMPPacket = class(Exception);
@@ -55,8 +52,8 @@ type
   TXMPPacket = class;
 
   TXMPNamespace = (xsUnknown, xsRDF,
-    xsCameraRaw, xsColorant, xsDimensions, xsDublinCore,
-    xsFont, xsExif, xsExifAux, xsIPTC, xsJob, xsMicrosoftPhoto, xsPDF, xsPhotoshop, xsResourceEvent{*},
+    xsCameraRaw, xsColorant, xsDimensions, xsDublinCore, xsFont, xsExif,
+    xsExifAux, xsIPTC, xsJob, xsMicrosoftPhoto, xsPDF, xsPhotoshop, xsResourceEvent{*},
     xsResourceRef{*}, xsThumbnail, xsTIFF, xsVersion, xsXMPBasic, xsXMPBasicJobTicket,
     xsXMPDynamicMedia, xsXMPMediaManagement, xsXMPPagedText, xsXMPRights);
   TXMPKnownNamespace = xsRDF..High(TXMPNamespace);
@@ -180,9 +177,9 @@ type
     property SubPropertyCount: Integer read GetSubPropertyCount write SetSubPropertyCount;
   end;
 
-  TXMPSchemaKind = TXMPNamespace; //will be deprecated for what it's now aliased to
-  TXMPKnownSchemaKind = TXMPKnownNamespace; //ditto
-  TXMPKnownSchemaKinds = set of TXMPKnownNamespace;
+  TXMPSchemaKind = TXMPNamespace deprecated {$IFDEF DEPCON}'Renamed TXMPNamespace'{$ENDIF};
+  TXMPKnownSchemaKind = TXMPKnownNamespace deprecated {$IFDEF DEPCON}'Renamed TXMPKnownNamespace'{$ENDIF};
+  TXMPKnownSchemaKinds = set of TXMPKnownNamespace deprecated {$IFDEF DEPCON}'Use set of TXMPKnownNamespace'{$ENDIF};
 
   TXMPSchema = class(TInterfacedPersistent, IXMPPropertyCollection)
   strict private
@@ -220,7 +217,7 @@ type
 
   TXMPWritePolicy = (xwAlwaysUpdate, xwUpdateIfExists, xwRemove);
 
-  TXMPPacket = class(TInterfacedPersistent, IStreamPersist)
+  TXMPPacket = class(TComponent, IStreamPersist, IStreamPersistEx, ITiffRewriteCallback)
   public type
     TEnumerator = record
     private
@@ -235,42 +232,58 @@ type
     TLoadErrorEvent = procedure (Sender: TXMPPacket; Source: TStream) of object;
   strict private
     FAboutAttributeValue: UnicodeString;
+    FDataToLazyLoad: IMetadataBlock;
     FRawXMLCache: UTF8String;
     FSchemas: TUnicodeStringList;
+    FTiffRewriteCallback: TSimpleTiffRewriteCallbackImpl;
     FUpdatePolicy: TXMPWritePolicy;
-    FWriteSegmentHeader: Boolean;
     FOnChange: TNotifyEvent;
     FOnLoadError: TLoadErrorEvent;
     procedure Clear(StillUpdating: Boolean); overload;
-    function GetEmpty: Boolean;
+    procedure GetGraphicSaveMethod(Stream: TStream; var Method: TGraphicSaveMethod);
     function GetRawXML: UTF8String;
     function GetSchema(Index: Integer): TXMPSchema;
     function GetSchemaCount: Integer;
     procedure SetAboutAttributeValue(const Value: UnicodeString);
+    procedure SetDataToLazyLoad(const Value: IMetadataBlock);
     procedure SetRawXML(const XML: UTF8String);
+    procedure DoSaveToJPEG(InStream, OutStream: TStream); inline;
+    procedure DoSaveToPSD(InStream, OutStream: TStream);
+    procedure DoSaveToTIFF(InStream, OutStream: TStream);
     procedure DoUpdateProperty(Policy: TXMPWritePolicy; SchemaKind: TXMPKnownNamespace;
       const PropName: UnicodeString; PropKind: TXMPPropertyKind; const NewValue: UnicodeString);
     procedure DoUpdateArrayProperty(SchemaKind: TXMPKnownNamespace;
       const PropName: UnicodeString; ArrayPropKind: TXMPPropertyKind;
       const NewValues: array of UnicodeString); overload;
   protected
+    procedure AssignTo(Dest: TPersistent); override;
     procedure Changed(ResetRawXMLCache: Boolean = True); virtual;
     function FindOrAddSchema(const URI: UnicodeString): TXMPSchema; overload;
     function FindOrAddSchema(Kind: TXMPKnownNamespace): TXMPSchema; overload; inline;
+    function GetEmpty: Boolean; inline;
     procedure LoadError(Source: TStream); virtual;
+    procedure NeedLazyLoadedData;
     property UpdatePolicy: TXMPWritePolicy read FUpdatePolicy write FUpdatePolicy;
+    property TiffRewriteCallback: TSimpleTiffRewriteCallbackImpl read FTiffRewriteCallback implements ITiffRewriteCallback;
   public
-    constructor Create;
+    constructor Create(AOwner: TComponent = nil); override;
+    class function CreateAsSubComponent(AOwner: TComponent): TXMPPacket; //use a class function rather than a constructor to avoid compiler warning re C++ accessibility
     destructor Destroy; override;
     procedure Assign(Source: TPersistent); override;
-    procedure Clear; overload;
+    procedure Clear; overload; inline;
     function FindSchema(const URI: UnicodeString; var Schema: TXMPSchema): Boolean; overload;
-    function FindSchema(Kind: TXMPKnownNamespace; var Schema: TXMPSchema): Boolean; overload;
+    function FindSchema(Kind: TXMPKnownNamespace; var Schema: TXMPSchema): Boolean; overload; inline;
     function GetEnumerator: TEnumerator;
     procedure LoadFromFile(const FileName: string);
     procedure LoadFromStream(Stream: TStream);
-    function LoadFromJPEG(const JPEGFileName: string): Boolean;
+    { Whether or not metadata was found, LoadFromGraphic returns True if the graphic
+      format was one recognised as one we could extract XMP data from and False otherwise. }
+    function LoadFromGraphic(Stream: TStream): Boolean; overload;
+    function LoadFromGraphic(Graphic: TGraphic): Boolean; overload;
+    function LoadFromGraphic(const FileName: string): Boolean; overload;
     procedure SaveToFile(const FileName: string);
+    procedure SaveToGraphic(const FileName: string); overload;
+    procedure SaveToGraphic(Graphic: TGraphic); overload;
     procedure SaveToStream(Stream: TStream);
     function TryLoadFromStream(Stream: TStream): Boolean;
     procedure RemoveProperty(SchemaKind: TXMPKnownNamespace;
@@ -294,121 +307,32 @@ type
     procedure UpdateDateTimeProperty(SchemaKind: TXMPKnownNamespace;
       const PropName: UnicodeString; const NewValue: TDateTime; ApplyLocalBias: Boolean = False); overload;
     property AboutAttributeValue: UnicodeString read FAboutAttributeValue write SetAboutAttributeValue;
-    property Empty: Boolean read GetEmpty;
-    property RawXML: UTF8String read GetRawXML write SetRawXML;
-    property SchemaCount: Integer read GetSchemaCount;
+    property DataToLazyLoad: IMetadataBlock read FDataToLazyLoad write SetDataToLazyLoad;
     property Schemas[Kind: TXMPKnownNamespace]: TXMPSchema read FindOrAddSchema; default;
     property Schemas[Index: Integer]: TXMPSchema read GetSchema; default;
     property Schemas[const URI: UnicodeString]: TXMPSchema read FindOrAddSchema; default;
-    property WriteSegmentHeader: Boolean read FWriteSegmentHeader write FWriteSegmentHeader;
+  public //deprecated methods - to be removed in a future release
+    function LoadFromJPEG(const JPEGFileName: string): Boolean; inline; deprecated {$IFDEF DEPCON}'Use LoadFromGraphic'{$ENDIF};
+  published
+    property Empty: Boolean read GetEmpty;
+    property RawXML: UTF8String read GetRawXML write SetRawXML;
+    property SchemaCount: Integer read GetSchemaCount;
     property OnChange: TNotifyEvent read FOnChange write FOnChange;
     property OnLoadError: TLoadErrorEvent read FOnLoadError write FOnLoadError;
   end;
 
 const
   XMPBoolStrs: array[Boolean] of string = ('False', 'True'); //case as per the XMP spec
-  XMPSegmentHeader: array[0..28] of AnsiChar = 'http://ns.adobe.com/xap/1.0/'#0;
 
 function DateTimeToXMPString(Value: TDateTime; ApplyLocalBias: Boolean): UnicodeString;
 function EscapeXML(const Source: UnicodeString): UnicodeString;
-function HasXMPSegmentHeader(Stream: TStream): Boolean;
-function UTF8ToString(const UTF8: UTF8String): string; inline; overload;
-function UTF8ToString(UTF8Buffer: Pointer; ByteLen: Integer): string; overload;
+function HasXMPSegmentHeader(Stream: TStream): Boolean; deprecated {$IFDEF DEPCON}'Use Segment.HasXMPHeader'{$ENDIF};
 
 implementation
 
 uses
-  Math, RTLConsts, Contnrs, StrUtils, XSBuiltIns, CCR.Exif.Consts, CCR.Exif.JPEGUtils; //XSBuiltIns for DateTimeToXMLTime
-
-function DateTimeToXMPString(Value: TDateTime; ApplyLocalBias: Boolean): UnicodeString;
-begin
-  Result := DateTimeToXMLTime(Value, ApplyLocalBias)
-end;
-
-function DefinesNS(const Attr: IDOMNode): Boolean;
-begin
-  Result := (Attr.prefix = 'xmlns') or (Attr.namespaceURI = 'http://www.w3.org/2000/xmlns/');
-end;
-
-function EscapeXML(const Source: UnicodeString): UnicodeString;
-var
-  Ch: WideChar;
-begin
-  with TMemoryStream.Create do
-  try
-    for Ch in Source do
-      case Ch of
-        '<': WriteWideChars('&lt;', SmallEndian);
-        '>': WriteWideChars('&gt;', SmallEndian);
-        '&': WriteWideChars('&amp;', SmallEndian);
-        '''': WriteWideChars('&apos;', SmallEndian);
-        '"': WriteWideChars('&quot;', SmallEndian);
-      else WriteBuffer(Ch, 2);
-      end;
-    SetString(Result, PWideChar(Memory), Size div 2);
-  finally
-    Free;
-  end;
-end;
-function FindRootRDFNode(const Document: IDOMDocument; out Node: IDOMNode): Boolean;
-begin
-  Result := True;
-  Node := Document.firstChild;
-  while Node <> nil do
-  begin
-    if Node.nodeType = ELEMENT_NODE then
-      case IndexStr(Node.localName, ['RDF', 'xmpmeta', 'xapmeta']) of
-        0: Exit; //support ExifTool's XML dumps, which don't parent the RDF node
-        1..2: Break;
-      end;
-    Node := Node.nextSibling;
-  end;
-  if Node <> nil then
-  begin
-    Node := Node.firstChild;
-    while Node <> nil do
-    begin
-      if (Node.nodeName = 'rdf:RDF') and (Node.nodeType = ELEMENT_NODE) then Break;
-      Node := Node.nextSibling;
-    end;
-  end;
-  Result := (Node <> nil);
-end;
-
-function HasXMPSegmentHeader(Stream: TStream): Boolean;
-begin
-  Result := Stream.TryReadHeader(XMPSegmentHeader, SizeOf(XMPSegmentHeader));
-  if Result then Stream.Seek(-SizeOf(XMPSegmentHeader), soCurrent);
-end;
-
-procedure UpdateChildNamespaceInfos(const Parent: IXMPPropertyCollection);
-var
-  Prop: TXMPProperty;
-begin
-  for Prop in Parent do
-    if Prop.ParentNamespace then
-    begin
-      Prop.NamespaceInfo.DoAssign(Parent.NamespaceInfo);
-      UpdateChildNamespaceInfos(Prop);
-    end;
-end;
-
-function UTF8ToString(const UTF8: UTF8String): string;
-begin
-  {$IFDEF UNICODE}
-  Result := string(UTF8);
-  {$ELSE}
-  Result := Utf8ToAnsi(UTF8);
-  {$ENDIF}
-end;
-
-function UTF8ToString(UTF8Buffer: Pointer; ByteLen: Integer): string;
-var
-  S: UTF8String;
-begin
-  SetString(S, PAnsiChar(UTF8Buffer), ByteLen);
-  Result := UTF8ToString(S);
-end;
+  Math, RTLConsts, Contnrs, StrUtils, XSBuiltIns, //XSBuiltIns for DateTimeToXMLTime
+  CCR.Exif.Consts, CCR.Exif.TagIDs, CCR.Exif.StreamHelper;
 
 const
   XMLLangAttrName = 'xml:lang';
@@ -445,6 +369,79 @@ type
   public
     constructor Create(Source: TList);
   end;
+
+function DateTimeToXMPString(Value: TDateTime; ApplyLocalBias: Boolean): UnicodeString;
+begin
+  Result := DateTimeToXMLTime(Value, ApplyLocalBias)
+end;
+
+function DefinesNS(const Attr: IDOMNode): Boolean;
+begin
+  Result := (Attr.prefix = 'xmlns') or (Attr.namespaceURI = 'http://www.w3.org/2000/xmlns/');
+end;
+
+function EscapeXML(const Source: UnicodeString): UnicodeString;
+var
+  Ch: WideChar;
+begin
+  with TMemoryStream.Create do
+  try
+    for Ch in Source do
+      case Ch of
+        '<': WriteWideChars('&lt;', SmallEndian);
+        '>': WriteWideChars('&gt;', SmallEndian);
+        '&': WriteWideChars('&amp;', SmallEndian);
+        '''': WriteWideChars('&apos;', SmallEndian);
+        '"': WriteWideChars('&quot;', SmallEndian);
+      else WriteBuffer(Ch, 2);
+      end;
+    SetString(Result, PWideChar(Memory), Size div 2);
+  finally
+    Free;
+  end;
+end;
+
+function FindRootRDFNode(const Document: IDOMDocument; out Node: IDOMNode): Boolean;
+begin
+  Result := True;
+  Node := Document.firstChild;
+  while Node <> nil do
+  begin
+    if Node.nodeType = ELEMENT_NODE then
+      case IndexStr(Node.localName, ['RDF', 'xmpmeta', 'xapmeta']) of
+        0: Exit; //support ExifTool's XML dumps, which don't parent the RDF node
+        1..2: Break;
+      end;
+    Node := Node.nextSibling;
+  end;
+  if Node <> nil then
+  begin
+    Node := Node.firstChild;
+    while Node <> nil do
+    begin
+      if (Node.nodeName = 'rdf:RDF') and (Node.nodeType = ELEMENT_NODE) then Break;
+      Node := Node.nextSibling;
+    end;
+  end;
+  Result := (Node <> nil);
+end;
+
+function HasXMPSegmentHeader(Stream: TStream): Boolean;
+begin
+  Result := Stream.TryReadHeader(TJPEGSegment.XMPHeader, SizeOf(TJPEGSegment.XMPHeader), True);
+end;
+
+procedure UpdateChildNamespaceInfos(const Parent: IXMPPropertyCollection);
+var
+  Prop: TXMPProperty;
+begin
+  for Prop in Parent do
+    if Prop.ParentNamespace then
+    begin
+      Prop.NamespaceInfo.DoAssign(Parent.NamespaceInfo);
+      UpdateChildNamespaceInfos(Prop);
+    end;
+end;
 
 { TKnownXMPNamespaces }
 
@@ -534,6 +531,8 @@ begin
   else
     Namespace := xsUnknown;
 end;
+
+{ TStringListThatOwnsItsObjects }
 
 destructor TStringListThatOwnsItsObjects.Destroy;
 begin
@@ -998,7 +997,7 @@ begin
   if NewCount < 0 then NewCount := 0;
   if NewCount = FSubProperties.Count then Exit;
   if not SupportsSubProperties then
-    raise EInvalidXMPOperation.Create(SSubPropertiesNotSupported);
+    raise EInvalidXMPOperation.CreateRes(@SSubPropertiesNotSupported);
   if NewCount < FSubProperties.Count then
     FSubProperties.Count := NewCount
   else
@@ -1063,7 +1062,7 @@ var
 begin
   case Kind of
     xpSimple: FValue := NewValue;
-    xpStructure: raise EInvalidXMPOperation.Create(SCannotWriteSingleValueToStructureProperty);
+    xpStructure: raise EInvalidXMPOperation.CreateRes(@SCannotWriteSingleValueToStructureProperty);
     xpAltArray: SubProperties[DefaultLangIdent].WriteValue(NewValue);
   else
     Strings := TUnicodeStringList.Create;
@@ -1184,7 +1183,7 @@ begin
 end;
 
 function TXMPSchema.LoadProperty(const ASourceNode: IDOMNode): TXMPProperty;
-begin
+begin                          
   FLoadingProperty := True;
   try
     if FProperties.Count = 0 then
@@ -1243,16 +1242,26 @@ end;
 
 { TXMPPacket }
 
-constructor TXMPPacket.Create;
+constructor TXMPPacket.Create(AOwner: TComponent);
 begin
+  inherited Create(AOwner);
   FSchemas := TStringListThatOwnsItsObjects.Create;
   FSchemas.CaseSensitive := False;
   FSchemas.Sorted := True;
+  FTiffRewriteCallback := TSimpleTiffRewriteCallbackImpl.Create(Self, ttXMP);
+end;
+
+class function TXMPPacket.CreateAsSubComponent(AOwner: TComponent): TXMPPacket;
+begin
+  Result := Create(AOwner);
+  Result.Name := 'XMPPacket';
+  Result.SetSubComponent(True);
 end;
 
 destructor TXMPPacket.Destroy;
 begin
   FSchemas.Free;
+  FTiffRewriteCallback.Free;
   inherited;
 end;
 
@@ -1262,9 +1271,25 @@ begin
     Clear
   else if Source is TXMPPacket then
   begin
-    RawXML := TXMPPacket(Source).RawXML;
-    WriteSegmentHeader := TXMPPacket(Source).WriteSegmentHeader;
+    if TXMPPacket(Source).DataToLazyLoad <> nil then
+      DataToLazyLoad := TXMPPacket(Source).DataToLazyLoad
+    else
+      RawXML := TXMPPacket(Source).RawXML;
   end
+  else if Source is TStrings then
+    RawXML := UTF8Encode(TStrings(Source).Text)
+  else if Source is TUnicodeStrings then
+    RawXML := UTF8Encode(TUnicodeStrings(Source).Text)
+  else
+    inherited;
+end;
+
+procedure TXMPPacket.AssignTo(Dest: TPersistent);
+begin
+  if Dest is TStrings then
+    TStrings(Dest).Text := UTF8ToString(RawXML)
+  else if Dest is TUnicodeStrings then
+    TUnicodeStrings(Dest).Text := UTF8ToString(RawXML)
   else
     inherited;
 end;
@@ -1277,6 +1302,7 @@ end;
 
 procedure TXMPPacket.Clear(StillUpdating: Boolean);
 begin
+  FDataToLazyLoad := nil;
   if (FSchemas.Count = 0) and (FAboutAttributeValue = '') then Exit;
   FAboutAttributeValue := '';
   FSchemas.Clear;
@@ -1288,10 +1314,39 @@ begin
   Clear(False);
 end;
 
+procedure TXMPPacket.DoSaveToJPEG(InStream, OutStream: TStream);
+begin
+  UpdateApp1JPEGSegments(InStream, OutStream, nil, Self);
+end;
+
+procedure TXMPPacket.DoSaveToPSD(InStream, OutStream: TStream);
+var
+  Block: IAdobeResBlock;
+  Info: TPSDInfo;
+  NewBlocks: IInterfaceList;
+  StartPos: Int64;
+begin
+  StartPos := InStream.Position;
+  NewBlocks := TInterfaceList.Create;
+  if not Empty then NewBlocks.Add(CreateAdobeBlock(TAdobeResBlock.XMPTypeID, Self));
+  for Block in ParsePSDHeader(InStream, Info) do
+    if not Block.IsXMPBlock then NewBlocks.Add(Block);
+  WritePSDHeader(OutStream, Info.Header);
+  WritePSDResourceSection(OutStream, NewBlocks);
+  InStream.Position := StartPos + Info.LayersSectionOffset;
+  OutStream.CopyFrom(InStream, InStream.Size - InStream.Position);
+end;
+
+procedure TXMPPacket.DoSaveToTIFF(InStream, OutStream: TStream);
+begin
+  RewriteTiff(InStream, OutStream, Self);
+end;
+
 function TXMPPacket.FindSchema(const URI: UnicodeString; var Schema: TXMPSchema): Boolean;
 var
   Index: Integer;
 begin
+  NeedLazyLoadedData;
   Result := FSchemas.Find(URI, Index);
   if Result then Schema := FSchemas.Objects[Index] as TXMPSchema;
 end;
@@ -1305,6 +1360,7 @@ function TXMPPacket.FindOrAddSchema(const URI: UnicodeString): TXMPSchema;
 var
   Index: Integer;
 begin
+  NeedLazyLoadedData;
   if FSchemas.Find(URI, Index) then
     Result := FSchemas.Objects[Index] as TXMPSchema
   else
@@ -1321,6 +1377,7 @@ end;
 
 procedure TXMPPacket.SetAboutAttributeValue(const Value: UnicodeString);
 begin
+  NeedLazyLoadedData;
   if Value = FAboutAttributeValue then Exit;
   FAboutAttributeValue := Value;
   Changed;
@@ -1328,12 +1385,22 @@ end;
 
 function TXMPPacket.GetEmpty: Boolean;
 begin
-  Result := (SchemaCount = 0);
+  Result := (DataToLazyLoad = nil) and (SchemaCount = 0);
 end;
 
 function TXMPPacket.GetEnumerator: TEnumerator;
 begin
   Result := TEnumerator.Create(Self);
+end;
+
+procedure TXMPPacket.GetGraphicSaveMethod(Stream: TStream; var Method: TGraphicSaveMethod);
+begin
+  if HasJPEGHeader(Stream) then
+    Method := DoSaveToJPEG
+  else if HasPSDHeader(Stream) then
+    Method := DoSaveToPSD
+  else if HasTiffHeader(Stream) then
+    Method := DoSaveToTIFF
 end;
 
 function TXMPPacket.GetRawXML: UTF8String;
@@ -1353,30 +1420,15 @@ begin
   Result := FRawXMLCache;
 end;
 
-procedure TXMPPacket.SetRawXML(const XML: UTF8String);
-var
-  Stream: TUserMemoryStream;
-begin
-  if XML = '' then
-    Clear
-  else
-  begin
-    Stream := TUserMemoryStream.Create(Pointer(XML), Length(XML));
-    try
-      LoadFromStream(Stream);
-    finally
-      Stream.Free;
-    end;
-  end;
-end;
-
 function TXMPPacket.GetSchema(Index: Integer): TXMPSchema;
 begin
+  NeedLazyLoadedData;
   Result := FSchemas.Objects[Index] as TXMPSchema;
 end;
 
 function TXMPPacket.GetSchemaCount: Integer;
 begin
+  NeedLazyLoadedData;
   Result := FSchemas.Count;
 end;
 
@@ -1385,7 +1437,7 @@ begin
   if Assigned(FOnLoadError) then
     FOnLoadError(Self, Source)
   else
-    raise EInvalidXMPPacket.Create(SInvalidXMPPacket);
+    raise EInvalidXMPPacket.CreateRes(@SInvalidXMPPacket);
 end;
 
 procedure TXMPPacket.LoadFromFile(const FileName: string);
@@ -1400,19 +1452,77 @@ begin
   end;
 end;
 
-function TXMPPacket.LoadFromJPEG(const JPEGFileName: string): Boolean;
+function TXMPPacket.LoadFromGraphic(Stream: TStream): Boolean;
 var
+  Block: IAdobeResBlock;
+  Directory: IFoundTiffDirectory;
+  PSDInfo: TPSDInfo;
   Segment: IFoundJPEGSegment;
+  Tag: ITiffTag;
 begin
-  for Segment in JPEGHeader(JPEGFileName, [jmApp1]) do
-    if Segment.Data.TryReadHeader(XMPSegmentHeader, SizeOf(XMPSegmentHeader)) then
+  Result := True;
+  if HasJPEGHeader(Stream) then
+  begin
+    for Segment in JPEGHeader(Stream, [jmApp1]) do
+      if Segment.IsXMPBlock then
+      begin
+        LoadFromStream(Segment.Data);
+        Exit;
+      end;
+  end
+  else if HasPSDHeader(Stream) then
+  begin
+    for Block in ParsePSDHeader(Stream, PSDInfo) do
+      if Block.IsXMPBlock then
+      begin
+        LoadFromStream(Block.Data);
+        Exit;
+      end;
+  end
+  else if HasTiffHeader(Stream) then
+    for Directory in ParseTiff(Stream) do
     begin
-      LoadFromStream(Segment.Data);
-      Result := True;
-      Exit;
-    end;
+      if Directory.FindTag(ttXMP, Tag) and Tag.IsXMPBlock then
+      begin
+        LoadFromStream(Tag.Data);
+        Exit;
+      end;
+      Break; //only interested in the main IFD
+    end
+  else
+    Result := False;
   Clear;
-  Result := False;
+end;
+
+function TXMPPacket.LoadFromGraphic(Graphic: TGraphic): Boolean;
+var
+  Stream: TMemoryStream;
+begin
+  Stream := TMemoryStream.Create;
+  try
+    Graphic.SaveToStream(Stream);
+    Stream.Position := 0;
+    Result := LoadFromGraphic(Stream);
+  finally
+    Stream.Free;
+  end;
+end;
+
+function TXMPPacket.LoadFromGraphic(const FileName: string): Boolean;
+var
+  Stream: TFileStream;
+begin
+  Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
+  try
+    Result := LoadFromGraphic(Stream)
+  finally
+    Stream.Free;
+  end;
+end;
+
+function TXMPPacket.LoadFromJPEG(const JPEGFileName: string): Boolean;
+begin
+  Result := LoadFromGraphic(JPEGFileName);
 end;
 
 procedure TXMPPacket.LoadFromStream(Stream: TStream);
@@ -1420,71 +1530,15 @@ begin
   if not TryLoadFromStream(Stream) then LoadError(Stream);
 end;
 
-function TXMPPacket.TryLoadFromStream(Stream: TStream): Boolean;
+procedure TXMPPacket.NeedLazyLoadedData;
 var
-  I: Integer;
-  CharsPtr: PAnsiChar;
-  Document: IDOMDocument;
-  NewStream: TMemoryStream;
-  PropNode, RootRDFNode, SchemaNode: IDOMNode;
-  URI: UnicodeString;
+  Item: IMetadataBlock;
 begin
-  Result := False;
-  WriteSegmentHeader := Stream.TryReadHeader(XMPSegmentHeader, SizeOf(XMPSegmentHeader));
-  Document := GetDOM.createDocument('', '', nil);
-  NewStream := TMemoryStream.Create;
-  try
-    NewStream.SetSize(Stream.Size - Stream.Position);
-    Stream.ReadBuffer(NewStream.Memory^, NewStream.Size);
-    CharsPtr := NewStream.Memory;
-    for I := NewStream.Size - 1 downto 0 do //MSXML chokes on embedded nulls
-      if CharsPtr[I] = #0 then CharsPtr[I] := ' ';
-    if not (Document as IDOMPersist).loadFromStream(NewStream) then Exit;
-    if not FindRootRDFNode(Document, RootRDFNode) then Exit;
-    Clear(True);
-    if StrLComp(CharsPtr, PAnsiChar('<?xpacket '), 10) = 0 then
-      SetString(FRawXMLCache, CharsPtr, NewStream.Size)
-    else
-      FRawXMLCache := UTF8Encode((Document as IDOMPersist).xml)
-  finally
-    NewStream.Free;
-  end;
-  SchemaNode := RootRDFNode.firstChild;
-  while SchemaNode <> nil do
-  begin
-    if (SchemaNode.nodeType = ELEMENT_NODE) and (SchemaNode.namespaceURI = RDF.URI) and
-      UnicodeSameText(SchemaNode.nodeName, RDF.DescriptionNodeName) then
-    begin
-      if FAboutAttributeValue = '' then
-        with SchemaNode as IDOMElement do
-        begin
-          FAboutAttributeValue := getAttributeNS(RDF.URI, RDF.AboutAttrLocalName);
-          if FAboutAttributeValue = '' then
-            FAboutAttributeValue := getAttribute(RDF.AboutAttrLocalName);
-        end;
-      //look for tags stored as attributes
-      for I := 0 to SchemaNode.attributes.length - 1 do
-      begin
-        PropNode := SchemaNode.attributes.item[I];
-        if DefinesNS(PropNode) then Continue;
-        URI := PropNode.namespaceURI;
-        if (URI <> '') and (URI <> RDF.URI) then
-          Schemas[URI].LoadProperty(PropNode);
-      end;
-      //look for tags stored as element nodes
-      PropNode := SchemaNode.firstChild;
-      while PropNode <> nil do
-      begin
-        URI := PropNode.namespaceURI;
-        if (URI <> '') and (PropNode.nodeType = ELEMENT_NODE) then
-          Schemas[URI].LoadProperty(PropNode);
-        PropNode := PropNode.nextSibling;
-      end;
-    end;
-    SchemaNode := SchemaNode.nextSibling;
-  end;
-  Changed(False);
-  Result := True;
+  if FDataToLazyLoad = nil then Exit;
+  Item := FDataToLazyLoad;
+  FDataToLazyLoad := nil; //in case of an exception, nil this beforehand
+  Item.Data.Seek(0, soFromBeginning);
+  LoadFromStream(Item.Data);
 end;
 
 procedure TXMPPacket.SaveToFile(const FileName: string);
@@ -1497,6 +1551,16 @@ begin
   finally
     Stream.Free;
   end;
+end;
+
+procedure TXMPPacket.SaveToGraphic(const FileName: string);
+begin
+  DoSaveToGraphic(FileName, GetGraphicSaveMethod);
+end;
+
+procedure TXMPPacket.SaveToGraphic(Graphic: TGraphic);
+begin
+  DoSaveToGraphic(Graphic, GetGraphicSaveMethod);
 end;
 
 procedure TXMPPacket.SaveToStream(Stream: TStream);
@@ -1567,7 +1631,7 @@ const
   PacketEnd: UTF8String =
     #9'</rdf:RDF>'#10 +
     '</x:xmpmeta>'#10 +
-    '<?xpacket end="w"?> ';      //The packet wrapper (i.e., the <?xpacket lines) are optional according to the XMP spec,
+    '<?xpacket end="w"?> ';      //The packet wrapper (i.e., the <?xpacket lines) are optional according to the XMP spec, 
   PaddingByte: AnsiChar = ' ';   //but required by Windows Explorer in Vista. Vista also needs a trailing space character,
   DescNodeStart: UnicodeString = //else it doesn't read and raises a spurious error when the user tries to write.
     #9#9'<rdf:Description rdf:about="%s" xmlns:%s="%s">'#10;
@@ -1576,8 +1640,6 @@ const
 var
   Schema: TXMPSchema;
 begin
-  if WriteSegmentHeader then
-    Stream.WriteBuffer(XMPSegmentHeader, SizeOf(XMPSegmentHeader));
   if FRawXMLCache <> '' then
   begin
     Stream.WriteUTF8Chars(FRawXMLCache);
@@ -1585,6 +1647,14 @@ begin
       Stream.WriteBuffer(PaddingByte, 1); //see note above
     Exit;
   end;
+  if FDataToLazyLoad <> nil then
+    with FDataToLazyLoad.Data do
+    begin
+      Position := 0;
+      TryReadHeader(TJPEGSegment.XMPHeader, SizeOf(TJPEGSegment.XMPHeader));
+      Stream.WriteBuffer(Memory^, Size - Position);
+      Exit;
+    end;
   Stream.WriteUTF8Chars(PacketStart);
   for Schema in Self do
   begin
@@ -1594,6 +1664,97 @@ begin
     Stream.WriteUTF8Chars(DescNodeEnd);
   end;
   Stream.WriteUTF8Chars(PacketEnd);
+end;
+
+procedure TXMPPacket.SetDataToLazyLoad(const Value: IMetadataBlock);
+begin
+  if Value = FDataToLazyLoad then Exit;
+  Clear;
+  FDataToLazyLoad := Value;
+end;
+
+procedure TXMPPacket.SetRawXML(const XML: UTF8String);
+var
+  Stream: TUserMemoryStream;
+begin
+  if XML = '' then
+    Clear
+  else
+  begin
+    Stream := TUserMemoryStream.Create(Pointer(XML), Length(XML));
+    try
+      LoadFromStream(Stream);
+    finally
+      Stream.Free;
+    end;
+  end;
+end;
+
+function TXMPPacket.TryLoadFromStream(Stream: TStream): Boolean;
+var
+  I: Integer;
+  CharsPtr: PAnsiChar;
+  Document: IDOMDocument;
+  NewStream: TMemoryStream;
+  PropNode, RootRDFNode, SchemaNode: IDOMNode;
+  URI: UnicodeString;
+begin
+  Result := False;
+  Stream.TryReadHeader(TJPEGSegment.XMPHeader, SizeOf(TJPEGSegment.XMPHeader)); //doesn't matter whether it was there or not
+  Document := GetDOM.createDocument('', '', nil);
+  NewStream := TMemoryStream.Create;
+  try
+    NewStream.SetSize(Stream.Size - Stream.Position);
+    Stream.ReadBuffer(NewStream.Memory^, NewStream.Size);
+    CharsPtr := NewStream.Memory;
+    for I := NewStream.Size - 1 downto 0 do //MSXML chokes on embedded nulls
+      if CharsPtr[I] = #0 then CharsPtr[I] := ' ';
+    if not (Document as IDOMPersist).loadFromStream(NewStream) then Exit;
+    if not FindRootRDFNode(Document, RootRDFNode) then Exit;
+    Clear(True);
+    if StrLComp(CharsPtr, PAnsiChar('<?xpacket '), 10) = 0 then
+      SetString(FRawXMLCache, CharsPtr, NewStream.Size)
+    else
+      FRawXMLCache := UTF8Encode((Document as IDOMPersist).xml)
+  finally
+    NewStream.Free;
+  end;
+  SchemaNode := RootRDFNode.firstChild;
+  while SchemaNode <> nil do
+  begin
+    if (SchemaNode.nodeType = ELEMENT_NODE) and (SchemaNode.namespaceURI = RDF.URI) and
+      UnicodeSameText(SchemaNode.nodeName, RDF.DescriptionNodeName) then
+    begin
+      if FAboutAttributeValue = '' then
+        with SchemaNode as IDOMElement do
+        begin
+          FAboutAttributeValue := getAttributeNS(RDF.URI, RDF.AboutAttrLocalName);
+          if FAboutAttributeValue = '' then
+            FAboutAttributeValue := getAttribute(RDF.AboutAttrLocalName);
+        end;
+      //look for tags stored as attributes
+      for I := 0 to SchemaNode.attributes.length - 1 do
+      begin
+        PropNode := SchemaNode.attributes.item[I];
+        if DefinesNS(PropNode) then Continue;
+        URI := PropNode.namespaceURI;
+        if (URI <> '') and (URI <> RDF.URI) then
+          Schemas[URI].LoadProperty(PropNode);
+      end;
+      //look for tags stored as element nodes
+      PropNode := SchemaNode.firstChild;
+      while PropNode <> nil do
+      begin
+        URI := PropNode.namespaceURI;
+        if (URI <> '') and (PropNode.nodeType = ELEMENT_NODE) then
+          Schemas[URI].LoadProperty(PropNode);
+        PropNode := PropNode.nextSibling;
+      end;
+    end;
+    SchemaNode := SchemaNode.nextSibling;
+  end;
+  Changed(False);
+  Result := True;
 end;
 
 procedure TXMPPacket.RemoveProperty(SchemaKind: TXMPKnownNamespace;

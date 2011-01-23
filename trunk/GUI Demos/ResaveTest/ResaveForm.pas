@@ -1,7 +1,7 @@
 {**************************************************************************************}
 {                                                                                      }
 { CCR Exif - Delphi class library for reading and writing Exif metadata in JPEG files  }
-{ Version 1.1.2 (2011-01-23)                                                           }
+{ Version 1.5.0 beta                                                                   }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -69,7 +69,7 @@ var
 
 implementation
 
-uses StrUtils, CCR.Exif, ResaveCompleteDlg;
+uses StrUtils, CCR.Exif, CCR.Exif.Consts, ResaveCompleteDlg;
 
 {$R *.dfm}
 
@@ -213,23 +213,17 @@ const
   procedure DoExifDataDirectly(const SourceFile, DestFile: string);
   var
     ExifData: TExifData;
-    TempStream: TMemoryStream;
   begin
-    { While LoadFromJPEG as well as SaveToJPEG has a file name overload, SaveToJPEG
-      assumes it is editing an already-existing JPEG file (and indeed, has no image data
-      to stream out anyhow). Because of this, we use a memory stream as an intermediary. }
-    ExifData := nil;
-    TempStream := TMemoryStream.Create;
+    ExifData := TExifData.Create;
     try
-      TempStream.LoadFromFile(SourceFile);
-      ExifData := TExifData.Create;
-      ExifData.LoadFromJPEG(TempStream);
+      if not ExifData.LoadFromGraphic(SourceFile) then
+        raise EInvalidGraphic.Create(SUnsupportedGraphicFormat);
       DoIt(ExifData);
-      TempStream.SaveToFile(DestFile);
-      ExifData.SaveToJPEG(DestFile);
+      if not SameFileName(SourceFile, DestFile) and not CopyFile(PChar(SourceFile),
+        PChar(DestFile), False) then RaiseLastOSError;
+      ExifData.SaveToGraphic(DestFile);
     finally
       ExifData.Free;
-      TempStream.Free;
     end;
   end;
 

@@ -159,22 +159,19 @@ object frmExifList: TfrmExifList
         00FFFF00FFFF00FFFF00FFFF00FFFF00FFFF00FFFF00FFFF00FF}
       NumGlyphs = 2
     end
-  end
-  object dlgOpen: TOpenPictureDialog
-    DefaultExt = 'jpg'
-    Filter = 'JPEG Image File (*.jpg,*.jpeg)|*.jpg;*.jpeg'
-    Options = [ofHideReadOnly, ofFileMustExist, ofEnableSizing]
-    Left = 364
-    Top = 32
+    object btnOpenInDefProg: TBitBtn
+      Left = 85
+      Top = 6
+      Width = 144
+      Height = 27
+      Action = actOpenInDefProg
+      Caption = 'Open in &Default Program'
+      TabOrder = 3
+    end
   end
   object ActionList: TActionList
-    Left = 400
+    Left = 12
     Top = 32
-    object actOpen: TAction
-      Caption = '&Open File'
-      ShortCut = 16463
-      OnExecute = actOpenExecute
-    end
     object actCopy: TAction
       Caption = '&Copy'
       ShortCut = 16451
@@ -186,13 +183,24 @@ object frmExifList: TfrmExifList
       ShortCut = 16449
       OnExecute = actSelectAllExecute
     end
-  end
-  object dlgSave: TSavePictureDialog
-    DefaultExt = 'jpg'
-    Filter = 'JPEG Image File (*.jpg)|*.jpg|JPEG Image File (*.jpeg)|*.jpeg'
-    Options = [ofOverwritePrompt, ofHideReadOnly, ofEnableSizing]
-    Title = 'Save roundtripped image'
-    Left = 364
-    Top = 68
+    object actOpenInDefProg: TFileRun
+      Browse = False
+      BrowseDlg.Title = 'Run'
+      Caption = 'Open in &Default Program'
+      Enabled = False
+      Operation = 'open'
+      ShowCmd = scShowNormal
+    end
+    object actOpen: TOpenPicture
+      Dialog.DefaultExt = 'jpg'
+      Dialog.Filter = 
+        'All supported image types|*.jpg;*.jpeg;*.tif;*.tiff|JPEG images ' +
+        '(*.jpg,*.jpeg)|*.jpg;*.jpeg|TIFF images (*.tif,*.tiff)|*.tif;*.t' +
+        'iff'
+      Dialog.Options = [ofHideReadOnly, ofFileMustExist, ofEnableSizing]
+      Caption = '&Open File'
+      ShortCut = 16463
+      OnAccept = actOpenAccept
+    end
   end
 end

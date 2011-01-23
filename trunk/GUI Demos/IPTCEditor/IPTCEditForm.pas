@@ -1,7 +1,7 @@
 {**************************************************************************************}
 {                                                                                      }
-{ CCR Exif - Delphi class library for reading and writing Exif metadata in JPEG files  }
-{ Version 1.1.2 (2011-01-23)                                                           }
+{ CCR Exif - Delphi class library for reading and writing image metadata               }
+{ Version 1.5.0 beta                                                                   }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -28,7 +28,7 @@ unit IPTCEditForm;
 interface
 
 uses
-  Windows, SysUtils, Classes, Graphics, Controls, Forms, Dialogs, ExtDlgs,
+  Windows, SysUtils, Classes, Graphics, Controls, Forms, Dialogs, ExtDlgs, Buttons,   
   ActnList, StdActns, ComCtrls, StdCtrls, ExtCtrls, Grids, ValEdit, CCR.Exif.Demos;
 
 type
@@ -36,6 +36,7 @@ type
   protected
     procedure DrawCell(ACol: Integer; ARow: Integer; ARect: TRect;
       AState: TGridDrawState); override; //use gray text if ctrl disabled
+    procedure Loaded; override;
   end;
 
   TfrmIPTC = class(TForm)
@@ -143,16 +144,16 @@ type
     memWritersOrEditors: TMemo;
     actSaveOrReload: TAction;
     panActions: TPanel;
-    btnOpen: TButton;
-    btnSave: TButton;
-    btnClose: TButton;
+    btnOpen: TBitBtn;
+    btnSave: TBitBtn;
+    btnClose: TBitBtn;
     panFooter: TPanel;
     lblTagsWith: TLabel;
     lblHighlighted: TLabel;
     lblLabelsHaveEtc: TLabel;
     lblNoTagsFound: TLabel;
-    btnClear: TButton;
-    btnReload: TButton;
+    btnClear: TBitBtn;
+    btnReload: TBitBtn;
     cboActionAdvised: TComboBox;
     Label48: TLabel;
     cboImageOrientation: TComboBox;
@@ -166,7 +167,6 @@ type
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
     procedure btnClearClick(Sender: TObject);
   private
-    FFileName: string;
     FSizeGrip: TWinControl;
     FTagControlLabels: array of TLabel;
     procedure UpdateLabelHighlighting(DueToSaveNotLoad: Boolean);
@@ -180,7 +180,7 @@ var
 
 implementation
 
-uses Math, CCR.Exif.IPTC, CCR.SizeGripCtrl;
+uses Math, CCR.Exif.BaseUtils, CCR.Exif.IPTC, CCR.SizeGripCtrl;
 
 {$R *.dfm}
 
@@ -193,6 +193,12 @@ type
   NativeInt = Integer;
 {$IFEND}
 
+resourcestring
+  SConfirmSave = 'Current file has been changed. Save?';
+  SConfirmReload = 'Are you sure you want to reload? Any changes made will be lost if you confirm.';
+  SUnrecognisedFileType = 'This program only works with JPEG or Adobe Photoshop (PSD) ' +
+    'images, and ''%s'' is neither.';
+
 { TValueListEditor }
 
 procedure TValueListEditor.DrawCell(ACol, ARow: Integer; ARect: TRect;
@@ -200,6 +206,13 @@ procedure TValueListEditor.DrawCell(ACol, ARow: Integer; ARect: TRect;
 begin
   if not Enabled then Canvas.Font.Color := clGrayText;
   inherited;
+end;
+
+procedure TValueListEditor.Loaded;
+begin
+  inherited;
+  if Screen.PixelsPerInch <> 96 then
+    DefaultRowHeight := Abs(Font.Height) + 11;
 end;
 
 { TfrmIPTC }
@@ -267,7 +280,7 @@ end;
 procedure TfrmIPTC.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
 begin
   if not actSaveOrReload.Enabled then Exit;
-  case MessageDlg('Current file has been changed. Save?', mtConfirmation, mbYesNoCancel, 0) of
+  case MessageDlg(SConfirmSave, mtConfirmation, mbYesNoCancel, 0) of
     mrYes: actSaveOrReload.Execute;
     mrNo: ;
   else CanClose := False;
@@ -277,15 +290,30 @@ end;
 procedure TfrmIPTC.FormMouseWheel(Sender: TObject; Shift: TShiftState;
   WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
 
-  procedure DoScrollBox(ScrollBox: TScrollBox);
+  function IsDroppedDown: Boolean;
+  begin
+    if ActiveControl is TCustomCombo then
+      Result := TCustomCombo(ActiveControl).DroppedDown
+    else if ActiveControl is TDateTimePicker then
+      Result := TDateTimePicker(ActiveControl).DroppedDown
+    else
+      Result := False;
+  end;
+
+  procedure DoScrollBox;
+  var
+    ScrollBox: TScrollBox;
   begin
     Handled := True;
+    ScrollBox := PageControl.ActivePage.Controls[0] as TScrollBox;
     ScrollBox.VertScrollBar.Position := ScrollBox.VertScrollBar.Position - WheelDelta div 10;
   end;
 begin
-  if (ActiveControl <> nil) and (ActiveControl.Parent is TScrollBox) then
-    if ((ActiveControl is TEdit) or (ActiveControl is TDateTimePicker)) then
-      DoScrollBox(TScrollBox(ActiveControl.Parent))
+  if (ActiveControl = nil) or (ActiveControl = PageControl) or
+    (ActiveControl.ClassType = TEdit) or (ActiveControl.Parent = panActions) then
+    DoScrollBox
+  else if (FindVCLWindow(Mouse.CursorPos) <> ActiveControl) and not IsDroppedDown then
+    DoScrollBox;
 end;
 
 procedure TfrmIPTC.Resizing(State: TWindowState);
@@ -340,7 +368,8 @@ var
 begin
   IPTCData := TIPTCData.Create;
   try
-    IPTCData.LoadFromJPEG(FileName);
+    if not IPTCData.LoadFromGraphic(FileName) then
+      raise EInvalidGraphic.CreateFmt(SUnrecognisedFileType, [ExtractFileName(FileName)]);
     //envelope record
     {$IFNDEF BUGGYCOMPILER}
     edtModelVersion.Text := IPTCData.ModelVersion.AsString;
@@ -402,7 +431,6 @@ begin
   finally
     IPTCData.Free;
   end;
-  FFileName := FileName;
   actSaveOrReload.Enabled := False;
   btnClear.Enabled := True;
   for Comp in Self do
@@ -446,7 +474,7 @@ end;
 
 procedure TfrmIPTC.actOpenExecute(Sender: TObject);
 begin
-  if dlgOpen.Execute then DoFileOpen(dlgOpen.FileName);
+  if dlgOpen.Execute then OpenFile(dlgOpen.FileName);
 end;
 
 procedure TfrmIPTC.actSaveOrReloadExecute(Sender: TObject);
@@ -486,13 +514,14 @@ var
 begin
   if actSaveOrReload.ActionComponent = btnReload then
   begin
-    DoFileOpen(FFileName);
+    if IsPositiveResult(MessageDlg(SConfirmReload, mtConfirmation, mbYesNo, 0))  then
+      OpenFile(FileName);
     actSaveOrReload.ActionComponent := nil;
     Exit;
   end;
   IPTCData := TIPTCData.Create;
   try
-    IPTCData.LoadFromJPEG(FFileName);
+    IPTCData.LoadFromGraphic(FileName);
     //envelope record
     IPTCData.ModelVersion := GetWordValue(edtModelVersion);
     IPTCData.Destination := edtDestination.Text;
@@ -544,7 +573,7 @@ begin
     IPTCData.WritersOrEditors := GetRepeatableValue(memWritersOrEditors);
     IPTCData.ImageOrientation := TIPTCImageOrientation(GetEnumValue(cboImageOrientation));
     //finish up...
-    IPTCData.SaveToJPEG(FFileName);
+    IPTCData.SaveToGraphic(FileName);
   finally
     IPTCData.Free;
   end;

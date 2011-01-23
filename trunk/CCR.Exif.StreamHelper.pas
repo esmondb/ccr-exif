@@ -1,7 +1,7 @@
 {**************************************************************************************}
 {                                                                                      }
-{ CCR Exif - Delphi class library for reading and writing Exif metadata in JPEG files  }
-{ Version 1.1.2 (2011-01-23)                                                           }
+{ CCR Exif - Delphi class library for reading and writing image metadata               }
+{ Version 1.5.0 beta                                                                   }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -18,62 +18,64 @@
 {                                                                                      }
 {**************************************************************************************}
 
-unit CCR.Exif.StreamHelper; 
+{$I CCR.Exif.inc}
+unit CCR.Exif.StreamHelper;
 
 interface
 
 uses
-  SysUtils, Classes{$IFNDEF UNICODE}, WideStrings{$ENDIF};
+  SysUtils, Classes;
 
 type
-  {$IF not Declared(TBytes)}
-  TBytes = array of Byte;           //added in D2007
-  {$IFEND}
-  {$IF not Declared(RawByteString)}
-  RawByteString = AnsiString;       //added in D2009
-  {$IFEND}
   {$IF not Declared(UnicodeString)}
-  UnicodeString = type WideString;  //added in D2009
+  UnicodeString = WideString;       //added in D2009
   {$IFEND}
 
-  TUnicodeStringList = {$IFDEF UNICODE}TStringList{$ELSE}TWideStringList{$ENDIF};
+  PDoubleArray = ^TDoubleArray;
+  TDoubleArray = array[0..High(TByteArray) div 8] of Double;
+
+  PShortIntArray = ^TShortIntArray;
+  TShortIntArray = array[0..High(TByteArray)] of ShortInt;
+
+  PSmallIntArray = ^TSmallIntArray;
+  TSmallIntArray = array[0..High(TWordArray)] of SmallInt;
+
+  PLongWordArray = ^TLongWordArray;
+  TLongWordArray = array[0..High(TWordArray) div 2] of LongWord;
+
+  PLongIntArray = ^TLongIntArray;
+  TLongIntArray = array[0..High(TWordArray) div 2] of LongInt;
 
   TEndianness = (SmallEndian, BigEndian);
 
   TStreamHelper = class helper for TStream
-    function ReadByte(var Value: Byte): Boolean; overload;
-    function ReadByte: Byte; overload;
+    function ReadByte(var Value: Byte): Boolean; overload; inline;
+    function ReadByte: Byte; overload; inline;
     function ReadSmallInt(Endianness: TEndianness; var Value: SmallInt): Boolean; overload;
-    function ReadSmallInt(Endianness: TEndianness): SmallInt; overload;
+    function ReadSmallInt(Endianness: TEndianness): SmallInt; overload; inline;
     function ReadWord(Endianness: TEndianness; var Value: Word): Boolean; overload;
-    function ReadWord(Endianness: TEndianness): Word; overload;
+    function ReadWord(Endianness: TEndianness): Word; overload; inline;
     function ReadLongInt(Endianness: TEndianness; var Value: LongInt): Boolean; overload;
-    function ReadLongInt(Endianness: TEndianness): LongInt; overload;
+    function ReadLongInt(Endianness: TEndianness): LongInt; overload; inline;
     function ReadLongWord(Endianness: TEndianness; var Value: LongWord): Boolean; overload;
-    function ReadLongWord(Endianness: TEndianness): LongWord; overload;
+    function ReadLongWord(Endianness: TEndianness): LongWord; overload; inline;
     function ReadDouble(Endianness: TEndianness): Double;
     function ReadShortString(var S: ShortString): Boolean; overload;
-    function ReadShortString: ShortString; overload;
+    function ReadShortString: ShortString; overload; inline;
     function TryReadBuffer(var Buffer; Count: Integer): Boolean;
-    function TryReadHeader(const Header; HeaderSize: Byte): Boolean;
-    procedure WriteByte(Value: Byte); overload;
-    procedure WriteByte(Value: AnsiChar); overload;
+    function TryReadHeader(const Header; HeaderSize: Byte;
+      AlwaysResetPosition: Boolean = False): Boolean;
+    procedure WriteByte(Value: Byte); overload; inline;
+    procedure WriteByte(Value: AnsiChar); overload; inline;
     procedure WriteWord(Value: Word; Endianness: TEndianness);
     procedure WriteSmallInt(Value: SmallInt; Endianness: TEndianness);
     procedure WriteLongInt(Value: LongInt; Endianness: TEndianness);
     procedure WriteLongWord(Value: LongWord; Endianness: TEndianness);
     procedure WriteDouble(Value: Double; Endianness: TEndianness);
     procedure WriteUTF8Chars(const S: UTF8String); overload;
-    procedure WriteUTF8Chars(const S: UnicodeString); overload; 
+    procedure WriteUTF8Chars(const S: UnicodeString); overload;
     procedure WriteUTF8Chars(const S: UnicodeString; const Args: array of const); overload;
     procedure WriteWideChars(const S: UnicodeString; Endianness: TEndianness);
-  end;
-
-  TUserMemoryStream = class(TCustomMemoryStream) //read-only stream access on an existing buffer;
-  public
-    constructor Create(Memory: Pointer; Size: Integer);
-    procedure ChangeMemory(NewMemory: Pointer; NewSize: Integer);
-    function Write(const Buffer; Count: Integer): Integer; override;
   end;
 
 function SwapLongInt(const Value: LongInt): LongInt;
@@ -84,17 +86,11 @@ function SwapDouble(const Value: Double): Double;
 function UnicodeFormat(const S: UnicodeString; const Args: array of const): UnicodeString;
 function UnicodeSameText(const S1, S2: UnicodeString): Boolean; inline;
 
-{$IFNDEF UNICODE}
-function CharInSet(Ch: AnsiChar; const CharSet: TSysCharSet): Boolean; inline; overload;
-function CharInSet(Ch: WideChar; const CharSet: TSysCharSet): Boolean; inline; overload;
-function UpCase(const Ch: AnsiChar): AnsiChar; overload;
-function UpCase(const Ch: WideChar): WideChar; overload;
-{$ENDIF}
-
 implementation
 
 uses RTLConsts, SysConst;
 
+{$IFDEF WIN32}
 function SwapLongInt(const Value: LongInt): LongInt;
 asm
   BSWAP EAX
@@ -104,10 +100,30 @@ function SwapLongWord(const Value: LongWord): LongWord;
 asm
   BSWAP EAX
 end;
+{$ELSE}
+function SwapLongInt(const Value: LongInt): LongInt;
+begin
+  LongRec(Result).Bytes[0] := LongRec(Value).Bytes[3];
+  LongRec(Result).Bytes[1] := LongRec(Value).Bytes[2];
+  LongRec(Result).Bytes[2] := LongRec(Value).Bytes[1];
+  LongRec(Result).Bytes[3] := LongRec(Value).Bytes[0];
+end;
+
+function SwapLongWord(const Value: LongWord): LongWord;
+begin
+  LongRec(Result).Bytes[0] := LongRec(Value).Bytes[3];
+  LongRec(Result).Bytes[1] := LongRec(Value).Bytes[2];
+  LongRec(Result).Bytes[2] := LongRec(Value).Bytes[1];
+  LongRec(Result).Bytes[3] := LongRec(Value).Bytes[0];
+end;
+{$ENDIF}
 
 function SwapSingle(const Value: Single): Single;
-asm
-  BSWAP EAX
+begin
+  LongRec(Result).Bytes[0] := LongRec(Value).Bytes[3];
+  LongRec(Result).Bytes[1] := LongRec(Value).Bytes[2];
+  LongRec(Result).Bytes[2] := LongRec(Value).Bytes[1];
+  LongRec(Result).Bytes[3] := LongRec(Value).Bytes[0];
 end;
 
 function SwapDouble(const Value: Double): Double;
@@ -136,34 +152,6 @@ begin
 {$ENDIF}
 end;
 
-{$IFNDEF UNICODE}
-function CharInSet(Ch: AnsiChar; const CharSet: TSysCharSet): Boolean;
-begin
-  Result := Ch in CharSet;
-end;
-
-function CharInSet(Ch: WideChar; const CharSet: TSysCharSet): Boolean;
-begin
-  Result := (Ch <= High(AnsiChar)) and (AnsiChar(Ch) in CharSet);
-end;
-
-function UpCase(const Ch: AnsiChar): AnsiChar;
-begin
-  Result := Ch;
-  case Result of
-    'a'..'z':  Dec(Result, Ord('a') - Ord('A'));
-  end;
-end;
-
-function UpCase(const Ch: WideChar): WideChar;
-begin
-  Result := Ch;
-  case Result of
-    'a'..'z':  Dec(Result, Ord('a') - Ord('A'));
-  end;
-end;
-{$ENDIF}
-
 { TStreamHelper }
 
 function TStreamHelper.ReadByte(var Value: Byte): Boolean;
@@ -178,7 +166,7 @@ end;
 
 function TStreamHelper.ReadWord(Endianness: TEndianness; var Value: Word): Boolean;
 begin
-  Result := (Read(Value, 2) = 2);
+  Result := TryReadBuffer(Value, 2);
   if Result and (Endianness = BigEndian) then
     Value := Swap(Value)
 end;
@@ -198,7 +186,7 @@ end;
 
 function TStreamHelper.ReadLongInt(Endianness: TEndianness; var Value: LongInt): Boolean;
 begin
-  Result := (Read(Value, 4) = 4);
+  Result := TryReadBuffer(Value, 4);
   if Result and (Endianness = BigEndian) then
     Value := SwapLongInt(Value);
 end;
@@ -212,7 +200,7 @@ end;
 function TStreamHelper.ReadLongWord(Endianness: TEndianness;
   var Value: LongWord): Boolean;
 begin
-  Result := (Read(Value, 4) = 4);
+  Result := TryReadBuffer(Value, 4);
   if Result and (Endianness = BigEndian) then
     Value := SwapLongWord(Value);
 end;
@@ -237,7 +225,7 @@ end;
 function TStreamHelper.ReadSmallInt(Endianness: TEndianness;
   var Value: SmallInt): Boolean;
 begin
-  Result := (Read(Value, 2) = 2);
+  Result := TryReadBuffer(Value, 2);
   if Result and (Endianness = BigEndian) then
     Value := Swap(Value)
 end;
@@ -249,18 +237,23 @@ begin
 end;
 
 function TStreamHelper.TryReadBuffer(var Buffer; Count: Integer): Boolean;
+var
+  BytesRead: Integer;
 begin
-  Result := (Read(Buffer, Count) = Count)
+  BytesRead := Read(Buffer, Count);
+  Result := (BytesRead = Count);
+  if not Result then Seek(-BytesRead, soCurrent);
 end;
 
-function TStreamHelper.TryReadHeader(const Header; HeaderSize: Byte): Boolean;
+function TStreamHelper.TryReadHeader(const Header; HeaderSize: Byte;
+  AlwaysResetPosition: Boolean = False): Boolean;
 var
   Buffer: array[Byte] of Byte;
   BytesRead: Integer;
 begin
   BytesRead := Read(Buffer, HeaderSize);
   Result := (BytesRead = HeaderSize) and CompareMem(@Buffer, @Header, HeaderSize);
-  if not Result then Seek(-BytesRead, soCurrent);
+  if not Result or AlwaysResetPosition then Seek(-BytesRead, soCurrent);
 end;
 
 procedure TStreamHelper.WriteByte(Value: Byte);
@@ -344,25 +337,6 @@ procedure TStreamHelper.WriteUTF8Chars(const S: UnicodeString;
   const Args: array of const);
 begin
   WriteUTF8Chars(UTF8Encode(UnicodeFormat(S, Args)));
-end;
-
-{ TUserMemoryStream }
-
-constructor TUserMemoryStream.Create(Memory: Pointer; Size: Integer);
-begin
-  inherited Create;
-  SetPointer(Memory, Size);
-end;
-
-procedure TUserMemoryStream.ChangeMemory(NewMemory: Pointer; NewSize: Integer);
-begin
-  SetPointer(NewMemory, NewSize);
-  Position := 0;
-end;
-
-function TUserMemoryStream.Write(const Buffer; Count: Integer): Integer;
-begin
-  Result := 0;
 end;
 
 end.

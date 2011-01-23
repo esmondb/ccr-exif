@@ -26,6 +26,24 @@ object frmXMPBrowser: TfrmXMPBrowser
     DesignSize = (
       583
       36)
+    object lblURI: TLabel
+      AlignWithMargins = True
+      Left = 3
+      Top = 3
+      Width = 374
+      Height = 30
+      Hint = 'URI'
+      Align = alLeft
+      AutoSize = False
+      EllipsisPosition = epWordEllipsis
+      PopupMenu = mnuURI
+      ShowAccelChar = False
+      Layout = tlCenter
+      OnContextPopup = lblURIContextPopup
+      ExplicitLeft = 31
+      ExplicitTop = 0
+      ExplicitHeight = 36
+    end
     object btnOpen: TBitBtn
       Left = 411
       Top = 6
@@ -90,19 +108,17 @@ object frmXMPBrowser: TfrmXMPBrowser
     object tabResaved: TTabSheet
       Caption = 'Resaved'
       ImageIndex = 1
-      ExplicitLeft = 0
-      ExplicitTop = 0
-      ExplicitWidth = 0
-      ExplicitHeight = 0
     end
   end
   object dlgOpen: TOpenPictureDialog
     DefaultExt = 'jpg'
     Filter = 
-      'All supported files (*.jpg, *.jpeg, *.xmp)|*.jpg;*.jpeg;*.xmp|JP' +
-      'EG image files (*.jpg, *.jpeg)|*.jpg;*.jpeg|XMP sidecar files (*' +
-      '.xmp)|*.xmp|XML files (*.xml)|*.xml|Text files (*.txt)|*.txt'
-    Options = [ofHideReadOnly, ofFileMustExist, ofEnableSizing]
+      'Supported image and sidecars files|*.jpg;*.jpeg;*.psd;*.tif;*.ti' +
+      'ff;*.xmp|JPEG images (*.jpg, *.jpeg)|*.jpg;*.jpeg|Photoshop imag' +
+      'es (*.psd)|*.psd|TIFF images (*.tif, *.tiff)|*.tif;*.tiff|XMP si' +
+      'decar files (*.xmp)|*.xmp|XML files (*.xml)|*.xml|Text files (*.' +
+      'txt)|*.txt'
+    Options = [ofHideReadOnly, ofExtensionDifferent, ofFileMustExist, ofEnableSizing]
     Left = 104
     Top = 352
   end
@@ -113,6 +129,14 @@ object frmXMPBrowser: TfrmXMPBrowser
       Caption = '&Open File'
       ShortCut = 16463
       OnExecute = actOpenExecute
+    end
+  end
+  object mnuURI: TPopupMenu
+    Left = 200
+    Top = 352
+    object itmCopyURI: TMenuItem
+      Caption = 'Copy URI'
+      OnClick = itmCopyURIClick
     end
   end
 end

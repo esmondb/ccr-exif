@@ -1,7 +1,7 @@
 {**************************************************************************************}
 {                                                                                      }
-{ CCR Exif - Delphi class library for reading and writing Exif metadata in JPEG files  }
-{ Version 1.1.2 (2011-01-23)                                                           }
+{ CCR Exif - Delphi class library for reading and writing image metadata               }
+{ Version 1.5.0 beta                                                                   }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -23,13 +23,18 @@ unit XMPBrowserFrame;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  ComCtrls, StdCtrls, ExtCtrls, Tabs, CCR.Exif, CCR.Exif.JPEGUtils, CCR.Exif.XMPUtils;
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs, Menus,
+  ComCtrls, StdCtrls, ExtCtrls, Tabs, CCR.Exif.BaseUtils, CCR.Exif.XMPUtils;
 
 type
   TTabSet = class(Tabs.TTabSet) //work around a bug that is actually TPageControl's
   protected
     procedure CMDialogChar(var Message: TCMDialogChar); message CM_DIALOGCHAR;
+  end;
+
+  IOutputFrameOwner = interface
+  ['{01E38A15-3573-49EA-82A0-9AC6712A14E1}']
+    procedure ActiveURIChanged(const NewURI: string);
   end;
 
   TOutputFrame = class(TFrame)
@@ -42,25 +47,35 @@ type
     Shape1: TShape;
     Shape2: TShape;
     Shape3: TShape;
+    mnuEdit: TPopupMenu;
+    itmCopySelText: TMenuItem;
+    itmSelectAll: TMenuItem;
     procedure TreeViewChange(Sender: TObject; Node: TTreeNode);
     procedure TreeViewClick(Sender: TObject);
     procedure TabSetChange(Sender: TObject; NewTab: Integer; var AllowChange: Boolean);
+    procedure itmSelectAllClick(Sender: TObject);
+    procedure itmCopySelTextClick(Sender: TObject);
+    procedure mnuEditPopup(Sender: TObject);
   private
+    FLastURI: string;
     FXMPPacket: TXMPPacket;
-    procedure LoadPacket(Source: TCustomMemoryStream);
+    procedure XMPPacketLoadError(Sender: TXMPPacket; Source: TStream);
   protected
     procedure SetParent(AParent: TWinControl); override;
   public
     constructor Create(AOwner: TComponent); override;
-    destructor Destroy; override;
     procedure LoadFromFile(const FileName: string);
   end;
 
 implementation
 
-uses StrUtils, Themes, CCR.Exif.Consts;
+uses ClipBrd, StrUtils, Themes, CCR.Exif.Consts;
 
 {$R *.dfm}
+
+resourcestring
+  SFileNotSupported = '%s is neither of a supported image type nor an XMP sidecar file';
+  SImageHasNoXMP = 'Image does not contain any XMP metadata';
 
 function GetNamespaceTitle(Schema: TXMPSchema): string;
 begin
@@ -107,16 +122,43 @@ begin
   inherited;
   TabSet.Tabs.Objects[0] := panProps;
   TabSet.Tabs.Objects[1] := redRawXML;
-  FXMPPacket := TXMPPacket.Create;
+  FXMPPacket := TXMPPacket.Create(Self);
+  FXMPPacket.OnLoadError := XMPPacketLoadError; //if OnLoadError isn't handled, an exception will be raised in the normal manner when a packet doesn't load properly
 end;
 
-destructor TOutputFrame.Destroy;
+procedure TOutputFrame.itmCopySelTextClick(Sender: TObject);
 begin
-  FXMPPacket.Free;
-  inherited;
+  Clipboard.AsText := (Screen.ActiveControl as TCustomEdit).SelText;
 end;
 
-procedure TOutputFrame.LoadPacket(Source: TCustomMemoryStream);
+procedure TOutputFrame.itmSelectAllClick(Sender: TObject);
+begin
+  (Screen.ActiveControl as TCustomEdit).SelectAll;
+end;
+
+procedure TOutputFrame.mnuEditPopup(Sender: TObject);
+begin
+  itmSelectAll.Enabled := (Screen.ActiveControl is TCustomEdit) and
+    (TCustomEdit(Screen.ActiveControl).GetTextLen > 0);
+  itmCopySelText.Enabled := itmSelectAll.Enabled and
+    (TCustomEdit(Screen.ActiveControl).SelLength > 0);
+end;
+
+procedure TOutputFrame.SetParent(AParent: TWinControl);
+begin
+  inherited;
+  if AParent <> nil then
+  begin
+    TabSet.ParentFont := True;
+    TabSet.Height := TabSet.Canvas.TextHeight('X') + 4;
+    if (AParent is TTabSheet) and ThemeServices.ThemesEnabled then
+      TabSet.BackgroundColor := clWindow
+    else
+      TabSet.BackgroundColor := clBtnFace;
+  end;
+end;
+
+procedure TOutputFrame.LoadFromFile(const FileName: string);
   procedure LoadNodes(Parent: TTreeNode; const Properties: IXMPPropertyCollection);
   var
     Counter: Integer;
@@ -138,92 +180,89 @@ const
   TabStops: array[0..0] of UINT = (8);
 var
   Schema: TXMPSchema;
-begin
-  SendMessage(redRawXML.Handle, EM_SETTABSTOPS, Length(TabStops), LPARAM(@TabStops));
-  if not FXMPPacket.TryLoadFromStream(Source) then
-  begin //still display the XML (helpful for debugging purposes)
-    if CompareMem(Source.Memory, @XMPSegmentHeader, SizeOf(XMPSegmentHeader)) then
-      Source.Position := SizeOf(XMPSegmentHeader)
-    else
-      Source.Position := 0;
-    redRawXML.Text := UTF8ToString(@PAnsiChar(Source.Memory)[Source.Position],
-      Source.Size - Source.Position);
-    TabSet.TabIndex := 1;
-    MessageDlg(SInvalidXMPPacket, mtError, [mbOK], 0);
-    Exit;
-  end;
-  redRawXML.Text := UTF8ToString(FXMPPacket.RawXML);
-  TreeView.Items.Add(nil, '''About'' attribute');
-  for Schema in FXMPPacket do
-    LoadNodes(TreeView.Items.AddObject(nil, GetNamespaceTitle(Schema), Schema), Schema);
-  TreeView.AlphaSort;
-  if TreeView.Items.Count > 0 then
-    TreeView.Items[0].Expand(False);
-end;
-
-procedure TOutputFrame.SetParent(AParent: TWinControl);
-begin
-  inherited;
-  if AParent <> nil then
-  begin
-    TabSet.ParentFont := True;
-    TabSet.Height := TabSet.Canvas.TextHeight('X') + 4;
-    if (AParent is TTabSheet) and ThemeServices.ThemesEnabled then
-      TabSet.BackgroundColor := clWindow
-    else
-      TabSet.BackgroundColor := clBtnFace;
-  end;
-end;
-
-procedure TOutputFrame.LoadFromFile(const FileName: string);
-var
   Stream: TMemoryStream;
-  Segment: IFoundJPEGSegment;
 begin
+  (Owner as IOutputFrameOwner).ActiveURIChanged('');
   Stream := nil;
   TreeView.Items.BeginUpdate;
   try
+    Screen.Cursor := crHourGlass;
     TreeView.Items.Clear;
     memValue.Clear;
     FXMPPacket.Clear;
+    redRawXML.Clear;
+    SendMessage(redRawXML.Handle, EM_SETTABSTOPS, Length(TabStops), LPARAM(@TabStops));
     Stream := TMemoryStream.Create;
     Stream.LoadFromFile(FileName);
-    if MatchText(ExtractFileExt(FileName), ['.xmp', '.xml', '.txt']) then
-      LoadPacket(Stream)
-    else if HasJPEGHeader(Stream) then
+    if FXMPPacket.LoadFromGraphic(Stream) then //if LoadFromGraphic returns True, then the graphic was of a supported format
     begin
-      for Segment in JPEGHeader(Stream, [jmApp1]) do
-        if HasXMPSegmentHeader(Segment.Data) then
-        begin
-          LoadPacket(Segment.Data);
-          Exit;
-        end;
-      MessageDlg('Image does not contain any XMP metadata', mtInformation, [mbOK], 0);
+      if FXMPPacket.Empty then
+      begin
+        MessageDlg(SImageHasNoXMP, mtInformation, [mbOK], 0);
+        Exit;
+      end;
     end
-    else
-      raise EInvalidXMPPacket.CreateFmt('%s is neither a JPEG image nor an XMP ' +
-        'sidecar file', [FileName]);
+    else if not FXMPPacket.TryLoadFromStream(Stream) then
+    begin
+      MessageDlg(Format(SFileNotSupported, [FileName]), mtError, [mbOK], 0);
+      Exit;
+    end;
+    redRawXML.Text := UTF8ToString(FXMPPacket.RawXML);
+    TreeView.Items.Add(nil, '''About'' attribute (frequently blank)');
+    for Schema in FXMPPacket do
+      LoadNodes(TreeView.Items.AddObject(nil, GetNamespaceTitle(Schema), Schema), Schema);
+    TreeView.AlphaSort;
+    if TreeView.Items.Count > 0 then
+      TreeView.Items[0].Expand(False);
   finally
     Stream.Free;
     TreeView.Items.EndUpdate;
+    Screen.Cursor := crDefault;
   end;
 end;
+
+procedure TOutputFrame.XMPPacketLoadError(Sender: TXMPPacket; Source: TStream);
+var
+  MemStream: TCustomMemoryStream;
+begin //still display the XML when couldn't actually load it (helpful for debugging purposes)
+  MemStream := Source as TCustomMemoryStream;
+  if CompareMem(MemStream.Memory, @TJPEGSegment.XMPHeader, SizeOf(TJPEGSegment.XMPHeader)) then
+    MemStream.Position := SizeOf(TJPEGSegment.XMPHeader)
+  else
+    MemStream.Position := 0;
+  redRawXML.Text := UTF8ToString(@PAnsiChar(MemStream.Memory)[MemStream.Position],
+    MemStream.Size - MemStream.Position);
+  TabSet.TabIndex := 1;
+  MessageDlg(SInvalidXMPPacket, mtError, [mbOK], 0);
+  Abort;
+end;
+
+type
+  TWinControlAccess = class(TWinControl);
 
 procedure TOutputFrame.TabSetChange(Sender: TObject; NewTab: Integer;
   var AllowChange: Boolean);
 var
-  NewPanel: TWinControl;
+  Page: TWinControl;
 begin
-  NewPanel := (TabSet.Tabs.Objects[NewTab] as TWinControl);
-  NewPanel.Show;
-  NewPanel.BringToFront;
-  NewPanel.SetFocus;
+  Page := (TabSet.Tabs.Objects[NewTab] as TWinControl);
+  Page.Show;
+  Page.BringToFront;
+  if Page.ControlCount = 0 then
+    Page.SetFocus
+  else
+    TWinControlAccess(Page).SelectFirst;
   (TabSet.Tabs.Objects[TabSet.TabIndex] as TControl).Hide;
+  if NewTab = 0 then
+    (Owner as IOutputFrameOwner).ActiveURIChanged(FLastURI)
+  else
+    (Owner as IOutputFrameOwner).ActiveURIChanged('http://ns.adobe.com/xap/1.0/');
 end;
 
 procedure TOutputFrame.TreeViewChange(Sender: TObject; Node: TTreeNode);
 begin
   if TObject(Node.Data) is TXMPProperty then
+  begin
     case TXMPProperty(Node.Data).Kind of
       xpAltArray: memValue.Text := '<alternative array property>';
       xpBagArray: memValue.Text := '<unordered array property>';
@@ -231,11 +270,20 @@ begin
       xpStructure: memValue.Text := '<structure property>';
     else
       memValue.Text := TXMPProperty(Node.Data).ReadValue
-    end
+    end;
+    FLastURI := TXMPProperty(Node.Data).NamespaceInfo.URI;
+  end
   else if Node.IsFirstNode then
-    memValue.Text := FXMPPacket.AboutAttributeValue
+  begin
+    memValue.Text := FXMPPacket.AboutAttributeValue;
+    FLastURI := 'http://www.w3.org/1999/02/22-rdf-syntax-ns#';
+  end
   else
-    memValue.Text := ''
+  begin
+    memValue.Text := '';
+    FLastURI := (TObject(Node.Data) as TXMPSchema).NamespaceInfo.URI;
+  end;
+  (Owner as IOutputFrameOwner).ActiveURIChanged(FLastURI);
 end;
 
 procedure TOutputFrame.TreeViewClick(Sender: TObject);
