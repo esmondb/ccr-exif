@@ -1,0 +1,158 @@
+{\rtf1\ansi\ansicpg1252\deff0\deflang2057{\fonttbl{\f0\fnil\fcharset0 Times New Roman;}{\f1\fnil\fcharset0 Calibri;}{\f2\fnil\fcharset0 Cambria;}{\f3\fnil\fcharset2 Symbol;}{\f4\fnil\fcharset0 Courier New;}}
+{\colortbl ;\red255\green0\blue0;}
+{\stylesheet{\f0\snext0 Normal;}{\s1 heading 1;}{\s2 heading 2;}{\s3 heading 3;}{\s4 heading 4;}{\s5 heading 5;}{\s6 heading 6;}{\s7 heading 7;}{\s8 heading 8;}{\s9 heading 9;}{\*\cs10 \additive Default Paragraph Font;}{\*\cs20\fs16\additive\sbasedon10 annotation reference;}{\s21\fs20 annotation text;}{\*\cs22\super\additive\sbasedon10 footnote reference;}{\s23\fs20 footnote text;}{\*\cs24\super\additive\sbasedon10 endnote reference;}{\s25\fs20 endnote text;}}
+\viewkind4\uc1{\*\generator CCR Notes v1.7.10;}{\info{\title Release History}{\author Chris Rolliston}{\doccomm Exported from C:\\Delphi\\Delphi Haven\\Exif Readmes.ncd on 23 January 2011 at 11:31.}{\*\company  }}
+\viewscale100\psz9\paperw11909\paperh16834\margl1440\margt1440\margr1440\margb1440\fet2\aendnotes{\*\aftnsep \pard\plain\sl-1 }{\*\aftnsepc \pard\plain\sl-1 }\aftnnar\ftnnar\sectd\endnhere\saftnnar\sftnnar\headery720\footery720
+\pard\f0\fs24 {\footer
+\pard\absw4514\pvpara\phmrg\posx0\posy0\f1\fs22 {\field{\*\fldinst{TITLE \\* MERGEFORMAT}}{\fldrslt Release History}} \par
+\pard\ri20\sa20\f0\fs2
+\pard\absw4514\pvpara\phmrg\posxr\posy0\qr\f1\fs22 {\field{\*\fldinst{PAGE \\* MERGEFORMAT}}{\fldrslt ?}}\par
+\pard\ri20\sa20\f0\fs2\pard\qc  }\titlepg\pard\s1\sa120\qc
+\kerning36\b\f1\fs32 Release History\kerning0\b0\f2\fs24\par
+\pard\s3\sb120\sa60\f0 \f1 1.1.2 (2011-01-23)\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent0{\pntxtb\'B7}}\nowidctlpar\fi-360\li360\sa60\f2 Added UTF-8 support to TIPTCData when compiling under D2009 or later.\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent0{\pntxtb\'B7}}\nowidctlpar\fi-360\li720\sa60 Specifically, added AlwaysAssumeUTF8Encoding and UTF8Encoded properties (also removed the ReadString overload that took an AnsiString parameter). \par
+{\pntext\f3\'B7\tab}By default, AlwaysAssumeUTF8Encoding is False but UTF8Encoded is True, only being set to the value of AlwaysAssumeUTF8Encoding on LoadFromXXX being called. This means that when creating IPTC data afresh, the default will be to encode in UTF-8, setting the 1:90 tag to report the fact. When loading existing data however, the source is assumed to hold AnsiString values unless UTF-8 is explicitly specified in 1:90. \par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent0{\pntxtb\'B7}}\nowidctlpar\fi-360\li360\sa60 Bug fixes and tweaks:\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent0{\pntxtb\'B7}}\nowidctlpar\fi-360\li720\sa60 XMP parsing rejigged somewhat again to (a) allow for the fact a property need not share the namespace of its parent and (b) read \lquote property-and-node elements\rquote  properly (http://www.w3.org/TR/REC-rdf-syntax/#section-Syntax-parsetype-resource). Note this means a couple enumeration types have been renamed and NamespaceInfo properties added to TXMPProperty and TXMPSchema.\par
+{\pntext\f3\'B7\tab}Missing standard XMP namespaces (e.g. Exif Auxiliary) now registered.\par
+{\pntext\f3\'B7\tab}Fixed bug that meant the total size of very large JPEG segments wasn\rquote t being calculated correctly.\par
+{\pntext\f3\'B7\tab}Fixed small bug of TIPTCSection.Owner never being set.\f0\par
+\f2{\pntext\f3\'B7\tab}A couple of tweaks on the theme of accepting malformed data.\f0\par
+\pard\s3\sb120\sa60 \f1 1.1.1 (2010-08-02)\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent0{\pntxtb\'B7}}\nowidctlpar\fi-360\li360\sa60\f2 Tweaked default behaviour of file name variants of TCustomExifData.SaveToJPEG and TIPTCData.SaveToJPEG to write to a memory stream first. This protects against the case of when the file exists, but is not a valid JPEG file (before, the file would just get wiped on the exception being raised).\par
+{\pntext\f3\'B7\tab}Added EnsureEnumsInRange property to TCustomExifData. When True (the default), enumeration tag property values will definitely be in the declared range \emdash  if the stored value is otherwise, it will be reported as missing unless you get at the raw data directly. \par
+{\pntext\f3\'B7\tab}Slightly modified TXMPPacket.TryLoadFromStream to support ExifTool\rquote s not-quite-XMP XML dump format.\par
+\pard\s3\sb120\sa60\f0 \f1 1.1.0 (2010-03-07)\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent0{\pntxtb\'B7}}\nowidctlpar\fi-360\li360\sa60\f2 While the interface remains practically the same as before, the XMP handling code has been substantially rewritten, mainly for the sake of better supporting Adobe\rquote s implementation \emdash\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent0{\pntxtb\'B7}}\nowidctlpar\fi-360\li720\sa60 TXMPPacket understands XMP properties written out as XML attributes.\par
+{\pntext\f3\'B7\tab}TXMPPacket\rquote s writing code now writes the packet out afresh (before, the original DOM structure was kept hold of and modified in place using the DOM API).\par
+{\pntext\f3\'B7\tab}Changed the type of the RawXML property from DOMString to UTF8String and given it a setter.\par
+{\pntext\f3\'B7\tab}Added OnLoadError event to TXMPPacket.\par
+{\pntext\f3\'B7\tab}The TXMPPacket instance owned by a TCustomExifData object now only raises an EInvalidXMPPacket exception if its LoadFromStream or LoadFromFile methods are called explicitly.\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent0{\pntxtb\'B7}}\nowidctlpar\fi-360\li360\sa60 Moved the CCRExifVersion constant to CCR.Exif.Consts.pas.\par
+{\pntext\f3\'B7\tab}Removed the StreamHasXXXHeader routines, replacing them with HasXXX equivalents.\par
+{\pntext\f3\'B7\tab}Thanks to Stefan Grube for helping ensure this release compiles correctly in D2009+.\par
+\pard\s3\sb120\sa60\f0 \f1 1.0.1a (2010-02-20)\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent0{\pntxtb\'B7}}\nowidctlpar\fi-360\li360\sa60\f2 Slight change to CCR.Exif.pas only: fixed implicit memory overwrite error in TCustomExifData.GetDetailsLongWord.\par
+\pard\s3\sb120\sa60\f0 \f1 1.0.1 (2010-02-13)\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent0{\pntxtb\'B7}}\nowidctlpar\fi-360\li360\sa60\f2 TCustomExifData now accepts Exif segments that declare themselves to be big endian when they are really small endian or vice versa.\par
+{\pntext\f3\'B7\tab}elTrilinear renamed esTrilinear.\par
+{\pntext\f3\'B7\tab}In the Exif List demo, replaced most of the string array constants with functions so as to prevent access violations when a tag value is out of its corresponding enumerated type\rquote s range.\par
+{\pntext\f3\'B7\tab}Completely removed the MakerNotePosition property from TExifData. Behaviour is now fixed to the old default (mpAuto), which is to stream out maker note data to their original location.\par
+\pard\s3\sb120\sa60\f0 \f1 1.0.0 (2010-01-17)\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent0{\pntxtb\'B7}}\nowidctlpar\fi-360\li360\sa60\f2 Added IPTC support \emdash\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent0{\pntxtb\'B7}}\nowidctlpar\fi-360\li720\sa60 Implemented an IPTC reader/writer class, TIPTCData, in a new unit, CCR.Exif.IPTC.pas.\par
+{\pntext\f3\'B7\tab}The interface of TIPTCData is broadly modelled on TExifData\rquote s \emdash  thus, there are \lquote sections\rquote  and \lquote tags\rquote , with high level tag properties on TIPTCData itself. (See http://www.iptc.org/std/IIM/4.1/specification/IIMV4.1.pdf for the IPTC specification.)\par
+{\pntext\f3\'B7\tab}At a lower level, the RemoveMetadataFromJPEG global routine can now delete IPTC data, and you can enumerate the data blocks of an Adobe APP13 segment from an IJPEGSegment instance.\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent0{\pntxtb\'B7}}\nowidctlpar\fi-360\li360\sa60 TJPEGImageEx has received a few amendments \emdash\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent0{\pntxtb\'B7}}\nowidctlpar\fi-360\li720\sa60 Added an IPTCData property.\par
+{\pntext\f3\'B7\tab}Added an overload to Assign that allows for the preservation of any metadata, interpreted by my code or not, when a bitmap is assigned.\par
+{\pntext\f3\'B7\tab}Fixed a bug in which calling the regular Assign didn\rquote t cause the ExifData property to be updated.\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent0{\pntxtb\'B7}}\nowidctlpar\fi-360\li360\sa60 Two more Nikon maker note types now parsed. Thanks goes to Stefan Grube for updating the Exif List demo\rquote s MakerNotes.ini for this.\par
+{\pntext\f3\'B7\tab}Fixed bug of JPEG parsing code not realising a segment with a marker number of 0 has no data.\par
+{\pntext\f3\'B7\tab}Fixed typo in TStreamHelper.ReadLongInt spotted by Jeff Hamblin.\par
+{\pntext\f3\'B7\tab}Changed the types of the ExifImageWidth, ExifImageHeight and FocalLengthIn35mmFilm properties of TCustomExifData so as to give them MissingOrInvalid and AsString sub-properties. (Basically, they now use custom record types that have methods and operator overloads.)\par
+{\pntext\f3\'B7\tab}Changed behaviour of TCustomExifData\rquote s enumerator to now \i not\i0  skip empty sections.\par
+{\pntext\f3\'B7\tab}The LoadFromJPEG methods of TExifData are now procedures rather than functions.\par
+{\pntext\f3\'B7\tab}Added a couple more demos, namely an IPTC editor and a console app to strip specified types of metadata from one or more JPEG files.\par
+{\pntext\f3\'B7\tab}Removed all previously deprecated symbols.\f0\par
+\pard\s3\sb120\sa60 \f1 0.9.9 (2009-11-19)\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent0{\pntxtb\'B7}}\nowidctlpar\fi-360\li360\sa60\f2 Two main themes for this release: adding sanity checks to the parsing code (thus, you shouldn\rquote t get access violations when attempting to stream in corrupted data any more) and better maker note support.\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent0{\pntxtb\'B7}}\nowidctlpar\fi-360\li720\sa60 All TIFF offsets are now sanity checked.\par
+{\pntext\f3\'B7\tab}Internally, there\rquote s a \lquote two strikes and out\rquote  policy when parsing an IFD \emdash  two invalid tag headers in a row, and parsing for that directory is abandoned. Check the new LoadErrors property on TExifSection to determine whether there were any issues.\par
+{\pntext\f3\'B7\tab}The tag structures of Canon, Nikon type 1, Panasonic and Sony maker notes are now understood. You access the tags via either the MakerNote.Tags or Sections[esMakerNote] properties on TCustomExifData. The interpretation of tag \b values\b0  is still left to the user however, since the alternative was to add reams and reams of boilerplate tag property code. Nonetheless, an example of how such interpretation may be done, namely via an INI file, is in the Exif List demo.\par
+{\pntext\f3\'B7\tab}Existing maker notes can be edited with TExifDataPatcher; TExifData will probably come later (I\rquote m offsetted out at the moment\'85).\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent0{\pntxtb\'B7}}\nowidctlpar\fi-360\li360\sa60 Other, more minor changes:\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent0{\pntxtb\'B7}}\nowidctlpar\fi-360\li720\sa60 Fixed typo in GPS direction tag setter which meant the value could never be changed.\par
+{\pntext\f3\'B7\tab}Added memory leak fix to CCR.XMPUtils.pas suggested by David Hoyle.\par
+{\pntext\f3\'B7\tab}Added delay loading semantics to the XMPPacket property of TCustomExifData, the idea being that attempts to read Exif tags should not ever lead to an EInvalidXMPPacket exception being raised. Equivalent behaviour has been built into the new maker note parser code too.\par
+{\pntext\f3\'B7\tab}More helper methods of the TryGetXXXValue and ReadXXX kind.\par
+{\pntext\f3\'B7\tab}Surfaced two interop IFD tags as properties on TCustomExifData.\par
+{\pntext\f3\'B7\tab}Maker note data are now moved back to their original position on save if the OffsetSchema tag had been set. (Actually, this should have been the case for the previous release but for a bug, typing Inc where I meant Dec.)\par
+{\pntext\f3\'B7\tab}XMP \lquote about\rquote  attribute value now retrieved if previously written without a namespace.\par
+{\pntext\f3\'B7\tab}Demos rejigged a bit \emdash  PanasonicMakerNoteView.exe removed (its functionality has been added to an improved ExifList.exe), and two new console ones added (CreateXMPSidecar.exe and PanaMakerPatch.exe).\f0\par
+\pard\s3\sb120\sa60 \f1 0.9.8 (2009-10-18)\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent0{\pntxtb\'B7}}\nowidctlpar\fi-360\li360\sa60\f2 Fixed how the ExifImageWidth and ExifImageHeight properties weren\rquote t flexible enough to understand word-sized values (the Exif spec says these tags can be either words or longwords).\par
+{\pntext\f3\'B7\tab}By default, when streaming out, the maker note tag (if it exists) now keeps the data offset it had when streamed in. This means you are free to add, remove and edit tags as you please with TExifData without fear of corrupting internal maker note offsets, though there\rquote s a small cost in terms of file size. If you want the old behaviour, you can get it back by setting the new MakerNotePosition property of TExifData to mpCanMove.\par
+{\pntext\f3\'B7\tab}Much better XMP support has been implemented:\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent0{\pntxtb\'B7}}\nowidctlpar\fi-360\li720\sa60 A new unit, CCR.Exif.XMPUtils, has been added; this implements an XMP packet parser directly on top of xmldom.pas (all that excess code for so little gain in XMLDoc.pas makes my eyes water\'85). A new demo, XMP Browser, shows its basic usage.\par
+{\pntext\f3\'B7\tab}TCustomExifData has acquired an XMPPacket property that gets loaded in LoadFromJPEG, written out in SaveToJPEG, and updated as appropriate when certain tag properties are set. The default behaviour is to only change existing XMP property values, though this can be altered to mimic the behaviour of Vista\rquote s Windows Explorer, which adds them as well, by setting ExifData.XMPWritePolicy to xwAlwaysUpdate.\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent0{\pntxtb\'B7}}\nowidctlpar\fi-360\li360\sa60 EReadError (typically raised by TStream.ReadBuffer) is now trapped in one of the low-level loading routines so as to be \lquote friendlier\rquote  (to the end user!) when you attempt to load a corrupt Exif block. To be honest, I\rquote m not massively keen on doing this, but anyhow, the change has been made.\par
+{\pntext\f3\'B7\tab}Other changes: \par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent0{\pntxtb\'B7}}\nowidctlpar\fi-360\li720\sa60 Some missing tag properties from v2.2 of the Exif standard added to TCustomExifData (Contrast, FlashPixVersion, Saturation, Sharpness).\par
+{\pntext\f3\'B7\tab}ISOSpeedRatings is now a class rather than an array property.\par
+{\pntext\f3\'B7\tab}Some of the GPS properties have become class properties.\par
+{\pntext\f3\'B7\tab}Setting a string tag to an empty string now removes it; likewise, setting an invalid fraction value, where the destination tag only has one value currently, will remove the tag too.\par
+{\pntext\f3\'B7\tab}Removed from CCR.Exif.JPEGUtils the symbols that were deprecated last time around.\par
+{\pntext\f3\'B7\tab}Bug fix \emdash  TCustomExifData.LoadFromJPEG now clears the tags if no Exif segment was found in the source image.\par
+{\pntext\f3\'B7\tab}Behaviour change \emdash  TExifData.SaveToJPEG now enforces a segment order of JFIF \f3\'ae\f2  Exif \f3\'ae\f2  XMP, and moreover, moves those segments to the top of the file if they weren\rquote t there already.\par
+{\pntext\f3\'B7\tab}Renamed StreamHasXMPHeader to StreamHasXMPSegmentHeader to better reflect what it tests for.\par
+{\pntext\f3\'B7\tab}TJPEGMarkerHeader renamed TJPEGSegmentHeader.\par
+{\pntext\f3\'B7\tab}PosOfDataInStream property of IFoundJPEGSegment renamed OffsetOfData.\par
+{\pntext\f3\'B7\tab}IGetJPEGHeaderParser collapsed into IJPEGHeaderParser.\f0\par
+\pard\s3\sb120\sa60 \f1 0.9.7 (2009-06-22)\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent0{\pntxtb\'B7}}\nowidctlpar\fi-360\li360\sa60\f2 The focus of this release was making the code more aware of what more recent versions of Windows Explorer (amongst other Microsoft applications) do when a person uses them to edit JPEG metadata.\par
+{\pntext\f3\'B7\tab}TExifData.SaveToStream now adds or updates the Microsoft-defined OffsetSchema tag if a maker note is defined (see http://support.microsoft.com/kb/927527).\par
+{\pntext\f3\'B7\tab}Various enumerated types have acquired a xxTagMissing value to more easily determine whether the underlying tag actually exists.\par
+{\pntext\f3\'B7\tab}The following symbols have been added (see the documentation for more info):\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent0{\pntxtb\'B7}}\nowidctlpar\fi-360\li720\sa60 PreserveXMPData property to TCustomExifData; default is False.\par
+{\pntext\f3\'B7\tab}IsPadding and SetAsPadding methods to TExifTag; RemovePaddingTag method to TExifSection; RemovePaddingTags method to TCustomExifData. All these concern the padding tags Microsoft applications tend to write out.\par
+{\pntext\f3\'B7\tab}RemoveMetaDataFromJPEG, StreamHasExifHeader and StreamHasXMPHeader  global functions to CCR.Exif.\par
+{\pntext\f3\'B7\tab}DigitalZoomRatio, FocalLengthIn35mmFilm, GainControl, ImageUniqueID, MakerNoteDataOffset, Rendered, SceneCaptureType, SubjectDistanceRange, ThumbnailOrientation, ThumbnailResolution, and WhiteBalanceMode properties to TCustomExifData \emdash  all surface standard tags I missed out previously.\par
+{\pntext\f3\'B7\tab}JPEGHeader global routine to CCR.Exif.JPEGUtils as a more flexible replacement for ParseJPEGHeader; unlike the latter, it doesn\rquote t take a callback method, being used instead with the for/in syntax:\par
+\pard\nowidctlpar\li900\sb120\f4\fs20 var\par
+\pard\nowidctlpar\li900   Segment: IFoundJPEGSegment;\par
+  JPEGImage: TJPEGImage;\par
+begin\par
+  for Segment in JPEGHeader('filename.jpg') do\par
+\pard\nowidctlpar\li900\sa120     ...\par
+\pard\nowidctlpar\li900   for Segment in JPEGHeader(JPEGImage) do\par
+\pard\nowidctlpar\li900\sa120     ...\f2\fs24\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent0{\pntxtb\'B7}}\nowidctlpar\fi-360\li360\sa60 Deprecated:\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent0{\pntxtb\'B7}}\nowidctlpar\fi-360\li720\sa60 The jmExif constant in CCR.Exif.JPEGUtils \emdash  use jmApp1 instead. The reason for this change is that Exif and XMP segments share the same marker number; the value of what was jmExif, then, isn\rquote t unique to Exif.\par
+{\pntext\f3\'B7\tab}DefJFIFData global variable in CCR.Exif.JPEGUtils \emdash  this hasn\rquote t been used internally since v0.9.5.\par
+{\pntext\f3\'B7\tab}ParseJPEGHeader function in CCR.Exif.JPEGUtils \emdash  use JPEGHeader with a for/in loop instead.\par
+{\pntext\f3\'B7\tab}RemoveExifDataFromJPEG functions in CCR.Exif \emdash  use the new RemoveMetaDataFromJPEG functions instead. That said, a bug in the overload that takes a stream object has been fixed.\par
+{\pntext\f3\'B7\tab}WriteJPEGMarkerToStream procedures in CCR.Exif.JPEGUtils \emdash  renamed WriteJPEGSegmentToStream.\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent0{\pntxtb\'B7}}\nowidctlpar\fi-360\li360\sa60 Custom exception classes slightly rearranged and documented.\par
+{\pntext\f3\'B7\tab}JPEG Dump and Exif List demos updated slightly.\f0\par
+\pard\s3\sb120\sa60 \f1 0.9.6 (2009-06-14)\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent0{\pntxtb\'B7}}\nowidctlpar\fi-360\li360\sa60\f2 Some documentation added, albeit only in the form of a PDF file.\par
+{\pntext\f3\'B7\tab}Fixed potential data corruption bug in \lang1024 TJpegImageEx.SaveToStream\lang2057 . As part of this fix, whereas before, a specific JFIF segment was always written out, now nothing is touched (including the JFIF segment \emdash  even if missing) other than any existing \lang1024 Exif\lang2057  segment.\par
+{\pntext\f3\'B7\tab}Added \lang1024 SaveToJPEG\lang2057  method to \lang1024 TExifData\lang2057 . Calling this will replace any \lang1024 Exif\lang2057  metadata in the specified JPEG file with what is currently defined by the \lang1024 TExifData\lang2057  object. In combination with the existing \lang1024 LoadFromJPEG\lang2057  method, this provides a more flexible way of editing existing \lang1024 Exif\lang2057  metadata than that provided by \lang1024 TExifDataPatcher\lang2057 . (Note that you could have got similar behaviour before if you had used \lang1024 TJpegImageEx\lang2057  instead of \lang1024 TExifData\lang2057  directly.) The old caveat about \lang1024 maker note\lang2057  data still remains though.\par
+{\pntext\f3\'B7\tab}Added RemoveExifDataFromJPEG global routine, which takes either a file name or a TJPEGImage instance as its parameter and returns True if there were Exif data to remove.\par
+{\pntext\f3\'B7\tab}Fixed \lang1024 TExifData.SaveToStream\lang2057  so that it now saves GPS and/or \lang1024 Interop\lang2057  sections (doh!). Nonetheless, they are only written out if they have any tags. So, say you load into an \lang1024 TExifData\lang2057  instance data that includes GPS info, call Clear on the \lang1024 esGPS\lang2057  section, and save out again; doing this will remove the GPS sub-IFD from actual file. Now, this behaviour will only save six bytes compared to writing out an empty IFD or sub-IFD. Nonetheless, it is aesthetically quite pleasing I think, and matches how the thumbnail IFD isn\rquote t (and never was) written out when \lang1024 Thumbnail.Empty\lang2057  returns True.\par
+{\pntext\f3\'B7\tab}Partly due to rewriting the saving code, partly due to a change of heart, the \lang1024 CanSafelySaveTag\lang2057 , \lang1024 GetTagsToSave\lang2057 , \lang1024 SaveSave\lang2057  and \lang1024 OnCanSafelySaveTag\lang2057  members of \lang1024 TExifData\lang2057  have been removed.\par
+{\pntext\f3\'B7\tab}In TCustomExifData, the ResolutionUnit, XResolution and YResolution properties have been replaced with a single Resolution property, with the FocalPlaneResolutionUnit, FocalPlaneResolutionX and FocalPlaneResolutionY properties replaced with FocalPlaneResolution. In the course of doing this, I fixed a bug of erroneously assuming the two sets of properties shared the same section.\par
+{\pntext\f3\'B7\tab}The ColorSpace property on TCustomExifData has changed its type from Word to a new word-sized enumeration (TExifColorSpace).\par
+{\pntext\f3\'B7\tab}Setting a tag or tag element to its current value is now much less likely to cause the container object to have its Modified property set to True.\par
+{\pntext\f3\'B7\tab}Added \lang1024 TagExists\lang2057  function to \lang1024 TExifSection\lang2057 .\par
+{\pntext\f3\'B7\tab}Added \lang1024 MissingOrInvalid\lang2057  function to \lang1024 TExifFlashInfo\lang2057 .\par
+{\pntext\f3\'B7\tab}More complete implementation of TExifFlashInfo.Assign.\par
+{\pntext\f3\'B7\tab}You can now remove tags from a TExifDataPatcher instance. Because of this, TCustomExifData now publicly exposes the Clear method, and TExifSection has acquired Remove and Clear from TExtendableExifSection, with ClearTag being deleted.\par
+{\pntext\f3\'B7\tab}Added testing mode to Exif List and JPEG Dump demos \emdash  pass the /test switch as a parameter to the EXE. Done mainly to test the revised saving code in TExifData, though it demonstrates the latter\rquote s new SaveToJPEG method I suppose\'85\par
+{\pntext\f3\'B7\tab}Thanks to Valerian Kadyshev for suggestions that were partly implemented in this release, along with David Hoyle again for a few more bug reports.\f0\par
+\pard\s3\sb120\sa60 \f1 0.9.5b (2009-06-04)\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent0{\pntxtb\'B7}}\fi-360\li360\sa60\f2 And another regression fixed\'85 Should compile in D2009 again now.\f0\par
+\pard\s3\sb120\sa60 \f1 0.9.5a (2009-06-03)\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent0{\pntxtb\'B7}}\fi-360\li360\sa60\f2 Regression fixed \emdash  original release of 0.9.5 broke setting string tags in D2009. Thanks to commentator Andreas for spotting the bug.\f0\par
+\pard\s3\sb120\sa60 \f1 0.9.5 (2009-06-01)\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent0{\pntxtb\'B7}}\fi-360\li360\sa60\f2 A few typos fixed in the getter and setters of \lang1024 TCustomExifData\lang2057 .\par
+\lang1024{\pntext\f3\'B7\tab}TExifTag.SetAsString\lang2057  fixed when \lang1024 DataType = tdUndefined\lang2057 .\par
+{\pntext\f3\'B7\tab}A new Boolean property, \lang1024 EnforceASCII\lang2057 , added to \lang1024 TCustomExifData\lang2057 ; default value is True so that tags with a data type of \lang1024 tdASCII\lang2057  will now only allow ASCII data to be assigned to them. Set \lang1024 EnforceASCII\lang2057  to False to restore the old, lax behaviour.\par
+{\pntext\f3\'B7\tab}For Delphi 2009, ASCII tags are now surfaced as normal strings; because of this, you shouldn\rquote t cast to \lang1024 TiffString\lang2057  any more when setting a string tag. Furthermore, \lang1024 TiffString\lang2057  is itself now just type def\rquote ed to \lang1024 AnsiString\lang2057  rather than an English \lang1024 AnsiString\lang2057  specifically.\par
+{\pntext\f3\'B7\tab}The Comments property of \lang1024 TCustomExifData\lang2057  now no longer checks for \lang1024 ttImageDescription\lang2057 .\par
+{\pntext\f3\'B7\tab}The \lang1024 ExifVersion\lang2057  and \lang1024 GPSVersion\lang2057  properties of \lang1024 TCustomExifData\lang2057  have changed their types, with the old ones removed.\par
+{\pntext\f3\'B7\tab}The \lang1024 DirectlyPhotographed\lang2057  property of \lang1024 TCustomExifData\lang2057  has been removed and replaced with \lang1024 SceneType\lang2057 .\par
+{\pntext\f3\'B7\tab}The \lang1024 SourceIsDigitalCamera\lang2057  property of \lang1024 TCustomExifData\lang2057  has been removed and replaced with \lang1024 FileSource\lang2057 .\par
+\lang1024{\pntext\f3\'B7\tab}WritePreciseTimes\lang2057  property of \lang1024 TCustomExifData\lang2057  has become \lang1024 AlwaysWritePreciseTimes\lang2057 .\par
+\lang1024{\pntext\f3\'B7\tab}drTrue\lang2057  \f3\'ae\f2  \lang1024 drTrueNorth, drMagnetic\lang2057  \f3\'ae\f2  \lang1024 drMagneticNorth\lang2057 .\par
+\lang1024{\pntext\f3\'B7\tab}ShutterSpeedInMSecs\lang2057  function and \lang1024 GPSDateStamp\lang2057 , \lang1024 GPSDateTimeUTC\lang2057  and \lang1024 GPSDifferentialApplied\lang2057  properties added to \lang1024 TCustomExifData (GPSDateTimeUTC converts and combines the values stored in GPSDateStamp\lang2057  and \lang1024 GPSTimeStampXXX\lang2057 )\lang1024 .\lang2057\par
+{\pntext\f3\'B7\tab}The internal enumerator types have acquired a T prefix.\par
+\lang1024{\pntext\f3\'B7\tab}Exif\lang2057  List demo added.\par
+{\pntext\f3\'B7\tab}Thanks to David Hoyle for pointing out needed bug fixes.\f0\par
+\pard\s3\sb120\sa60 \f1 0.9.0 (2009-05-12)\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent0{\pntxtb\'B7}}\nowidctlpar\fi-360\li360\sb60\sa60\f2 Original release.\f0\par
+}
+ 
