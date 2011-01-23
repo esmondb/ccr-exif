@@ -1,7 +1,7 @@
 {\rtf1\ansi\ansicpg1252\deff0\deflang2057{\fonttbl{\f0\fnil\fcharset0 Times New Roman;}{\f1\fnil\fcharset0 Calibri;}{\f2\fnil\fcharset0 Cambria;}{\f3\fnil\fcharset2 Symbol;}{\f4\fnil\fcharset0 Courier New;}}
 {\colortbl ;\red255\green0\blue0;}
 {\stylesheet{\f0\snext0 Normal;}{\s1 heading 1;}{\s2 heading 2;}{\s3 heading 3;}{\s4 heading 4;}{\s5 heading 5;}{\s6 heading 6;}{\s7 heading 7;}{\s8 heading 8;}{\s9 heading 9;}{\*\cs10 \additive Default Paragraph Font;}{\*\cs20\fs16\additive\sbasedon10 annotation reference;}{\s21\fs20 annotation text;}{\*\cs22\super\additive\sbasedon10 footnote reference;}{\s23\fs20 footnote text;}{\*\cs24\super\additive\sbasedon10 endnote reference;}{\s25\fs20 endnote text;}}
-\viewkind4\uc1{\*\generator CCR Notes v1.7.10;}{\info{\title Release History}{\author Chris Rolliston}{\doccomm Exported from C:\\Delphi\\Delphi Haven\\Exif Readmes.ncd on 02 August 2010 at 19:16.}{\*\company  }}
+\viewkind4\uc1{\*\generator CCR Notes v1.7.10;}{\info{\title Release History}{\author Chris Rolliston}{\doccomm Exported from C:\\Delphi\\Delphi Haven\\Exif Readmes.ncd on 23 January 2011 at 11:31.}{\*\company  }}
 \viewscale100\psz9\paperw11909\paperh16834\margl1440\margt1440\margr1440\margb1440\fet2\aendnotes{\*\aftnsep \pard\plain\sl-1 }{\*\aftnsepc \pard\plain\sl-1 }\aftnnar\ftnnar\sectd\endnhere\saftnnar\sftnnar\headery720\footery720
 \pard\f0\fs24 {\footer
 \pard\absw4514\pvpara\phmrg\posx0\posy0\f1\fs22 {\field{\*\fldinst{TITLE \\* MERGEFORMAT}}{\fldrslt Release History}} \par
@@ -9,7 +9,17 @@
 \pard\absw4514\pvpara\phmrg\posxr\posy0\qr\f1\fs22 {\field{\*\fldinst{PAGE \\* MERGEFORMAT}}{\fldrslt ?}}\par
 \pard\ri20\sa20\f0\fs2\pard\qc  }\titlepg\pard\s1\sa120\qc
 \kerning36\b\f1\fs32 Release History\kerning0\b0\f2\fs24\par
-\pard\s3\sb120\sa60\f0 \f1 1.1.1 (2010-08-02)\par
+\pard\s3\sb120\sa60\f0 \f1 1.1.2 (2011-01-23)\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent0{\pntxtb\'B7}}\nowidctlpar\fi-360\li360\sa60\f2 Added UTF-8 support to TIPTCData when compiling under D2009 or later.\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent0{\pntxtb\'B7}}\nowidctlpar\fi-360\li720\sa60 Specifically, added AlwaysAssumeUTF8Encoding and UTF8Encoded properties (also removed the ReadString overload that took an AnsiString parameter). \par
+{\pntext\f3\'B7\tab}By default, AlwaysAssumeUTF8Encoding is False but UTF8Encoded is True, only being set to the value of AlwaysAssumeUTF8Encoding on LoadFromXXX being called. This means that when creating IPTC data afresh, the default will be to encode in UTF-8, setting the 1:90 tag to report the fact. When loading existing data however, the source is assumed to hold AnsiString values unless UTF-8 is explicitly specified in 1:90. \par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent0{\pntxtb\'B7}}\nowidctlpar\fi-360\li360\sa60 Bug fixes and tweaks:\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent0{\pntxtb\'B7}}\nowidctlpar\fi-360\li720\sa60 XMP parsing rejigged somewhat again to (a) allow for the fact a property need not share the namespace of its parent and (b) read \lquote property-and-node elements\rquote  properly (http://www.w3.org/TR/REC-rdf-syntax/#section-Syntax-parsetype-resource). Note this means a couple enumeration types have been renamed and NamespaceInfo properties added to TXMPProperty and TXMPSchema.\par
+{\pntext\f3\'B7\tab}Missing standard XMP namespaces (e.g. Exif Auxiliary) now registered.\par
+{\pntext\f3\'B7\tab}Fixed bug that meant the total size of very large JPEG segments wasn\rquote t being calculated correctly.\par
+{\pntext\f3\'B7\tab}Fixed small bug of TIPTCSection.Owner never being set.\f0\par
+\f2{\pntext\f3\'B7\tab}A couple of tweaks on the theme of accepting malformed data.\f0\par
+\pard\s3\sb120\sa60 \f1 1.1.1 (2010-08-02)\par
 \pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent0{\pntxtb\'B7}}\nowidctlpar\fi-360\li360\sa60\f2 Tweaked default behaviour of file name variants of TCustomExifData.SaveToJPEG and TIPTCData.SaveToJPEG to write to a memory stream first. This protects against the case of when the file exists, but is not a valid JPEG file (before, the file would just get wiped on the exception being raised).\par
 {\pntext\f3\'B7\tab}Added EnsureEnumsInRange property to TCustomExifData. When True (the default), enumeration tag property values will definitely be in the declared range \emdash  if the stored value is otherwise, it will be reported as missing unless you get at the raw data directly. \par
 {\pntext\f3\'B7\tab}Slightly modified TXMPPacket.TryLoadFromStream to support ExifTool\rquote s not-quite-XMP XML dump format.\par
