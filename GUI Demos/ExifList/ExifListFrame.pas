@@ -1,7 +1,7 @@
 {**************************************************************************************}
 {                                                                                      }
-{ CCR Exif - Delphi class library for reading and writing Exif metadata in JPEG files  }
-{ Version 1.1.2 (2011-01-23)                                                           }
+{ CCR Exif - Delphi class library for reading and writing image metadata               }
+{ Version 1.5.0 beta                                                                   }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -56,7 +56,7 @@ type
     procedure SetParent(AParent: TWinControl); override;
   public
     constructor Create(AOwner: TComponent); override;
-    procedure LoadFromFile(const JPEGFile: string; MakerNoteValueMap: TCustomIniFile);
+    procedure LoadFromFile(const FileName: string; MakerNoteValueMap: TCustomIniFile);
     function CanCopyToClipboard: Boolean;
     procedure CopyToClipboard;
     procedure SelectAll;
@@ -64,7 +64,7 @@ type
 
 implementation
 
-uses ClipBrd, DateUtils, StrUtils, Themes;
+uses ClipBrd, DateUtils, StrUtils, Themes, CCR.Exif.TiffUtils;
 
 {$R *.dfm}
 
@@ -91,9 +91,9 @@ end;
 const
   SGeneral = 'General';
   SEndiannessCaption = 'Byte order';
-  SEndianness: array[TEndianness] of string = ('Intel (small endian)', 'Motorola (big endian)');
+  SEndianness: array[TEndianness] of string = ('Small endian', 'Big endian');
   SNoYes: array[Boolean] of string = ('No', 'Yes');
-  SUnrecognized = '<Unrecognised (%d)>';
+  SUnrecognized = '[Unrecognised value (%d)]';
 
 function DirectionRefToStr(Value: TGPSDirectionRef): string;
 begin
@@ -454,7 +454,7 @@ end;
 procedure TOutputFrame.AddLoadErrorsValue(ListView: TListView; Section: TExifSection;
   AddToTop: Boolean = False);
 var
-  Error: TTiffDirectoryLoadError;
+  Error: TExifSectionLoadError;
   S: string;
 begin
   S := '';
@@ -473,7 +473,7 @@ begin
   AddValue(ListView, 'Loaded cleanly', S, AddToTop);
 end;
 
-procedure TOutputFrame.LoadFromFile(const JPEGFile: string; MakerNoteValueMap: TCustomIniFile);
+procedure TOutputFrame.LoadFromFile(const FileName: string; MakerNoteValueMap: TCustomIniFile);
 var
   ExifData: TExifData;
 begin
@@ -487,7 +487,7 @@ begin
     lsvMakerNote.Items.Clear;
     ExifData := TExifData.Create;
     ExifData.EnsureEnumsInRange := False; //as we use case statements rather than array constants, no need to keep this property set to True
-    ExifData.LoadFromJPEG(JPEGFile);
+    ExifData.LoadFromGraphic(FileName);
     if ExifData.Empty then
       lsvStandard.Items.Add.Caption := 'No Exif metadata found'
     else

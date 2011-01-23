@@ -21,9 +21,9 @@ object OutputFrame: TOutputFrame
     object imgThumbnail: TImage
       AlignWithMargins = True
       Left = 5
-      Top = 18
+      Top = 21
       Width = 93
-      Height = 322
+      Height = 319
       Align = alClient
       ExplicitLeft = 4
       ExplicitTop = 16
@@ -66,9 +66,9 @@ object OutputFrame: TOutputFrame
     end
     object panListViewHost: TPanel
       Left = 8
-      Top = 18
+      Top = 21
       Width = 407
-      Height = 304
+      Height = 301
       Align = alClient
       BevelOuter = bvNone
       Color = clWindow
@@ -87,7 +87,7 @@ object OutputFrame: TOutputFrame
         Left = 0
         Top = 1
         Width = 1
-        Height = 303
+        Height = 300
         Align = alLeft
         Pen.Color = clBtnShadow
         ExplicitTop = 0
@@ -97,7 +97,7 @@ object OutputFrame: TOutputFrame
         Left = 406
         Top = 1
         Width = 1
-        Height = 303
+        Height = 300
         Align = alRight
         Pen.Color = clBtnShadow
         ExplicitLeft = 0
@@ -109,7 +109,7 @@ object OutputFrame: TOutputFrame
         Left = 1
         Top = 1
         Width = 405
-        Height = 302
+        Height = 299
         Margins.Left = 0
         Margins.Top = 0
         Margins.Right = 0

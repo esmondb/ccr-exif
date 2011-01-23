@@ -1,7 +1,7 @@
 {**************************************************************************************}
 {                                                                                      }
-{ CCR Exif - Delphi class library for reading and writing Exif metadata in JPEG files  }
-{ Version 1.1.2 (2011-01-23)                                                           }
+{ CCR Exif - Delphi class library for reading and writing image metadata               }
+{ Version 1.5.0 beta                                                                   }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -18,37 +18,40 @@
 {                                                                                      }
 {**************************************************************************************}
 
-unit CCR.Exif;
+{$I CCR.Exif.inc}
+unit CCR.Exif;        
 {
-  To do:
-  - Maker note rewriting in TExifData, ideally. Currently changes are only actually
-    saved when using TExifDataPatcher.
-
   Notes:
   - In Exif-jargon, we have 'tags' and 'IFDs' (including 'sub-IFDs'). In the jargon of
     this unit, we have 'tags' and 'sections'.
-  - The idea is that, in general, you should only need to explicitly add CCR.Exif to
-    your uses clause, CCR.Exif.XMPUtils etc. only being needed for lower-level work. The
-    sub-units (so to speak) are still used by CCR.Exif.pas (i.e., this file) itself
-    though.
+  - The basic usage pattern is this: construct a TExifData instance; call
+    LoadFromGraphic, which has file name, TStream and TGraphic overloads; read and write
+    the published tag properties as you so wish; and call SaveToGraphic to persist the
+    changes made. Supported graphic types are JPEG, PSD and TIFF. LoadFromGraphic (which
+    is a function) returns True if the source was of a supported graphic type, False
+    otherwise. In contrast, SaveToGraphic will simply raise an exception if the
+    destination isn't of a supported type.
+  - The idea is that, in general, if your sole concern is reading and/or writing Exif
+    metadata, you only need to explicitly add CCR.Exif to your uses clause. This unit
+    does still itself use the other ones (CCR.Exif.BaseUtils etc.) though.
   - You enumerate the tags of a section with the for-in syntax. No traditional indexing
     is provided so as to avoid confusing tag IDs with tag indices.
   - The enumerator implementation for TExifSection allows calling Delete on a tag while
     you are enumerating the container section.
-  - When tags are loaded from a JPEG, any associated XMP packet is loaded too (more
-    exactly, the XMP segment is loaded immediately, then parsed when required). When
-    setting a tag property, the default behaviour is for the loaded XMP packet
-    to be updated if the equivalent XMP tag already exists.
+  - When tags are loaded from a graphic, any associated XMP packet is loaded too, though
+    XMP data is only actually parsed when required.
+  - When setting a tag property, the default behaviour is for the loaded XMP packet
+    to be updated if the equivalent XMP tag already exists. This can be changed however
+    by setting the XMPWritePolocy property of TExifData.
+  - Note that that maker note rewriting is *not* supported yet in TExifData. While you
+    can make changes to the loaded maker note tags, these changes won't ever be
+    persisted.
 }
 interface
 
-{$IF CompilerVersion >= 18.5}
-{$DEFINE CANINLINE} //inline directive on record methods is unstable pre-D2007
-{$IFEND}
-
 uses
-  Types, SysUtils, Classes, Graphics, Contnrs, TypInfo, JPEG, CCR.Exif.IPTC,
-  CCR.Exif.JPEGUtils, CCR.Exif.StreamHelper, CCR.Exif.TagIDs, CCR.Exif.XMPUtils;
+  Types, SysUtils, Classes, Graphics, Contnrs, TypInfo, JPEG, CCR.Exif.BaseUtils,
+  CCR.Exif.IPTC, CCR.Exif.StreamHelper, CCR.Exif.TagIDs, CCR.Exif.TiffUtils, CCR.Exif.XMPUtils;
 
 const
   SmallEndian = CCR.Exif.StreamHelper.SmallEndian;
@@ -59,90 +62,18 @@ const
   xwRemove = CCR.Exif.XMPUtils.xwRemove;
 
 type
-  EInvalidJPEGHeader = CCR.Exif.JPEGUtils.EInvalidJPEGHeader; //= class(EInvalidGraphic);
-  ECCRExifException = class(Exception);
-  EInvalidTiffData = class(ECCRExifException);
+  EInvalidJPEGHeader = CCR.Exif.BaseUtils.EInvalidJPEGHeader; //= class(EInvalidGraphic);
+  ECCRExifException = CCR.Exif.BaseUtils.ECCRExifException;
+  EInvalidTiffData = CCR.Exif.TiffUtils.EInvalidTiffData;
 
   TEndianness = CCR.Exif.StreamHelper.TEndianness;
-
-  TTiffTagID = type Word;
-{$Z2}
-  TTiffDataType = (tdByte = 1, tdAscii, tdWord, tdLongWord, tdLongWordFraction,
-    tdShortInt, tdUndefined, tdSmallInt, tdLongInt, tdLongIntFraction, tdSingle,
-    tdDouble, tdSubDirectory);
-{$Z1}
-  TTiffDataTypes = set of TTiffDataType;
-
-  TTiffTagInfo = record //note that this structure does not exactly map onto the 'real' one
-    HeaderOffset, DataOffset: Int64;
-    ID: TTiffTagID;
-    DataType: TTiffDataType;
-    ElementCount: LongInt;
-    function DataSize: Integer;
-    function IsWellFormed: Boolean; {$IFDEF CANINLINE}inline;{$ENDIF}
-  end;
-
-  TTiffDirectoryLoadError = (leBadOffset, leBadTagCount, leBadTagHeader);
-  TTiffDirectoryLoadErrors = set of TTiffDirectoryLoadError;
-
-  TTiffDirectory = record
-    Tags: array of TTiffTagInfo;
-    LoadErrors: TTiffDirectoryLoadErrors;
-  end;
-
-  TTiffInfo = record
-    Stream: TStream;
-    BasePosition: Int64;
-    Endianness: TEndianness;
-    Directories: array of TTiffDirectory;
-  end;
-
-  TiffString = type AnsiString;
-
-  TTiffLongWordFraction = packed record
-    constructor Create(ANumerator: LongWord; ADenominator: LongWord = 1); overload;
-    constructor Create(const AQuotient: Currency); overload;
-    constructor CreateFromString(const AString: string);
-    function AsString: string;
-    function MissingOrInvalid: Boolean; {$IFDEF CANINLINE}inline;{$ENDIF}
-    function Quotient: Extended; {$IFDEF CANINLINE}inline;{$ENDIF}
-    case Integer of
-      0: (Numerator, Denominator: LongWord);
-      1: (PackedValue: Int64);
-  end;
-
-  TTiffLongIntFraction = packed record
-    constructor Create(ANumerator: LongInt; ADenominator: LongInt = 1); overload;
-    constructor Create(const AQuotient: Currency); overload;
-    constructor CreateFromString(const AString: string);
-    function AsString: string;
-    function MissingOrInvalid: Boolean; {$IFDEF CANINLINE}inline;{$ENDIF}
-    function Quotient: Extended; {$IFDEF CANINLINE}inline;{$ENDIF}
-    case Integer of
-      0: (Numerator, Denominator: LongInt);
-      1: (PackedValue: Int64);
-  end;
-
-const
-  TiffElementSizes: array[TTiffDataType] of Integer = (
-    1, 1, 2, 4, 8, 1, 1, 2, 4, 8, 4, 8, 4);
-
-  TiffSmallEndianCode = Word($4949);
-  TiffBigEndianCode = Word($4D4D);
-  TiffMagicNum: Word = $002A;
-  TiffMagicNumBigEndian = Word($2A00);
-
-procedure LoadTiffInfo(Stream: TStream; var Info: TTiffInfo);
-function LoadTiffDirectory(const Info: TTiffInfo; const Offset: Int64;
-  const InternalOffset: Int64 = 0): TTiffDirectory;
-procedure LoadTiffTagData(const Info: TTiffInfo; const Tag: TTiffTagInfo; var Buffer); overload;
-function LoadTiffTagData(const Info: TTiffInfo; const Tag: TTiffTagInfo): TBytes; overload;
-
-{ Exif-specific types, constants and routines }
 
 const
   tdExifFraction = tdLongWordFraction;
   tdExifSignedFraction = tdLongIntFraction;
+  leBadOffset = CCR.Exif.TiffUtils.leBadOffset;
+  leBadTagCount = CCR.Exif.TiffUtils.leBadTagCount;
+  leBadTagHeader = CCR.Exif.TiffUtils.leBadTagHeader;
 
   StandardExifThumbnailWidth   = 160;
   StandardExifThumbnailHeight  = 120;
@@ -170,10 +101,11 @@ type
   TExifTagChangeType = (tcData, tcDataSize, tcID);
   TExifPaddingTagSize = 2..High(LongInt);
 
-  TExifTag = class
+  TExifTag = class(TNoRefCountInterfacedObject, IMetadataBlock, ITiffTag)
   strict private
     FAsStringCache: string;
     FData: Pointer;
+    FDataStream: TUserMemoryStream;
     FDataType: TExifDataType;
     FElementCount: LongInt;
     FID: TExifTagID;
@@ -188,21 +120,34 @@ type
     procedure SetElementCount(const NewCount: LongInt);
     procedure SetID(const Value: TExifTagID);
   protected
+    { IMetadataBlock }
+    function GetData: TCustomMemoryStream;
+    function IsExifBlock(CheckID: Boolean = True): Boolean;
+    function IsIPTCBlock(CheckID: Boolean = True): Boolean;
+    function IsXMPBlock(CheckID: Boolean = True): Boolean;
+    { ITiffTag }
+    function GetDataType: TTiffDataType;
+    function GetElementCount: Integer;
+    function GetID: TTiffTagID;
+    function GetOriginalDataOffset: LongWord;
+    function GetParent: ITiffDirectory;
+  protected
     FSection: TExifSection;
     procedure Changing(NewID: TExifTagID; NewDataType: TExifDataType;
       NewElementCount: LongInt; NewData: Boolean);
     procedure Changed(ChangeType: TExifTagChangeType); overload;
     procedure WriteHeader(Stream: TStream; Endianness: TEndianness; DataOffset: LongInt);
     procedure WriteOffsettedData(Stream: TStream; Endianness: TEndianness);
-    constructor Create(const Section: TExifSection; const Info: TTiffInfo;
-      const TagRec: TTiffTagInfo); overload;
+    constructor Create(Section: TExifSection; const Directory: IFoundTiffDirectory;
+      Index: Integer); overload;
+    property DataStream: TUserMemoryStream read FDataStream;
   public
     constructor Create(const Section: TExifSection; const ID: TExifTagID;
       DataType: TExifDataType; ElementCount: LongInt); overload;
     destructor Destroy; override;
     procedure Assign(Source: TExifTag);
     procedure Changed; overload; //call this if Data is modified directly
-    procedure Delete;
+    procedure Delete; inline;
     function HasWindowsStringData: Boolean;
     function IsPadding: Boolean;
     procedure SetAsPadding(Size: TExifPaddingTagSize);
@@ -225,22 +170,22 @@ type
     property WellFormed: Boolean read FWellFormed;
   end;
 
-  ETagAlreadyExists = class(EInvalidTiffData);
-
+  TExifSectionLoadError = TTiffDirectoryLoadError;
   TExifSectionLoadErrors = TTiffDirectoryLoadErrors;
 
   TExifSectionKindEx = (esUserDefined, esGeneral, esDetails, esInterop, esGPS,
     esThumbnail, esMakerNote);
   TExifSectionKind = esGeneral..esMakerNote;
 
-  TExifSection = class
+  TExifSection = class(TNoRefCountInterfacedObject, ITiffDirectory)
   public type
-    TEnumerator = record
+    TEnumerator = class sealed(TInterfacedObject, ITiffDirectoryEnumerator)
     private
       FCurrent: TExifTag;
       FIndex: Integer;
       FTags: TList;
       constructor Create(ATagList: TList);
+      function GetCurrent: ITiffTag;
     public
       function MoveNext: Boolean;
       property Current: TExifTag read FCurrent;
@@ -255,10 +200,18 @@ type
     FModified: Boolean;
     FOwner: TCustomExifData;
     FTagList: TList;
-    function GetTagCount: Integer;
     procedure DoSetFractionValue(TagID: TExifTagID; Index: Integer;
       DataType: TExifDataType; const Value);
   protected
+    { ITiffDirectory }
+    function FindTag(TagID: TTiffTagID; out ParsedTag: ITiffTag): Boolean;
+    function GetEnumeratorIntf: ITiffDirectoryEnumerator;
+    function ITiffDirectory.GetEnumerator = GetEnumeratorIntf;
+    function GetIndex: Integer;
+    function GetParent: ITiffDirectory;
+    function GetTagCount: Integer;
+    function LoadSubDirectory(OffsetTagID: TTiffTagID): ITiffDirectory;
+    { other }
     constructor Create(AOwner: TCustomExifData; AKind: TExifSectionKindEx);
     function Add(ID: TExifTagID; DataType: TExifDataType; ElementCount: LongInt): TExifTag;
     procedure Changed;
@@ -268,9 +221,7 @@ type
     function FindIndex(ID: TExifTagID; var TagIndex: Integer): Boolean;
     function ForceSetElement(ID: TExifTagID; DataType: TExifDataType;
       Index: Integer; const Value): TExifTag;
-    procedure Load(const Info: TTiffInfo; const Directory: TTiffDirectory); overload;
-    procedure Load(const Info: TTiffInfo; const Offset: Int64;
-      const InternalOffset: Int64 = 0); overload;
+    procedure Load(const Directory: IFoundTiffDirectory; TiffImageSource: Boolean);
     procedure TagChanging(Tag: TExifTag; NewID: TExifTagID;
       NewDataType: TExifDataType; NewElementCount: LongInt; NewData: Boolean);
     procedure TagChanged(Tag: TExifTag; ChangeType: TExifTagChangeType);
@@ -312,7 +263,8 @@ type
     procedure SetWindowsStringValue(TagID: TExifTagID; const Value: UnicodeString);
     function SetWordValue(TagID: TExifTagID; Index: Integer; Value: Word): TExifTag;
     function TagExists(ID: TExifTagID; ValidDataTypes: TExifDataTypes =
-      [Low(TExifDataType)..High(TExifDataType)]; MinElementCount: LongInt = 1): Boolean;
+      [Low(TExifDataType)..High(TExifDataType)]; MinElementCount: LongInt = 1;
+      MaxElementCount: LongInt = MaxLongInt): Boolean;
     function TryGetByteValue(TagID: TExifTagID; Index: Integer; var Value): Boolean;
     function TryGetLongWordValue(TagID: TExifTagID; Index: Integer; var Value): Boolean;
     function TryGetWordValue(TagID: TExifTagID; Index: Integer; var Value): Boolean;
@@ -335,6 +287,8 @@ type
       ElementCount: LongInt): TExifTag; overload;
     function AddOrUpdate(ID: TExifTagID; DataType: TExifDataType;
       ElementCount: LongInt; const Data): TExifTag; overload;
+    function AddOrUpdate(ID: TExifTagID; DataType: TExifDataType;
+      const Source: IStreamPersist): TExifTag; overload;
     procedure Assign(Source: TExifSection);
     procedure CopyTags(Section: TExifSection);
   end;
@@ -409,9 +363,9 @@ type
     constructor Create(AOwner: TCustomExifData);
     procedure Assign(Source: TPersistent); override;
     function MissingOrInvalid: Boolean;
+    property AsString: string read GetAsString write SetAsString;
     property Owner: TCustomExifData read FOwner;
   published
-    property AsString: string read GetAsString write SetAsString stored False;
     property Major: TExifVersionElement read GetMajor write SetMajor stored False;
     property Minor: TExifVersionElement read GetMinor write SetMinor stored False;
     property Release: TExifVersionElement read GetRelease write SetRelease stored False;
@@ -470,7 +424,7 @@ type
   TCustomExifResolution = class(TPersistent)
   strict private
     FOwner: TCustomExifData;
-    FSchema: TXMPSchemaKind;
+    FSchema: TXMPNamespace;
     FSection: TExifSection;
     FXTagID, FYTagID, FUnitTagID: TExifTagID;
     FXName, FYName, FUnitName: UnicodeString;
@@ -482,7 +436,7 @@ type
     procedure SetY(const Value: TExifFraction);
   protected
     procedure GetTagInfo(var Section: TExifSectionKind; 
-      var XTag, YTag, UnitTag: TExifTagID; var Schema: TXMPSchemaKind; 
+      var XTag, YTag, UnitTag: TExifTagID; var Schema: TXMPNamespace; 
       var XName, YName, UnitName: UnicodeString); virtual; abstract;
     property Owner: TCustomExifData read FOwner;
   public
@@ -499,21 +453,21 @@ type
   TImageResolution = class(TCustomExifResolution)
   protected
     procedure GetTagInfo(var Section: TExifSectionKind; 
-      var XTag, YTag, UnitTag: TExifTagID; var Schema: TXMPSchemaKind; 
+      var XTag, YTag, UnitTag: TExifTagID; var Schema: TXMPNamespace; 
       var XName, YName, UnitName: UnicodeString); override;
   end;
 
   TFocalPlaneResolution = class(TCustomExifResolution)
   protected
     procedure GetTagInfo(var Section: TExifSectionKind; 
-      var XTag, YTag, UnitTag: TExifTagID; var Schema: TXMPSchemaKind; 
+      var XTag, YTag, UnitTag: TExifTagID; var Schema: TXMPNamespace; 
       var XName, YName, UnitName: UnicodeString); override;
   end;
 
   TThumbnailResolution = class(TCustomExifResolution)
   protected
     procedure GetTagInfo(var Section: TExifSectionKind; 
-      var XTag, YTag, UnitTag: TExifTagID; var Schema: TXMPSchemaKind; 
+      var XTag, YTag, UnitTag: TExifTagID; var Schema: TXMPNamespace; 
       var XName, YName, UnitName: UnicodeString); override;
   end;
 
@@ -538,9 +492,10 @@ type
     constructor Create(AOwner: TCustomExifData);
     procedure Assign(Source: TPersistent); override;
     function MissingOrInvalid: Boolean;
+    property Items[Index: Integer]: Word read GetItem write SetItem; default;
+  published
     property AsString: string read GetAsString write SetAsString stored False;
     property Count: Integer read GetCount write SetCount stored False;
-    property Items[Index: Integer]: Word read GetItem write SetItem; default;
   end;
 
   TExifFileSource = (fsUnknown, fsFilmScanner, fsReflectionPrintScanner, fsDigitalCamera);
@@ -577,11 +532,12 @@ type
     constructor Create(AOwner: TCustomExifData; ATagID: TExifTagID);
     procedure Assign(Source: TPersistent); overload; override;
     function MissingOrInvalid: Boolean;
-    property AsString: string read GetAsString;
     property Degrees: TExifFraction index 0 read GetValue;
     property Minutes: TExifFraction index 1 read GetValue;
     property Seconds: TExifFraction index 2 read GetValue;
     property Direction: AnsiChar read GetDirectionChar write SetDirectionChar;
+  published
+    property AsString: string read GetAsString;
   end;
 
   TGPSLatitude = class(TGPSCoordinate)
@@ -700,14 +656,14 @@ type
   TJPEGMetaDataKind = (mkExif, mkIPTC, mkXMP);
   TJPEGMetadataKinds = set of TJPEGMetadataKind;
 
-  TCustomExifData = class(TInterfacedPersistent)
+  TCustomExifData = class(TComponent)
   public type
     TEnumerator = record
     strict private
       FClient: TCustomExifData;
       FDoneFirst: Boolean;
       FSection: TExifSectionKind;
-      function GetCurrent: TExifSection; {$IFDEF CANINLINE}inline;{$ENDIF}
+      function GetCurrent: TExifSection; {$IFDEF CanInline}inline;{$ENDIF}
     public
       constructor Create(AClient: TCustomExifData);
       function MoveNext: Boolean;
@@ -717,6 +673,7 @@ type
   strict private
     FAlwaysWritePreciseTimes: Boolean;
     FChangedWhileUpdating: Boolean;
+    FEmbeddedIPTC: TIPTCData;
     FEndianness: TEndianness;
     FEnforceASCII: Boolean;
     FEnsureEnumsInRange: Boolean;
@@ -735,16 +692,18 @@ type
     FModified: Boolean;
     FResolution: TCustomExifResolution;
     FSections: array[TExifSectionKind] of TExifSection;
+    FThumbnailOrNil: TJPEGImage;
     FThumbnailResolution: TCustomExifResolution;
     FUpdateCount: Integer;
-    FXMPPacketValue: TXMPPacket;
-    FXMPSegmentToLoad: IFoundJPEGSegment;
+    FXMPPacket: TXMPPacket;
     FOnChange: TNotifyEvent;
     procedure SetEndianness(Value: TEndianness);
     function GetMakerNote: TExifMakerNote;
     function GetSection(Section: TExifSectionKind): TExifSection; //inline;
-    function GetUpdating: Boolean; inline;
-    procedure SetModified(const Value: Boolean);
+    procedure SetModified(Value: Boolean);
+    function GetThumbnail: TJPEGImage;
+    procedure SetThumbnail(Value: TJPEGImage);
+    procedure ThumbnailChanged(Sender: TObject);
     function GetDateTime: TDateTime;
     procedure SetDateTime(const Value: TDateTime);
     function GetGeneralString(TagID: Integer): string;
@@ -846,24 +805,22 @@ type
     function GetInteropTypeName: string;
     procedure SetInteropTypeName(const Value: string);
     procedure SetISOSpeedRatings(Value: TISOSpeedRatings);
-    function GetXMPPacket: TXMPPacket;
     function GetXMPWritePolicy: TXMPWritePolicy;
     procedure SetXMPWritePolicy(Value: TXMPWritePolicy);
   strict protected
     FMetadataInSource: TJPEGMetadataKinds;
     FXMPSegmentPosition, FXMPPacketSizeInSource: Int64;
-    property MetadataInSource: TJPEGMetadataKinds read FMetadataInSource; //set in LoadFromJPEG
-    property XMPSegmentToLoad: IFoundJPEGSegment read FXMPSegmentToLoad;
+    property MetadataInSource: TJPEGMetadataKinds read FMetadataInSource; //set in LoadFromGraphic
   protected
     const MaxThumbnailSize = $F000;
     class function SectionClass: TExifSectionClass; virtual;
-    procedure AddFromStream(Stream: TStream); virtual;
+    procedure AddFromStream(Stream: TStream; TiffImageSource: Boolean = False); 
     procedure Changed(Section: TExifSection); virtual;
-    function GetEmpty: Boolean; virtual;
-    function FindThumbnailOffset(SourceStream: TStream; var Offset: LongInt): Boolean;
-    procedure LoadFromJPEG(JPEGStream: TStream);
+    function GetEmpty: Boolean;
+    function LoadFromGraphic(Stream: TStream): Boolean;
     procedure ResetMakerNoteType;
     property OffsetBase: Int64 read FOffsetBase;
+    property Thumbnail: TJPEGImage read GetThumbnail write SetThumbnail stored False;
   private class var
     FMakerNoteClasses: TList;
   public
@@ -873,31 +830,33 @@ type
       Priority: TMakerNoteTypePriority = mtTestForFirst);
     class procedure UnregisterMakerNoteType(AClass: TExifMakerNoteClass);
   public
-    constructor Create;
+    constructor Create(AOwner: TComponent = nil); overload; override; 
     destructor Destroy; override;
     function GetEnumerator: TEnumerator;
-    procedure Clear(XMPPacketToo: Boolean = True); virtual;
+    procedure Clear(XMPPacketToo: Boolean = True);
     procedure BeginUpdate;
     procedure EndUpdate;
     procedure GetKeywords(Dest: TStrings); overload;
     procedure SetKeywords(const NewWords: array of UnicodeString); overload;
     procedure SetKeywords(NewWords: TStrings); overload;
     function HasMakerNote: Boolean;
+    function HasThumbnail: Boolean; inline;
     procedure Rewrite;
     procedure SetAllDateTimeValues(const NewValue: TDateTime);
     function ShutterSpeedInMSecs: Extended;
-    property Empty: Boolean read GetEmpty;
+    function Updating: Boolean; reintroduce; inline;
+    property EmbeddedIPTC: TIPTCData read FEmbeddedIPTC;
     property Endianness: TEndianness read FEndianness write SetEndianness;
     property MakerNote: TExifMakerNote read GetMakerNote;
     property Modified: Boolean read FModified write SetModified;
     property Sections[Section: TExifSectionKind]: TExifSection read GetSection; default;
-    property Updating: Boolean read GetUpdating;
-    property XMPPacket: TXMPPacket read GetXMPPacket;
-    property XMPWritePolicy: TXMPWritePolicy read GetXMPWritePolicy write SetXMPWritePolicy;
+    property XMPPacket: TXMPPacket read FXMPPacket;
   published
     property AlwaysWritePreciseTimes: Boolean read FAlwaysWritePreciseTimes write FAlwaysWritePreciseTimes default False;
+    property Empty: Boolean read GetEmpty;
     property EnforceASCII: Boolean read FEnforceASCII write FEnforceASCII default True;
     property EnsureEnumsInRange: Boolean read FEnsureEnumsInRange write FEnsureEnumsInRange default True;
+    property XMPWritePolicy: TXMPWritePolicy read GetXMPWritePolicy write SetXMPWritePolicy default xwUpdateIfExists;
     property OnChange: TNotifyEvent read FOnChange write FOnChange;
     { main dir tags }
     property CameraMake: string index ttMake read GetGeneralString write SetGeneralString stored False;
@@ -932,7 +891,7 @@ type
     property ExposureMode: TExifExposureMode read GetExposureMode write SetExposureMode stored False;
     property ExposureProgram: TExifExposureProgram read GetExposureProgram write SetExposureProgram stored False;
     property ExposureTime: TExifFraction index ttExposureTime read GetDetailsFraction write SetDetailsFraction stored False; //in secs
-    property FileSource: TExifFileSource read GetFileSource write SetFileSource;
+    property FileSource: TExifFileSource read GetFileSource write SetFileSource stored False;
     property Flash: TExifFlashInfo read FFlash write SetFlash stored False;
     property FlashPixVersion: TCustomExifVersion read FFlashPixVersion write SetFlashPixVersion stored False;
     property FNumber: TExifFraction index ttFNumber read GetDetailsFraction write SetDetailsFraction stored False;
@@ -965,7 +924,7 @@ type
     property SubsecTimeDigitized: string index ttSubsecTimeDigitized read GetDetailsString write SetDetailsString stored False;
     { Interop }
     property InteropTypeName: string read GetInteropTypeName write SetInteropTypeName stored False;
-    property InteropVersion: TCustomExifVersion read FInteropVersion write SetInteropVersion;
+    property InteropVersion: TCustomExifVersion read FInteropVersion write SetInteropVersion stored False;
     { GPS }
     property GPSVersion: TCustomExifVersion read FGPSVersion write SetGPSVersion stored False;
     property GPSLatitude: TGPSLatitude read FGPSLatitude write SetGPSLatitude;
@@ -1006,7 +965,7 @@ type
   ENoExifFileOpenError = class(EExifDataPatcherError);
   EIllegalEditOfExifData = class(EExifDataPatcherError);
 
-  TExifDataPatcher = class(TCustomExifData)
+  TExifDataPatcher = class(TCustomExifData) //only supports patching the Exif data in JPEG files
   strict private
     FOriginalEndianness: TEndianness;
     FPreserveFileDate: Boolean;
@@ -1018,12 +977,11 @@ type
     procedure CheckFileIsOpen;
     property Stream: TFileStream read FStream;
   public
-    constructor Create(const AFileName: string = '');
+    constructor Create(const AFileName: string); reintroduce; overload; 
     destructor Destroy; override;
     procedure GetImage(Dest: TJPEGImage);
     procedure GetThumbnail(Dest: TJPEGImage);
-    function HasThumbnail: Boolean;
-    procedure OpenFile(const FileName: string);
+    procedure OpenFile(const JPEGFileName: string);
     procedure UpdateFile;
     procedure CloseFile(SaveChanges: Boolean = False);
     property FileDateTime: TDateTime read GetFileDateTime write SetFileDateTime;
@@ -1032,44 +990,48 @@ type
     property PreserveFileDate: Boolean read FPreserveFileDate write FPreserveFileDate default False;
   end;
 
-  TExifData = class(TCustomExifData, IStreamPersist)
+  TExifData = class(TCustomExifData, IStreamPersist, IStreamPersistEx, ITiffRewriteCallback)
   strict private
     FRemovePaddingTagsOnSave: Boolean;
-    FThumbnailOrNil: TJPEGImage;
+    procedure GetGraphicSaveMethod(Stream: TStream; var Method: TGraphicSaveMethod);
     function GetSection(Section: TExifSectionKind): TExtendableExifSection; inline;
-    function GetThumbnail: TJPEGImage;
-    procedure SetThumbnail(const Value: TJPEGImage);
-    procedure ThumbnailChanged(Sender: TObject);
   protected
     procedure DefineProperties(Filer: TFiler); override;
     procedure DoSaveToJPEG(InStream, OutStream: TStream);
-    function GetEmpty: Boolean; override;
+    procedure DoSaveToPSD(InStream, OutStream: TStream);
+    procedure DoSaveToTIFF(InStream, OutStream: TStream);
     class function SectionClass: TExifSectionClass; override;
+    { ITiffRewriteCallback }
+    procedure AddNewTags(Rewriter: TTiffDirectoryRewriter);
+    procedure RewritingOldTag(const Source: ITiffDirectory; TagID: TTiffTagID;
+      DataType: TTiffDataType; var Rewrite: Boolean);
   public
-    constructor Create;
-    destructor Destroy; override;
-    procedure AddFromStream(Stream: TStream); override;
+    constructor Create(AOwner: TComponent = nil); override;
     procedure Assign(Source: TPersistent); override;
-    procedure Clear(XMPPacketToo: Boolean = True); override;
     procedure CreateThumbnail(Source: TGraphic;
       ThumbnailWidth: Integer = StandardExifThumbnailWidth;
       ThumbnailHeight: Integer = StandardExifThumbnailHeight);
-    procedure LoadFromJPEG(JPEGStream: TStream); overload;
-    procedure LoadFromJPEG(JPEGImage: TJPEGImage); overload;
-    procedure LoadFromJPEG(const FileName: string); overload;
+    function LoadFromGraphic(Stream: TStream): Boolean; overload; inline;
+    function LoadFromGraphic(Graphic: TGraphic): Boolean; overload;
+    function LoadFromGraphic(const FileName: string): Boolean; overload;
     procedure LoadFromStream(Stream: TStream);
     procedure RemoveMakerNote;
     procedure RemovePaddingTags;
-    { SaveToJPEG replaces any existing Exif data }
-    procedure SaveToJPEG(const JPEGFileName: string; BufferedWrite: Boolean = True); overload; //file must already exist
-    procedure SaveToJPEG(JPEGImage: TJPEGImage); overload;
+    procedure SaveToGraphic(const FileName: string); overload;
+    procedure SaveToGraphic(Graphic: TGraphic); overload;
     procedure SaveToStream(Stream: TStream);
     procedure StandardizeThumbnail;
     property Sections[Section: TExifSectionKind]: TExtendableExifSection read GetSection; default;
+  public //deprecated methods - to be removed in a future release
+    procedure LoadFromJPEG(JPEGStream: TStream); overload; deprecated {$IFDEF DEPCON}'Use LoadFromGraphic'{$ENDIF};
+    procedure LoadFromJPEG(JPEGImage: TJPEGImage); overload; inline; deprecated {$IFDEF DEPCON}'Use LoadFromGraphic'{$ENDIF};
+    procedure LoadFromJPEG(const FileName: string); overload; inline; deprecated {$IFDEF DEPCON}'Use LoadFromGraphic'{$ENDIF};
+    procedure SaveToJPEG(const JPEGFileName: string; Dummy: Boolean = True); overload; inline; deprecated {$IFDEF DEPCON}'Use SaveToGraphic'{$ENDIF};
+    procedure SaveToJPEG(JPEGImage: TJPEGImage); overload; inline; deprecated {$IFDEF DEPCON}'Use SaveToGraphic'{$ENDIF};
   published
     property RemovePaddingTagsOnSave: Boolean read FRemovePaddingTagsOnSave write
       FRemovePaddingTagsOnSave default True;
-    property Thumbnail: TJPEGImage read GetThumbnail write SetThumbnail stored False;
+    property Thumbnail;
   end;
 
   TJPEGImageEx = class(TJPEGImage)
@@ -1095,7 +1057,7 @@ type
     procedure SaveToStream(Stream: TStream); override;
     function RemoveMetadata(Kinds: TJPEGMetadataKinds): TJPEGMetadataKinds; inline;
     function RemoveSegments(Markers: TJPEGMarkers): TJPEGMarkers; inline;
-    function Segments(MarkersToLookFor: TJPEGMarkers = AllJPEGMarkers): IJPEGHeaderParser; inline;
+    function Segments(MarkersToLookFor: TJPEGMarkers = TJPEGSegment.AllMarkers): IJPEGHeaderParser; inline;
     property ExifData: TExifData read FExifData;
     property IPTCData: TIPTCData read FIPTCData;
     property XMPPacket: TXMPPacket read GetXMPPacket; //just a shortcut for ExifData.XMPPacket
@@ -1114,7 +1076,8 @@ function ContainsOnlyASCII(const S: RawByteString): Boolean; overload;
 function DateTimeToExifString(const DateTime: TDateTime): string;
 function TryExifStringToDateTime(const S: string; var DateTime: TDateTime): Boolean; overload;
 
-function HasExifHeader(Stream: TStream; MovePosOnSuccess: Boolean = False): Boolean;
+function HasExifHeader(Stream: TStream;
+  MovePosOnSuccess: Boolean = False): Boolean; deprecated; //use Segment.HasExifHeader
 
 function ProportionallyResizeExtents(const Width, Height: Integer;
   const MaxWidth, MaxHeight: Integer): TSize;
@@ -1129,39 +1092,15 @@ function RemoveMetadataFromJPEG(JPEGImage: TJPEGImage;
 
 implementation
 
-{$IFOPT Q+}
-  {$DEFINE OverflowCheckingOn}
-{$ENDIF}
-
-{$IFOPT R-}
-  {$DEFINE RangeCheckingOff}
-{$ENDIF}
-
 uses
   SysConst, RTLConsts, Math, DateUtils, StrUtils, CCR.Exif.Consts;
 
 type
-  PDoubleArray = ^TDoubleArray;
-  TDoubleArray = array[0..High(TByteArray) div 8] of Double;
-
-  PShortIntArray = ^TShortIntArray;
-  TShortIntArray = array[0..High(TByteArray)] of ShortInt;
-
-  PSmallIntArray = ^TSmallIntArray;
-  TSmallIntArray = array[0..High(TWordArray)] of SmallInt;
-
-  PLongWordArray = ^TLongWordArray;
-  TLongWordArray = array[0..High(TWordArray) div 2] of LongWord;
-
-  PLongIntArray = ^TLongIntArray;
-  TLongIntArray = array[0..High(TWordArray) div 2] of LongInt;
-
   PExifFractionArray = ^TExifFractionArray;
   TExifFractionArray = array[0..High(TLongWordArray) div 2] of TExifFraction;
 
 const
   NullFraction: TExifFraction = (PackedValue: 0);
-  TagHeaderSize = 12;
 
 { general helper routines }
 
@@ -1201,30 +1140,6 @@ begin
     end;
 end;
 
-function GCD(A, B: Int64): Int64;
-var
-  Temp: Int64;
-begin
-  while B <> 0 do
-  begin
-    Temp := B;
-    B := A mod B;
-    A := Temp;
-  end;
-  Result := A;
-end;
-
-procedure CurrencyToFraction(const Source: Currency; var N, D: Int64);
-var
-  Factor: Int64;
-begin          
-  N := Trunc(Source * 10000);
-  D := 10000;
-  Factor := GCD(N, D);
-  N := N div Factor;
-  D := D div Factor;
-end;
-
 function GetGPSTagXMPName(TagID: TExifTagID): UnicodeString;
 begin
   case TagID of
@@ -1259,6 +1174,26 @@ function FindGPSTagXMPName(TagID: TExifTagID; out PropName: string): Boolean;
 begin
   PropName := GetGPSTagXMPName(TagID);
   Result := (PropName <> '');
+end;
+
+function IsKnownExifTagInMainIFD(ID: TTiffTagID; DataType: TTiffDataType): Boolean; overload;
+begin
+  Result := False;
+  case ID of
+    ttImageDescription, ttMake, ttModel, ttOrientation, ttXResolution,
+    ttYResolution, ttResolutionUnit, ttSoftware, ttDateTime, ttArtist,
+    ttWhitePoint, ttPrimaryChromaticities, ttYCbCrCoefficients,
+    ttYCbCrPositioning, ttReferenceBlackWhite, ttCopyright, ttIPTC, ttExifOffset,
+    ttGPSOffset, ttPrintIM: Result := True;
+    ttWindowsTitle, ttWindowsComments, ttWindowsAuthor, ttWindowsKeywords,
+    ttWindowsSubject, ttWindowsRating, ttWindowsPadding:
+      if DataType = tdByte then Result := True;
+  end;
+end;
+
+function IsKnownExifTagInMainIFD(const TagInfo: TTiffTagInfo): Boolean; overload; inline;
+begin
+  Result := IsKnownExifTagInMainIFD(TagInfo.ID, TagInfo.DataType);
 end;
 
 function ProportionallyResizeExtents(const Width, Height: Integer;
@@ -1330,8 +1265,8 @@ var
     StartCopyFrom := EndPos + NextStartPosOffset;
   end;
 var
-  Block: IAdobeBlock;
-  HasIPTCData: Boolean;
+  Block: IAdobeResBlock;
+  IsIPTCBlock: Boolean;
   MarkersToLookFor: TJPEGMarkers;
   SavedBlocks: IInterfaceList;
 begin
@@ -1340,29 +1275,29 @@ begin
   StartCopyFrom := InStream.Position;
   for Segment in JPEGHeader(InStream, MarkersToLookFor) do
   begin
-    if (mkExif in KindsToRemove) and HasExifHeader(Segment.Data) then
+    if (mkExif in KindsToRemove) and Segment.IsExifBlock then
       Include(Result, mkExif)
-    else if (mkXMP in KindsToRemove) and HasXMPSegmentHeader(Segment.Data) then
+    else if (mkXMP in KindsToRemove) and Segment.IsXMPBlock then
       Include(Result, mkXMP)
     else
     begin
-      HasIPTCData := False;
+      IsIPTCBlock := False;
       SavedBlocks := nil;
       if mkIPTC in KindsToRemove then
         for Block in Segment do
-          if Block.HasIPTCData then
-            HasIPTCData := True
+          if Block.IsIPTCBlock then
+            IsIPTCBlock := True
           else
           begin
             if SavedBlocks = nil then SavedBlocks := TInterfaceList.Create;
             SavedBlocks.Add(Block);
           end;
-      if HasIPTCData then
+      if IsIPTCBlock then
       begin
         Include(Result, mkIPTC);
         DoCopyFrom(Segment.Offset, Segment.TotalSize);
         if SavedBlocks <> nil then
-          WriteJPEGSegmentToStream(OutStream, CreateAdobeApp13Segment(SavedBlocks));
+          WriteJPEGSegment(OutStream, CreateAdobeApp13Segment(SavedBlocks));
       end;
       Continue;
     end;
@@ -1416,301 +1351,10 @@ end;
 
 { segment header checking }
 
-const
-  ExifHeader: array[0..5] of AnsiChar = 'Exif'#0#0;
-
 function HasExifHeader(Stream: TStream; MovePosOnSuccess: Boolean = False): Boolean;
-var
-  Buffer: array[0..4] of Word;
-  BytesRead: Integer;
 begin
-  Result := False;
-  BytesRead := Stream.Read(Buffer, SizeOf(Buffer));
-  if (BytesRead = SizeOf(Buffer)) and CompareMem(@Buffer, @ExifHeader, SizeOf(ExifHeader)) then
-    case Buffer[3] of
-      TiffSmallEndianCode, TiffBigEndianCode:
-        Result := (Buffer[4] = TiffMagicNum) or (Buffer[4] = TiffMagicNumBigEndian);
-    end;
-  if Result and MovePosOnSuccess then
-    Stream.Seek(-4, soCurrent)
-  else
-    Stream.Seek(-BytesRead, soCurrent)
-end;
-
-{ TTiffTagInfo }
-
-function TTiffTagInfo.DataSize: Integer;
-begin
-  if IsWellFormed then
-    Result := ElementCount * TiffElementSizes[DataType]
-  else
-    Result := 0;
-end;
-
-{$Q-}
-function TTiffTagInfo.IsWellFormed: Boolean;
-begin
-  case Ord(DataType) of
-    Ord(Low(DataType))..Ord(High(DataType)):
-      Result := (LongInt(ElementCount * TiffElementSizes[DataType]) >= 0);
-  else Result := False;
-  end;
-end;
-{$IFDEF OverflowCheckingOn}{$Q+}{$ENDIF}
-
-{ TTiffLongXXXFraction }
-
-constructor TTiffLongIntFraction.Create(ANumerator, ADenominator: LongInt);
-begin
-  Numerator := ANumerator;
-  Denominator := ADenominator;
-end;
-
-constructor TTiffLongIntFraction.Create(const AQuotient: Currency);
-var
-  N, D: Int64;
-begin
-  CurrencyToFraction(AQuotient, N, D);
-  {$RANGECHECKS ON}
-  Numerator := N;
-  Denominator := D;
-  {$IFDEF RangeCheckingOff}{$RANGECHECKS OFF}{$ENDIF}
-end;
-
-constructor TTiffLongIntFraction.CreateFromString(const AString: string);
-var
-  DivSignPos: Integer;
-  Result: Boolean;
-begin
-  DivSignPos := Pos('/', AString);
-  if DivSignPos <> 0 then
-    Result := TryStrToInt(Copy(AString, 1, DivSignPos - 1), Numerator) and
-      TryStrToInt(Copy(AString, DivSignPos + 1, MaxInt), Denominator)
-  else
-  begin
-    Result := TryStrToInt(AString, Numerator);
-    if Result then Denominator := 1;
-  end;
-  if not Result then
-    PackedValue := 0;
-end;
-
-function TTiffLongIntFraction.AsString: string;
-begin
-  if MissingOrInvalid then
-    Result := ''
-  else if Denominator = 1 then
-    Result := IntToStr(Numerator)
-  else
-    FmtStr(Result, '%d/%d', [Numerator, Denominator]);
-end;
-
-function TTiffLongIntFraction.MissingOrInvalid: Boolean;
-begin
-  Result := (Denominator = 0);
-end;
-
-function TTiffLongIntFraction.Quotient: Extended;
-begin
-  if MissingOrInvalid then
-    Result := 0
-  else
-    Result := Numerator / Denominator
-end;
-
-function TryStrToLongWord(const S: string; var Value: LongWord): Boolean;
-var
-  Int64Value: Int64;
-begin
-  Result := TryStrToInt64(S, Int64Value) and (Int64Value >= 0) and
-    (Int64Value <= High(Value));
-  if Result then Value := LongWord(Int64Value);
-end;
-
-constructor TTiffLongWordFraction.Create(ANumerator, ADenominator: LongWord);
-begin
-  Numerator := ANumerator;
-  Denominator := ADenominator;
-end;
-
-constructor TTiffLongWordFraction.Create(const AQuotient: Currency);
-var
-  N, D: Int64;
-begin
-  CurrencyToFraction(AQuotient, N, D);
-  {$RANGECHECKS ON}
-  Numerator := N;
-  Denominator := D;
-  {$IFDEF RangeCheckingOff}{$RANGECHECKS OFF}{$ENDIF}
-end;
-
-constructor TTiffLongWordFraction.CreateFromString(const AString: string);
-var
-  DivSignPos: Integer;
-  Result: Boolean;
-begin
-  DivSignPos := Pos('/', AString);
-  if DivSignPos <> 0 then
-    Result := TryStrToLongWord(Copy(AString, 1, DivSignPos - 1), Numerator) and
-      TryStrToLongWord(Copy(AString, DivSignPos + 1, MaxInt), Denominator)
-  else
-  begin
-    Result := TryStrToLongWord(AString, Numerator);
-    if Result then Denominator := 1;
-  end;
-  if not Result then
-    PackedValue := 0;
-end;
-
-function TTiffLongWordFraction.AsString: string;
-begin
-  if MissingOrInvalid then
-    Result := ''
-  else if Denominator = 1 then
-    Result := IntToStr(Numerator)
-  else
-    FmtStr(Result, '%d/%d', [Numerator, Denominator]);
-end;
-
-function TTiffLongWordFraction.MissingOrInvalid: Boolean;
-begin
-  Result := (Denominator = 0);
-end;
-
-function TTiffLongWordFraction.Quotient: Extended;
-begin
-  if MissingOrInvalid then
-    Result := 0
-  else
-    Result := Numerator / Denominator
-end;
-
-{ TIFF parsing routines }
-
-function LoadTiffDirectory(const Info: TTiffInfo; const Offset: Int64;
-  const InternalOffset: Int64 = 0): TTiffDirectory;
-var                                        // Sanity checking:
-  I, TagCount: Integer;                    // - We check the reported tag count is
-  MaxTagCount, StartPos, StreamSize: Int64;//   theoretically possible up front.
-begin                                      // - Data offsets are validated.
-  Result.LoadErrors := [];                 // - Two bad tag headers in a row, and any
-  Result.Tags := nil;                      //   further parsing is aborted.
-  StartPos := Info.BasePosition + Offset;
-  StreamSize := Info.Stream.Seek(0, soEnd);
-  if (StartPos < 0) or (StartPos + 2 > StreamSize) then
-  begin
-    Result.LoadErrors := [leBadOffset];
-    Exit;
-  end;
-  MaxTagCount := (StreamSize - StartPos - 2) div TagHeaderSize;
-  Info.Stream.Position := StartPos;
-  TagCount := Info.Stream.ReadWord(Info.Endianness);
-  if TagCount > MaxTagCount then
-  begin
-    TagCount := MaxTagCount;
-    Include(Result.LoadErrors, leBadTagCount);
-  end;
-  SetLength(Result.Tags, TagCount);
-  for I := 0 to TagCount - 1 do
-  begin
-    Result.Tags[I].HeaderOffset := Info.Stream.Position - Info.BasePosition;
-    Result.Tags[I].ID := Info.Stream.ReadWord(Info.Endianness);
-    Word(Result.Tags[I].DataType) := Info.Stream.ReadWord(Info.Endianness);
-    Result.Tags[I].ElementCount := Info.Stream.ReadLongInt(Info.Endianness);
-    if Result.Tags[I].DataSize > 4 then
-    begin
-      Result.Tags[I].DataOffset := Info.Stream.ReadLongInt(Info.Endianness) + InternalOffset;
-      if (Result.Tags[I].DataOffset + Info.BasePosition < 0) or
-         (Result.Tags[I].DataOffset + Result.Tags[I].DataSize + Info.BasePosition > StreamSize) then
-        Result.Tags[I].ElementCount := -1;
-    end
-    else
-    begin
-      Result.Tags[I].DataOffset := Info.Stream.Position - Info.BasePosition;
-      Info.Stream.Seek(4, soCurrent);
-    end;
-    if not Result.Tags[I].IsWellFormed then
-      if (I = 0) or Result.Tags[I - 1].IsWellFormed then
-        Include(Result.LoadErrors, leBadTagHeader)
-      else
-      begin
-        Include(Result.LoadErrors, leBadTagCount);
-        SetLength(Result.Tags, I);
-        Exit;
-      end;
-  end;
-end;
-
-procedure LoadTiffInfo(Stream: TStream; var Info: TTiffInfo);
-var
-  DirectoryCount: Integer;
-  MaxOffsetValue: Int64;
-
-  procedure ReadDirectory(Offset: LongInt);
-  begin
-    if Offset = 0 then Exit;
-    if Length(Info.Directories) = DirectoryCount then
-      SetLength(Info.Directories, DirectoryCount + 8);
-    Info.Directories[DirectoryCount] := LoadTiffDirectory(Info, Offset);
-    Inc(DirectoryCount);
-    if Stream.ReadLongInt(Info.Endianness, Offset) and (Offset <= MaxOffsetValue) then
-      ReadDirectory(Offset);
-  end;
-var
-  WordValue: Word;
-begin
-  DirectoryCount := 0;
-  Info.Directories := nil;
-  Info.Stream := Stream;
-  Info.BasePosition := Stream.Position;
-  case Stream.ReadWord(SmallEndian) of
-    TiffSmallEndianCode: Info.Endianness := SmallEndian;
-    TiffBigEndianCode: Info.Endianness := BigEndian;
-  else
-    raise EInvalidTiffData.Create(SInvalidTiffData);
-  end;
-  WordValue := Stream.ReadWord(Info.Endianness);
-  if WordValue <> TiffMagicNum then //maybe it was just the endianness flag that was set incorrectly
-    if Swap(WordValue) <> TiffMagicNum then
-      raise EInvalidTiffData.Create(SInvalidTiffData)
-    else
-      if Info.Endianness = SmallEndian then
-        Info.Endianness := BigEndian
-      else
-        Info.Endianness := SmallEndian;
-  MaxOffsetValue := Stream.Size - Info.BasePosition - 4; //4 is the minimum size of an IFD (word-sized tag count + word-sized next IFD offset)
-  ReadDirectory(Stream.ReadLongInt(Info.Endianness));
-  SetLength(Info.Directories, DirectoryCount);
-end;
-
-procedure LoadTiffTagData(const Info: TTiffInfo; const Tag: TTiffTagInfo; var Buffer);
-var
-  Size: Integer;
-  I: Integer;
-begin
-  Size := Tag.DataSize;
-  if Size = 0 then Exit;
-  Info.Stream.Position := Info.BasePosition + Tag.DataOffset;
-  case TiffElementSizes[Tag.DataType] of
-    1: Info.Stream.ReadBuffer(Buffer, Size);
-    2:
-      for I := 0 to Tag.ElementCount - 1 do
-        PWordArray(@Buffer)[I] := Info.Stream.ReadWord(Info.Endianness);
-  else
-    if Tag.DataType = tdDouble then
-      for I := 0 to Tag.ElementCount - 1 do
-        PDoubleArray(@Buffer)[I] := Info.Stream.ReadDouble(Info.Endianness)
-    else
-      for I := 0 to (Size div 4) - 1 do
-        PLongWordArray(@Buffer)[I] := Info.Stream.ReadLongWord(Info.Endianness);
-  end;
-end;
-
-function LoadTiffTagData(const Info: TTiffInfo; const Tag: TTiffTagInfo): TBytes;
-begin
-  SetLength(Result, Tag.DataSize);
-  if Result <> nil then
-    LoadTiffTagData(Info, Tag, Result[0]);
+  Result := Stream.TryReadHeader(TJPEGSegment.ExifHeader, SizeOf(TJPEGSegment.ExifHeader),
+    not MovePosOnSuccess);
 end;
 
 { Exif date/time strings }
@@ -1764,26 +1408,31 @@ begin
   FElementCount := ElementCount;
   if FElementCount < 0 then FElementCount := 0;
   FData := AllocMem(DataSize);
+  FDataStream := TUserMemoryStream.Create(FData, DataSize);
   FOriginalDataSize := DataSize;
   FWellFormed := True;
 end;
 
-constructor TExifTag.Create(const Section: TExifSection;
-  const Info: TTiffInfo; const TagRec: TTiffTagInfo);
+constructor TExifTag.Create(Section: TExifSection;
+  const Directory: IFoundTiffDirectory; Index: Integer);
+var
+  Info: TTiffTagInfo;
 begin
-  if TagRec.IsWellFormed then
-    Create(Section, TagRec.ID, TagRec.DataType, TagRec.ElementCount)
+  Info := Directory.TagInfo[Index];
+  if Info.IsWellFormed then
+    Create(Section, Info.ID, Info.DataType, Info.ElementCount)
   else
-    Create(Section, TagRec.ID, tdUndefined, 0);
-  FOriginalDataOffset := TagRec.DataOffset;
-  FWellFormed := TagRec.IsWellFormed;
-  if TagRec.ElementCount > 0 then LoadTiffTagData(Info, TagRec, FData^);
+    Create(Section, Info.ID, tdUndefined, 0);
+  FOriginalDataOffset := Info.DataOffset;
+  FWellFormed := Info.IsWellFormed;
+  if Info.ElementCount > 0 then Directory.Parser.LoadTagData(Info, FData^);
 end;
 
 destructor TExifTag.Destroy;
 begin
   if Section <> nil then Section.TagDeleting(Self);
   if FData <> nil then FreeMem(FData);
+  FDataStream.Free;
   inherited;
 end;
 
@@ -1822,7 +1471,7 @@ begin
   if Self is TExtendableExifSection then
     Result := TExtendableExifSection(Self)
   else
-    raise EIllegalEditOfExifData.Create(SIllegalEditOfExifData);
+    raise EIllegalEditOfExifData.CreateRes(@SIllegalEditOfExifData);
 end;
 
 procedure TExifTag.Delete;
@@ -1898,7 +1547,7 @@ begin
       tdAscii:
       begin
         if (Section <> nil) and Section.EnforceASCII and not ContainsOnlyASCII(Value) then
-          raise ENotOnlyASCIIError.Create(STagCanContainOnlyASCII);
+          raise ENotOnlyASCIIError.CreateRes(@STagCanContainOnlyASCII);
         Buffer := TiffString(Value);
         UpdateData(tdAscii, Length(Buffer) + 1, PAnsiChar(Buffer)^); //ascii tag data includes null terminator
       end;
@@ -2074,6 +1723,7 @@ begin
         TiffElementSizes[DataType]);
   end;
   ReallocMem(FData, NewDataSize);
+  FDataStream.ChangeMemory(FData, NewDataSize);
   if NewDataSize > OldDataSize then
     FillChar(PByteArray(FData)[OldDataSize], NewDataSize - OldDataSize, 0);
   if @NewData <> nil then
@@ -2136,13 +1786,71 @@ begin
     end;
 end;
 
-{ TExifSection.Enumerator }
+{ TExifTag.IMetadataBlock }
+
+function TExifTag.GetData: TCustomMemoryStream;
+begin
+  Result := FDataStream;
+end;
+
+function TExifTag.IsExifBlock(CheckID: Boolean = True): Boolean;
+begin
+  Result := False;
+end;
+
+function TExifTag.IsIPTCBlock(CheckID: Boolean = True): Boolean;
+var
+  Header: TIPTCTagInfo;
+begin
+  FDataStream.Seek(0, soFromBeginning);
+  Result := (not CheckID or (ID = ttIPTC)) and
+    TAdobeResBlock.TryReadIPTCHeader(FDataStream, Header, True);
+end;
+
+function TExifTag.IsXMPBlock(CheckID: Boolean = True): Boolean;
+begin
+  Result := False;
+end;
+
+{ TExifTag.ITiffTag }
+
+function TExifTag.GetDataType: TTiffDataType;
+begin
+  Result := FDataType;
+end;
+
+function TExifTag.GetElementCount: Integer;
+begin
+  Result := FElementCount;
+end;
+
+function TExifTag.GetID: TTiffTagID;
+begin
+  Result := FID;
+end;
+
+function TExifTag.GetOriginalDataOffset: LongWord;
+begin
+  Result := FOriginalDataOffset;
+end;
+
+function TExifTag.GetParent: ITiffDirectory;
+begin
+  Result := FSection;
+end;
+
+{ TExifSection.TEnumerator }
 
 constructor TExifSection.TEnumerator.Create(ATagList: TList);
 begin
   FCurrent := nil;
   FIndex := 0;
   FTags := ATagList;
+end;
+
+function TExifSection.TEnumerator.GetCurrent: ITiffTag;
+begin
+  Result := Current;
 end;
 
 function TExifSection.TEnumerator.MoveNext: Boolean;
@@ -2188,7 +1896,7 @@ begin
   begin
     Tag := FTagList.List[I];
     if Tag.ID = ID then
-      raise ETagAlreadyExists.CreateFmt(STagAlreadyExists, [ID]);
+      raise ETagAlreadyExists.CreateResFmt(@STagAlreadyExists, [ID]);
     if Tag.ID > ID then
     begin
       Result := TExifTag.Create(Self, ID, DataType, ElementCount);
@@ -2268,6 +1976,14 @@ begin
     end;
 end;
 
+function TExifSection.FindTag(TagID: TTiffTagID; out ParsedTag: ITiffTag): Boolean;
+var
+  Obj: TExifTag;
+begin
+  Result := Find(TagID, Obj);
+  if Result then ParsedTag := Obj;
+end;
+
 function TExifSection.ForceSetElement(ID: TExifTagID; DataType: TExifDataType;
   Index: Integer; const Value): TExifTag;
 var
@@ -2288,6 +2004,22 @@ begin
   end;
 end;
 
+function TExifSection.LoadSubDirectory(OffsetTagID: TTiffTagID): ITiffDirectory;
+begin
+  Result := nil;
+  if Owner <> nil then
+    case Kind of
+      esGeneral:
+        case OffsetTagID of
+          ttExifOffset: Result := Owner[esDetails];
+          ttGPSOffset: Result := Owner[esGPS];
+        end;
+      esDetails: if OffsetTagID = ttInteropOffset then Result := Owner[esInterop];
+    end;
+  if Result = nil then
+    raise EInvalidTiffData.CreateRes(@SInvalidOffsetTag);
+end;
+
 function TExifSection.GetTagCount: Integer;
 begin
   Result := FTagList.Count;
@@ -2296,6 +2028,35 @@ end;
 function TExifSection.GetEnumerator: TEnumerator;
 begin
   Result := TEnumerator.Create(FTagList);
+end;
+
+function TExifSection.GetEnumeratorIntf: ITiffDirectoryEnumerator;
+begin
+  Result := GetEnumerator;
+end;
+
+function TExifSection.GetIndex: Integer;
+begin
+  case FKind of
+    esGeneral: Result := 0;
+    esDetails: Result := ttExifOffset;
+    esInterop: Result := ttInteropOffset;
+    esGPS: Result := ttGPSOffset;
+    esThumbnail: Result := 1;
+  else Result := -1;
+  end;
+end;
+
+function TExifSection.GetParent: ITiffDirectory;
+begin
+  if Owner = nil then
+    Result := nil
+  else
+    case FKind of
+      esDetails, esGPS: Result := Owner[esGeneral];
+      esInterop, esMakerNote: Result := Owner[esDetails];
+    else Result := nil;
+    end;
 end;
 
 function TExifSection.GetByteValue(TagID: TExifTagID; Index: Integer; Default: Byte;
@@ -2415,30 +2176,28 @@ begin
   Result := Item1.ID - Item2.ID;
 end;
 
-procedure TExifSection.Load(const Info: TTiffInfo; const Directory: TTiffDirectory);
+procedure TExifSection.Load(const Directory: IFoundTiffDirectory;
+  TiffImageSource: Boolean);
 var
-  Rec: TTiffTagInfo;
+  I: Integer;
   NewTag: TExifTag;
 begin
   Clear;
   FLoadErrors := Directory.LoadErrors;
-  if Directory.Tags <> nil then
-    FFirstTagHeaderOffset := Directory.Tags[0].HeaderOffset
+  if Directory.TagInfo = nil then
+    FFirstTagHeaderOffset := 0
   else
-    FFirstTagHeaderOffset := 0;
-  for Rec in Directory.Tags do
   begin
-    NewTag := TExifTag.Create(Self, Info, Rec);
-    FTagList.Add(NewTag);
+    FFirstTagHeaderOffset := Directory.TagInfo[0].HeaderOffset;
+    for I := 0 to High(Directory.TagInfo) do
+      if not TiffImageSource or (Kind <> esGeneral) or IsKnownExifTagInMainIFD(Directory.TagInfo[I]) then
+      begin
+        NewTag := TExifTag.Create(Self, Directory, I);
+        FTagList.Add(NewTag);
+      end;
+    FTagList.Sort(@CompareIDs);
   end;
-  FTagList.Sort(@CompareIDs);
   FModified := False;
-end;
-
-procedure TExifSection.Load(const Info: TTiffInfo; const Offset: Int64;
-  const InternalOffset: Int64 = 0);
-begin
-  Load(Info, LoadTiffDirectory(Info, Offset, InternalOffset));
 end;
 
 function TExifSection.Remove(ID: TExifTagID): Boolean;
@@ -2572,7 +2331,7 @@ begin
     Exit;
   end;
   if EnforceASCII and not ContainsOnlyASCII(Value) then
-    raise ENotOnlyASCIIError.Create(STagCanContainOnlyASCII);
+    raise ENotOnlyASCIIError.CreateRes(@STagCanContainOnlyASCII);
   ElemCount := Length(Value) + 1; //ascii tiff tag data includes null terminator
   if not Find(TagID, Tag) then
     Tag := Add(TagID, tdAscii, ElemCount);
@@ -2635,12 +2394,12 @@ begin
 end;
 
 function TExifSection.TagExists(ID: TExifTagID; ValidDataTypes: TExifDataTypes;
-  MinElementCount: LongInt): Boolean;
+  MinElementCount, MaxElementCount: LongInt): Boolean;
 var
   Tag: TExifTag;
 begin
   Result := Find(ID, Tag) and (Tag.DataType in ValidDataTypes) and
-    (Tag.ElementCount >= MinElementCount);
+    (Tag.ElementCount >= MinElementCount) and (Tag.ElementCount <= MaxElementCount);
 end;
 
 function TExifSection.TryGetByteValue(TagID: TExifTagID; Index: Integer; var Value): Boolean;
@@ -2726,6 +2485,21 @@ begin
   if not Find(ID, Result) then
     Result := Add(ID, DataType, ElementCount);
   Result.UpdateData(DataType, ElementCount, Data);
+end;
+
+function TExtendableExifSection.AddOrUpdate(ID: TExifTagID; DataType: TExifDataType;
+  const Source: IStreamPersist): TExifTag;
+var
+  Stream: TMemoryStream;
+begin
+  Stream := TMemoryStream.Create;
+  try
+    if Source <> nil then Source.SaveToStream(Stream);
+    Result := AddOrUpdate(ID, DataType, Ceil(Stream.Size / TiffElementSizes[DataType]),
+      Stream.Memory^);
+  finally
+    Stream.Free;
+  end;
 end;
 
 procedure TExtendableExifSection.Assign(Source: TExifSection);
@@ -3207,7 +2981,7 @@ end;
 { TImageResolution }
 
 procedure TImageResolution.GetTagInfo(var Section: TExifSectionKind; var XTag, YTag,
-  UnitTag: TExifTagID; var Schema: TXMPSchemaKind; var XName, YName, UnitName: UnicodeString);
+  UnitTag: TExifTagID; var Schema: TXMPNamespace; var XName, YName, UnitName: UnicodeString);
 begin
   Section := esGeneral;
   Schema := xsTIFF;
@@ -3219,7 +2993,7 @@ end;
 { TFocalPlaneResolution }
 
 procedure TFocalPlaneResolution.GetTagInfo(var Section: TExifSectionKind;
-  var XTag, YTag, UnitTag: TExifTagID; var Schema: TXMPSchemaKind;
+  var XTag, YTag, UnitTag: TExifTagID; var Schema: TXMPNamespace;
   var XName, YName, UnitName: UnicodeString);
 begin
   Section := esDetails;
@@ -3235,7 +3009,7 @@ end;
 { TThumbnailResolution }
 
 procedure TThumbnailResolution.GetTagInfo(var Section: TExifSectionKind;
-  var XTag, YTag, UnitTag: TExifTagID; var Schema: TXMPSchemaKind;
+  var XTag, YTag, UnitTag: TExifTagID; var Schema: TXMPNamespace;
   var XName, YName, UnitName: UnicodeString);
 begin
   Section := esThumbnail;
@@ -3613,11 +3387,12 @@ end;
 type
   TContainedXMPPacket = class(TXMPPacket);
 
-constructor TCustomExifData.Create;
+constructor TCustomExifData.Create(AOwner: TComponent = nil);
 var
   Kind: TExifSectionKind;
 begin
-  inherited Create;
+  inherited;
+  FEmbeddedIPTC := TIPTCData.CreateAsSubComponent(Self);
   FEnforceASCII := True;
   FEnsureEnumsInRange := True;
   FExifVersion := TExifVersion.Create(Self);
@@ -3635,7 +3410,7 @@ begin
   FISOSpeedRatings := TISOSpeedRatings.Create(Self);
   FResolution := TImageResolution.Create(Self);
   FThumbnailResolution := TThumbnailResolution.Create(Self);
-  FXMPPacketValue := TContainedXMPPacket.Create;
+  FXMPPacket := TContainedXMPPacket.CreateAsSubComponent(Self);
   ResetMakerNoteType;
   SetXMPWritePolicy(xwUpdateIfExists);
 end;
@@ -3661,8 +3436,8 @@ begin
   FExifVersion.Free;
   for Section := Low(TExifSectionKind) to High(TExifSectionKind) do
     FSections[Section].Free;
-  FXMPPacketValue.Free;
   inherited;
+  FThumbnailOrNil.Free;
 end;
 
 class function TCustomExifData.SectionClass: TExifSectionClass;
@@ -3710,7 +3485,7 @@ begin
   end;
 end;
 
-function TCustomExifData.GetUpdating: Boolean;
+function TCustomExifData.Updating: Boolean;
 begin
   Result := (FUpdateCount > 0);
 end;
@@ -3732,14 +3507,12 @@ var
 begin
   BeginUpdate;
   try
+    FreeAndNil(FThumbnailOrNil);
     ResetMakerNoteType;
     for Section in FSections do
       Section.Clear;
     if XMPPacketToo then
-    begin
-      FXMPSegmentToLoad := nil;
-      FXMPPacketValue.Clear;
-    end;
+      FXMPPacket.Clear;
   finally
     EndUpdate;
   end;
@@ -3752,6 +3525,7 @@ begin
   Result := False;
   for Section in FSections do
     if Section.Count > 0 then Exit;
+  if HasThumbnail then Exit;
   Result := True;
 end;
 
@@ -3841,57 +3615,80 @@ begin
     GetMakerNote; //MakerNote tags are lazy-loaded
 end;
 
+function TCustomExifData.GetThumbnail: TJPEGImage;
+begin
+  if FThumbnailOrNil = nil then
+  begin
+    FThumbnailOrNil := TJPEGImage.Create;
+    FThumbnailOrNil.OnChange := ThumbnailChanged;
+  end;
+  Result := FThumbnailOrNil;
+end;
+
 function TCustomExifData.HasMakerNote: Boolean;
 begin
-  Result := FSections[esDetails].TagExists(ttMakerNote)
+  Result := FSections[esDetails].TagExists(ttMakerNote, [tdUndefined], 5)
 end;
 
-function TCustomExifData.FindThumbnailOffset(SourceStream: TStream;
-  var Offset: LongInt): Boolean;
-var
-  Buffer: array[0..9] of Word;
-  OrigPos: Int64;
-  Tag: TExifTag;
+function TCustomExifData.HasThumbnail: Boolean;
 begin
-  Result := FSections[esThumbnail].Find(ttThumbnailOffset, Tag) and
-    (Tag.DataType in [tdLongWord, tdLongInt, tdSubDirectory]) and
-    (Tag.ElementCount = 1);
-  if Result then
-  begin
-    Offset := PLongInt(Tag.Data)^;
-    if SourceStream = nil then Exit;
-    OrigPos := SourceStream.Position;
-    SourceStream.Seek(OffsetBase + Offset, soBeginning);
-    if (SourceStream.Read(Buffer, SizeOf(Buffer)) <> SizeOf(Buffer)) or
-       (Buffer[0] <> JPEGFileHeader) then Result := False;
-    SourceStream.Position := OrigPos;
-  end;
+  Result := (FThumbnailOrNil <> nil) and not FThumbnailOrNil.Empty;
 end;
 
-procedure TCustomExifData.LoadFromJPEG(JPEGStream: TStream);
+function TCustomExifData.LoadFromGraphic(Stream: TStream): Boolean;
 var
   Segment: IFoundJPEGSegment;
+  PSDInfo: TPSDInfo;
+  ResBlock: IAdobeResBlock;
 begin
   FMetadataInSource := [];
   FXMPSegmentPosition := 0;
   FXMPPacketSizeInSource := 0;
+  Result := False;
   BeginUpdate;
   try
     Clear;
-    for Segment in JPEGHeader(JPEGStream, [jmApp1]) do
-      if not (mkExif in MetadataInSource) and HasExifHeader(Segment.Data) then
-      begin
-        Include(FMetadataInSource, mkExif);
-        AddFromStream(Segment.Data);
-        Inc(FOffsetBase, Segment.OffsetOfData);
-      end
-      else if not (mkXMP in MetadataInSource) and HasXMPSegmentHeader(Segment.Data) then
-      begin
-        Include(FMetadataInSource, mkXMP);
-        FXMPSegmentPosition := Segment.Offset;
-        FXMPPacketSizeInSource := Segment.Data.Size;
-        FXMPSegmentToLoad := Segment;
-      end;
+    if HasJPEGHeader(Stream) then
+    begin
+      Result := True;
+      for Segment in JPEGHeader(Stream, [jmApp1]) do
+        if not (mkExif in MetadataInSource) and Segment.IsExifBlock then
+        begin
+          Include(FMetadataInSource, mkExif);
+          AddFromStream(Segment.Data);
+          Inc(FOffsetBase, Segment.OffsetOfData);
+        end
+        else if not (mkXMP in MetadataInSource) and Segment.IsXMPBlock then
+        begin
+          Include(FMetadataInSource, mkXMP);
+          FXMPSegmentPosition := Segment.Offset;
+          FXMPPacketSizeInSource := Segment.Data.Size;
+          XMPPacket.DataToLazyLoad := Segment;
+        end;
+    end
+    else if HasPSDHeader(Stream) then
+    begin
+      Result := True;
+      for ResBlock in ParsePSDHeader(Stream, PSDInfo) do
+        if not (mkExif in MetadataInSource) and ResBlock.IsExifBlock then
+        begin
+          Include(FMetadataInSource, mkExif);
+          AddFromStream(ResBlock.Data);
+        end
+        else if not (mkXMP in MetadataInSource) and ResBlock.IsXMPBlock then
+        begin
+          Include(FMetadataInSource, mkXMP);
+          FXMPPacketSizeInSource := ResBlock.Data.Size;
+          XMPPacket.DataToLazyLoad := ResBlock;
+        end;
+    end
+    else if HasTiffHeader(Stream) then
+    begin
+      Result := True;
+      AddFromStream(Stream, True);
+      if not Empty then Include(FMetadataInSource, mkExif);
+      if not XMPPacket.Empty then Include(FMetadataInSource, mkXMP);
+    end;
   finally
     FChangedWhileUpdating := False;
     EndUpdate;
@@ -3899,48 +3696,68 @@ begin
   end;
 end;
 
-procedure TCustomExifData.AddFromStream(Stream: TStream);
+procedure TCustomExifData.AddFromStream(Stream: TStream; TiffImageSource: Boolean);
 var
-  Info: TTiffInfo;
+  Parser: ITiffParser;
 
-  procedure LoadSubDir(SourceSection: TExifSectionKind; TagID: TExifTagID;
-    DestSection: TExifSectionKind);
+  procedure LoadSubDir(Source: TExifSectionKind; OffsetID: TExifTagID; Dest: TExifSectionKind);
   var
+    SubDir: IFoundTiffDirectory;
     Tag: TExifTag;
   begin
-    if FSections[SourceSection].Find(TagID, Tag) and (Tag.ElementCount = 1) and
-        (Tag.DataType in [tdLongWord, tdLongInt, tdSubDirectory]) then
-      FSections[DestSection].Load(Info, PLongInt(Tag.Data)^);
+    if FSections[Source].Find(OffsetID, Tag) and Parser.ParseSubDirectory(Tag, SubDir) then
+      FSections[Dest].Load(SubDir, TiffImageSource);
   end;
 var
-  MakerNoteTag: TExifTag;
+  Directory: IFoundTiffDirectory;
+  ExifTag: TExifTag;
   I: Integer;
+  TiffTag: ITiffTag;
 begin
-  if not HasExifHeader(Stream, True) then
-    raise EInvalidExifData.Create(SNoExifHeaderFound);
+  if Stream.TryReadHeader(TJPEGSegment.ExifHeader, SizeOf(TJPEGSegment.ExifHeader)) then
+    TiffImageSource := False;
   BeginUpdate;
   try
-    LoadTiffInfo(Stream, Info);
-    FOffsetBase := Info.BasePosition;
-    FEndianness := Info.Endianness;
-    if Info.Directories <> nil then
-    begin
-      FSections[esGeneral].Load(Info, Info.Directories[0]);
-      LoadSubDir(esGeneral, ttExifOffset, esDetails);
-      LoadSubDir(esGeneral, ttGPSOffset, esGPS);
-      LoadSubDir(esDetails, ttInteropOffset, esInterop);
-      if Length(Info.Directories) >= 2 then
-        FSections[esThumbnail].Load(Info, Info.Directories[1]);
-      if FSections[esDetails].Find(ttMakerNote, MakerNoteTag) then
-      begin
-        FMakerNoteType := THeaderlessMakerNote;
-        for I := FMakerNoteClasses.Count - 1 downto 0 do
-          if TExifMakerNoteClass(FMakerNoteClasses.List[I]).FormatIsOK(MakerNoteTag) then
+    Parser := ParseTiff(Stream);
+    FOffsetBase := Parser.BasePosition;
+    FEndianness := Parser.Endianness;
+    for Directory in Parser do
+      case Directory.Index of
+        0:
+        begin
+          FSections[esGeneral].Load(Directory, TiffImageSource);
+          if Directory.FindTag(ttIPTC, TiffTag) and TiffTag.IsIPTCBlock then
+            EmbeddedIPTC.DataToLazyLoad := TiffTag;
+          if (TiffImageSource or XMPPacket.Empty) and Directory.FindTag(ttXMP,
+              TiffTag) and TiffTag.IsXMPBlock then
+            XMPPacket.DataToLazyLoad := TiffTag;
+        end;
+        1:
+        begin
+          if not TiffImageSource or Directory.IsExifThumbailDirectory then
           begin
-            FMakerNoteType := FMakerNoteClasses.List[I];
-            Break;
+            FSections[esThumbnail].Load(Directory, TiffImageSource);
+            GetThumbnail.OnChange := nil;
+            if Directory.TryLoadExifThumbnail(FThumbnailOrNil) then
+              FThumbnailOrNil.OnChange := ThumbnailChanged
+            else
+              SetThumbnail(nil);
           end;
+          Break;
+        end;
       end;
+    LoadSubDir(esGeneral, ttExifOffset, esDetails);
+    LoadSubDir(esGeneral, ttGPSOffset, esGPS);
+    LoadSubDir(esDetails, ttInteropOffset, esInterop);
+    if FSections[esDetails].Find(ttMakerNote, ExifTag) then
+    begin
+      FMakerNoteType := THeaderlessMakerNote;
+      for I := FMakerNoteClasses.Count - 1 downto 0 do
+        if TExifMakerNoteClass(FMakerNoteClasses.List[I]).FormatIsOK(ExifTag) then
+        begin
+          FMakerNoteType := FMakerNoteClasses.List[I];
+          Break;
+        end;
     end;
   finally
     FChangedWhileUpdating := False;
@@ -4064,12 +3881,20 @@ begin
   FreeAndNil(FMakerNoteValue);
 end;
 
-procedure TCustomExifData.SetModified(const Value: Boolean);
+procedure TCustomExifData.SetModified(Value: Boolean);
 begin
   if Value then
     Changed(nil)
   else
     FModified := Value;
+end;
+
+procedure TCustomExifData.SetThumbnail(Value: TJPEGImage);
+begin
+  if (Value <> nil) and not Value.Empty then
+    GetThumbnail.Assign(Value)
+  else
+    FreeAndNil(FThumbnailOrNil);
 end;
 
 function TCustomExifData.ShutterSpeedInMSecs: Extended;
@@ -4083,32 +3908,28 @@ begin
     Result := (1 / Power(2, Apex.Quotient)) * 1000;
 end;
 
-function TCustomExifData.GetXMPPacket: TXMPPacket;
+procedure TCustomExifData.ThumbnailChanged(Sender: TObject);
 var
-  CallErrorHandler: Boolean;
-  Segment: IFoundJPEGSegment;
+  Tag: TExifTag;
 begin
-  if FXMPSegmentToLoad = nil then
-    CallErrorHandler := False
-  else
-  begin
-    Segment := FXMPSegmentToLoad;
-    FXMPSegmentToLoad := nil;
-    CallErrorHandler := not FXMPPacketValue.TryLoadFromStream(Segment.Data) and
-      Assigned(FXMPPacketValue.OnLoadError)
-  end;
-  Result := FXMPPacketValue;
-  if CallErrorHandler then FXMPPacketValue.OnLoadError(FXMPPacketValue, Segment.Data);
+  Modified := True;
+  if Sender = FThumbnailOrNil then
+    with Sections[esThumbnail] do
+      if Find(ttImageWidth, Tag) or Find(ttImageHeight, Tag) then
+      begin
+        SetWordValue(ttImageWidth, 0, FThumbnailOrNil.Width);
+        SetWordValue(ttImageHeight, 0, FThumbnailOrNil.Height);
+      end;
 end;
 
 function TCustomExifData.GetXMPWritePolicy: TXMPWritePolicy;
 begin
-  Result := TContainedXMPPacket(FXMPPacketValue).UpdatePolicy;
+  Result := TContainedXMPPacket(XMPPacket).UpdatePolicy;
 end;
 
 procedure TCustomExifData.SetXMPWritePolicy(Value: TXMPWritePolicy);
 begin
-  TContainedXMPPacket(FXMPPacketValue).UpdatePolicy := Value;
+  TContainedXMPPacket(XMPPacket).UpdatePolicy := Value;
 end;
 
 { TCustomExifData - tag getters }
@@ -5172,7 +4993,7 @@ end;
 procedure TExifDataPatcher.CheckFileIsOpen;
 begin
   if FStream = nil then
-    raise ENoExifFileOpenError.Create(SNoFileOpenError);
+    raise ENoExifFileOpenError.CreateRes(@SNoFileOpenError);
 end;
 
 function TExifDataPatcher.GetFileDateTime: TDateTime;
@@ -5197,24 +5018,9 @@ begin
 end;
 
 procedure TExifDataPatcher.GetThumbnail(Dest: TJPEGImage);
-var
-  Offset: LongInt;
 begin
   CheckFileIsOpen;
-  if not FindThumbnailOffset(FStream, Offset) then
-  begin
-    Dest.Assign(nil);
-    Exit;
-  end;
-  FStream.Position := OffsetBase + Offset;
-  TJPEGImageEx(Dest).ReadStream(GetJPEGDataSize(FStream), FStream);
-end;
-
-function TExifDataPatcher.HasThumbnail: Boolean;
-var
-  Offset: LongInt;
-begin
-  Result := (FStream <> nil) and FindThumbnailOffset(FStream, Offset);
+  Dest.Assign(Thumbnail);
 end;
 
 procedure TExifDataPatcher.SetFileDateTime(const Value: TDateTime);
@@ -5223,23 +5029,17 @@ begin
   FileSetDate(FStream.Handle, DateTimeToFileDate(Value)); {$WARN SYMBOL_PLATFORM ON}
 end;
 
-procedure TExifDataPatcher.OpenFile(const FileName: string);
-
-  procedure InvalidFile;
-  begin
-    raise EInvalidJPEGHeader.CreateFmt(SFileIsNotAValidJPEG, [FileName]); //give a bit more info
-  end;
+procedure TExifDataPatcher.OpenFile(const JPEGFileName: string);
 begin
   CloseFile;
-  if FileName = '' then Exit;
-  FStream := TFileStream.Create(FileName, fmOpenReadWrite);
-  try
-    LoadFromJPEG(FStream);
-  except
-    on EInvalidJPEGHeader do InvalidFile;
-    on EStreamError do InvalidFile;
-    else raise;
+  if JPEGFileName = '' then Exit;
+  FStream := TFileStream.Create(JPEGFileName, fmOpenReadWrite);
+  if not HasJPEGHeader(FStream) then
+  begin
+    FreeAndNil(FStream);
+    raise EInvalidJPEGHeader.CreateResFmt(@SFileIsNotAValidJPEG, [JPEGFileName]);
   end;
+  LoadFromGraphic(FStream);
   FOriginalEndianness := Endianness;
 end;
 
@@ -5288,12 +5088,12 @@ begin
       end;
       Section.Modified := False;
     end;
-  if (XMPSegmentToLoad = nil) and ((mkXMP in MetadataInSource) or not XMPPacket.Empty) then
+  if (mkXMP in MetadataInSource) or not XMPPacket.Empty then
   begin
     BytesToRewrite := nil;
     XMPStream := TMemoryStream.Create;
     try
-      XMPPacket.WriteSegmentHeader := True;
+      XMPStream.WriteBuffer(TJPEGSegment.XMPHeader, SizeOf(TJPEGSegment.XMPHeader));
       XMPPacket.SaveToStream(XMPStream);
       if XMPStream.Size <= FXMPPacketSizeInSource then
       begin
@@ -5309,7 +5109,7 @@ begin
         else
         begin
           Stream.Position := 0;
-          for Segment in JPEGHeader(Stream, AllJPEGMarkers) do
+          for Segment in JPEGHeader(Stream) do
             if Segment.MarkerNum <> jmApp1 then Break;
           FXMPSegmentPosition := Stream.Position;
           Include(FMetadataInSource, mkXMP);
@@ -5319,7 +5119,7 @@ begin
         Stream.ReadBuffer(BytesToRewrite[0], Length(BytesToRewrite));
       end;
       Stream.Position := FXMPSegmentPosition;
-      WriteJPEGSegmentToStream(Stream, jmApp1, XMPStream);
+      WriteJPEGSegment(Stream, jmApp1, XMPStream);
       if BytesToRewrite <> nil then
         Stream.WriteBuffer(BytesToRewrite[0], Length(BytesToRewrite));
     finally
@@ -5334,16 +5134,10 @@ end;
 
 { TExifData }
 
-constructor TExifData.Create;
-begin
-  inherited Create;
-  FRemovePaddingTagsOnSave := True;
-end;
-
-destructor TExifData.Destroy;
+constructor TExifData.Create(AOwner: TComponent = nil);
 begin
   inherited;
-  FThumbnailOrNil.Free;
+  FRemovePaddingTagsOnSave := True;
 end;
 
 procedure TExifData.Assign(Source: TPersistent);
@@ -5360,10 +5154,10 @@ begin
       SourceData := TCustomExifData(Source);
       for Section := Low(TExifSectionKind) to High(TExifSectionKind) do
         Sections[Section].Assign(SourceData[Section]);
-      if SourceData is TExifData then
-        Thumbnail := TExifData(SourceData).FThumbnailOrNil
-      else if Sections[esThumbnail].Count = 0 then
-        SetThumbnail(nil);
+//      if SourceData is TExifData then
+//        Thumbnail := TExifData(SourceData).FThumbnailOrNil
+//      else if Sections[esThumbnail].Count = 0 then
+//        SetThumbnail(nil);
     finally
       EndUpdate;
     end;
@@ -5372,17 +5166,11 @@ begin
     inherited;
 end;
 
-procedure TExifData.Clear(XMPPacketToo: Boolean = True);
-begin
-  FreeAndNil(FThumbnailOrNil);
-  inherited;
-end;
-
 procedure TExifData.CreateThumbnail(Source: TGraphic;
   ThumbnailWidth, ThumbnailHeight: Integer);
 begin
   if (Source = nil) or Source.Empty then
-    SetThumbnail(nil)
+    Thumbnail := nil
   else
     CreateExifThumbnail(Source, Thumbnail, ThumbnailWidth, ThumbnailHeight);
 end;
@@ -5393,102 +5181,79 @@ begin
   Filer.DefineBinaryProperty('Data', LoadFromStream, SaveToStream, not Empty);
 end;
 
-function TExifData.GetEmpty: Boolean;
-begin
-  Result := inherited GetEmpty and ((FThumbnailOrNil = nil) or FThumbnailOrNil.Empty);
-end;
-
 function TExifData.GetSection(Section: TExifSectionKind): TExtendableExifSection;
 begin
   Result := TExtendableExifSection(inherited Sections[Section]);
 end;
 
-function TExifData.GetThumbnail: TJPEGImage;
-begin
-  if FThumbnailOrNil = nil then
-  begin
-    FThumbnailOrNil := TJPEGImage.Create;
-    FThumbnailOrNil.OnChange := ThumbnailChanged;
-  end;
-  Result := FThumbnailOrNil;
-end;
-
-procedure TExifData.SetThumbnail(const Value: TJPEGImage);
-begin
-  if Value <> nil then
-    GetThumbnail.Assign(Value)
-  else
-    FreeAndNil(FThumbnailOrNil);
-end;
-
 procedure TExifData.StandardizeThumbnail;
-begin
-  if (FThumbnailOrNil <> nil) and (FThumbnailOrNil.Width > StandardExifThumbnailWidth) or
-     (FThumbnailOrNil.Height > StandardExifThumbnailHeight) then
-    CreateExifThumbnail(FThumbnailOrNil, FThumbnailOrNil);
-end;
-
-procedure TExifData.ThumbnailChanged(Sender: TObject);
 var
-  Tag: TExifTag;
+  Image: TJPEGImage;
 begin
-  Modified := True;
-  if Sender = FThumbnailOrNil then
-    with Sections[esThumbnail] do
-      if Find(ttImageWidth, Tag) or Find(ttImageHeight, Tag) then
-      begin
-        SetWordValue(ttImageWidth, 0, FThumbnailOrNil.Width);
-        SetWordValue(ttImageHeight, 0, FThumbnailOrNil.Height);
-      end;
+  if not HasThumbnail then Exit;
+  Image := Thumbnail;
+  if (Image.Width > StandardExifThumbnailWidth) or
+     (Image.Height > StandardExifThumbnailHeight) then
+    CreateExifThumbnail(Image, Image);
 end;
 
-procedure TExifData.LoadFromJPEG(JPEGStream: TStream);
+function TExifData.LoadFromGraphic(Stream: TStream): Boolean;
 begin
-  inherited LoadFromJPEG(JPEGStream);
+  Result := inherited LoadFromGraphic(Stream);
 end;
 
-procedure TExifData.LoadFromJPEG(JPEGImage: TJPEGImage);
+function TExifData.LoadFromGraphic(Graphic: TGraphic): Boolean;
 var
   Stream: TMemoryStream;
 begin
   Stream := TMemoryStream.Create;
   try
-    JPEGImage.SaveToStream(Stream);
+    Graphic.SaveToStream(Stream);
     Stream.Position := 0;
-    inherited LoadFromJPEG(Stream)
+    Result := LoadFromGraphic(Stream)
   finally
     Stream.Free;
   end;
+end;
+
+function TExifData.LoadFromGraphic(const FileName: string): Boolean;
+var
+  Stream: TFileStream;
+begin
+  Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
+  try
+    Result := LoadFromGraphic(Stream);
+  finally
+    Stream.Free;
+  end;
+end;
+
+procedure TExifData.LoadFromJPEG(JPEGStream: TStream);
+begin
+  if HasJPEGHeader(JPEGStream) then
+    LoadFromGraphic(JPEGStream)
+  else
+    raise EInvalidJPEGHeader.CreateRes(@SInvalidJPEGHeader);
+end;
+
+procedure TExifData.LoadFromJPEG(JPEGImage: TJPEGImage);
+begin
+  LoadFromGraphic(JPEGImage)
 end;
 
 procedure TExifData.LoadFromJPEG(const FileName: string);
 var
   Stream: TFileStream;
 begin
-  Stream := TFileStream.Create(FileName, fmOpenRead);
+  Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
   try
-    inherited LoadFromJPEG(Stream);
+    if HasJPEGHeader(Stream) then
+      inherited LoadFromGraphic(Stream)
+    else
+      raise EInvalidJPEGHeader.CreateRes(@SInvalidJPEGHeader);
   finally
     Stream.Free;
   end;
-end;
-
-type
-  TJPEGImageAccess = class(TJPEGImage);
-
-procedure TExifData.AddFromStream(Stream: TStream);
-var
-  Offset: LongInt;
-begin
-  inherited;
-  Modified := False;
-  if not FindThumbnailOffset(Stream, Offset) then Exit;
-  Stream.Position := OffsetBase + Offset;
-  { TJPEGImage reads and stores the rest of the stream by default -> use ReadStream to
-    prevent extraneous data being written out in our own SaveToStream method. }
-  TJPEGImageAccess(Thumbnail).ReadStream(GetJPEGDataSize(Stream), Stream);
-  Thumbnail.Modified := False;
-  Modified := False;
 end;
 
 procedure TExifData.LoadFromStream(Stream: TStream);
@@ -5510,24 +5275,19 @@ begin
     Section.RemovePaddingTag;
 end;
 
-procedure TExifData.DoSaveToJPEG(InStream, OutStream: TStream); //forces proper order of JFIF -> Exif -> XMP
+procedure TExifData.DoSaveToJPEG(InStream, OutStream: TStream);
 var
-  BytesToSegment, InStreamStartPos: Int64;
-  FoundMetadata: TJPEGMetadataKinds;
-  I: Integer;
+  SavedPos: Int64;
   Segment: IFoundJPEGSegment;
-  SegmentsToSkip: IInterfaceList;
   SOFData: PJPEGStartOfFrameData;
   Tag: TExifTag;
 begin
-  if not HasJPEGHeader(InStream) then
-    raise EInvalidJPEGHeader.Create(SInvalidJPEGHeader);
-  InStreamStartPos := InStream.Position;
   for Tag in Sections[esDetails] do
     case Tag.ID of
       ttExifImageWidth, ttExifImageHeight:
       begin
-        for Segment in JPEGHeader(InStream, StartOfFrameMarkers) do
+        SavedPos := InStream.Position;
+        for Segment in JPEGHeader(InStream, TJPEGSegment.StartOfFrameMarkers) do
           if Segment.Data.Size >= SizeOf(TJPEGStartOfFrameData) then
           begin
             SOFData := Segment.Data.Memory;
@@ -5535,116 +5295,90 @@ begin
             ExifImageHeight := SOFData.ImageHeight;
             Break;
           end;
-        InStream.Position := InStreamStartPos;
+        InStream.Position := SavedPos;
         Break;
       end;
     end;
-  FoundMetadata := [];
-  SegmentsToSkip := TInterfaceList.Create;
-  WriteJPEGFileHeaderToStream(OutStream);
-  for Segment in JPEGHeader(InStream, [jmJFIF, jmApp1]) do
-  begin
-    if Segment.MarkerNum = jmJFIF then
-      WriteJPEGSegmentToStream(OutStream, Segment)
-    else
-    begin
-      if not (mkExif in FoundMetadata) and HasExifHeader(Segment.Data) then
-        Include(FoundMetadata, mkExif)
-      else if not (mkXMP in FoundMetadata) and HasXMPSegmentHeader(Segment.Data) then
-        Include(FoundMetadata, mkXMP)
-      else
-        Continue;
-    end;
-    SegmentsToSkip.Add(Segment);
-  end;
-  if not Empty then
-    WriteJPEGSegmentToStream(OutStream, TUserJPEGSegment.Create(jmApp1, Self));
-  if XMPSegmentToLoad <> nil then
-    WriteJPEGSegmentToStream(OutStream, XMPSegmentToLoad)
-  else if not XMPPacket.Empty then
-  begin
-    XMPPacket.WriteSegmentHeader := True;
-    WriteJPEGSegmentToStream(OutStream, TUserJPEGSegment.Create(jmApp1, XMPPacket));
-  end;
-  InStream.Position := InStreamStartPos + SizeOf(JPEGFileHeader);
-  for I := 0 to SegmentsToSkip.Count - 1 do
-  begin
-    Segment := IFoundJPEGSegment(SegmentsToSkip[I]);
-    BytesToSegment := Segment.Offset - InStream.Position;
-    if BytesToSegment > 0 then
-      OutStream.CopyFrom(InStream, BytesToSegment);
-    InStream.Seek(Segment.TotalSize, soCurrent)
-  end;
-  OutStream.CopyFrom(InStream, InStream.Size - InStream.Position);
-  OutStream.Size := OutStream.Position;
+  UpdateApp1JPEGSegments(InStream, OutStream, Self, XMPPacket); //!!!IPTC (also TJPEGImageEx)  
 end;
 
-//procedure TExifData.SaveToJPEG(const JPEGFileName: string);
-//var
-//  InStream: TMemoryStream;
-//  OutStream: TFileStream;
-//  NeedsRestoring: Boolean;
-//begin
-//  NeedsRestoring := False;
-//  OutStream := nil;
-//  InStream := TMemoryStream.Create;
-//  try
-//    InStream.LoadFromFile(JPEGFileName);
-//    OutStream := TFileStream.Create(JPEGFileName, fmCreate);
-//    NeedsRestoring := True;
-//    DoSaveToJPEG(InStream, OutStream);
-//    NeedsRestoring := False;
-//  finally
-//    OutStream.Free;
-//    if NeedsRestoring then InStream.SaveToFile(JPEGFileName);
-//    InStream.Free;
-//  end;
-//end;
-procedure TExifData.SaveToJPEG(const JPEGFileName: string;
-  BufferedWrite: Boolean = True);
+procedure TExifData.DoSaveToPSD(InStream, OutStream: TStream);
 var
-  InStream: TMemoryStream;
-  OutStream: TStream;
+  Block: IAdobeResBlock;
+  Info: TPSDInfo;
+  NewBlocks: IInterfaceList;
+  StartPos: Int64;
 begin
-  OutStream := nil;
-  InStream := TMemoryStream.Create;
-  try
-    InStream.LoadFromFile(JPEGFileName);
-    if BufferedWrite then
-      OutStream := TMemoryStream.Create
-    else
-      OutStream := TFileStream.Create(JPEGFileName, fmCreate);
-    DoSaveToJPEG(InStream, OutStream);
-    if BufferedWrite then TMemoryStream(OutStream).SaveToFile(JPEGFileName);
-  finally
-    OutStream.Free;
-    InStream.Free;
-  end;
+  StartPos := InStream.Position;
+  NewBlocks := TInterfaceList.Create;
+  if not EmbeddedIPTC.Empty then
+    NewBlocks.Add(CreateAdobeBlock(TAdobeResBlock.IPTCTypeID, EmbeddedIPTC));
+  if not XMPPacket.Empty then
+    NewBlocks.Add(CreateAdobeBlock(TAdobeResBlock.XMPTypeID, XMPPacket));
+  for Block in ParsePSDHeader(InStream, Info) do
+    if not Block.IsExifBlock and not Block.IsXMPBlock then NewBlocks.Add(Block);
+  Sections[esGeneral].Remove([ttXMP, ttIPTC]); //!!!
+  if not Empty then
+    NewBlocks.Insert(0, CreateAdobeBlock(TAdobeResBlock.ExifTypeID, Self));
+  WritePSDHeader(OutStream, Info.Header);
+  WritePSDResourceSection(OutStream, NewBlocks);
+  InStream.Position := StartPos + Info.LayersSectionOffset;
+  OutStream.CopyFrom(InStream, InStream.Size - InStream.Position);
+end;
+
+procedure TExifData.AddNewTags(Rewriter: TTiffDirectoryRewriter);
+begin
+  if Sections[esDetails].Count <> 0 then
+    Rewriter.AddSubDirectory(ttExifOffset, Sections[esDetails]); //!!! TExifSectionEx to implement the callback intf
+  if Sections[esGPS].Count <> 0 then
+    Rewriter.AddSubDirectory(ttGPSOffset, Sections[esGPS]);
+end;
+
+procedure TExifData.RewritingOldTag(const Source: ITiffDirectory; TagID: TTiffTagID;
+  DataType: TTiffDataType; var Rewrite: Boolean);
+begin
+  if IsKnownExifTagInMainIFD(TagID, DataType) then Rewrite := False;
+end;
+
+procedure TExifData.DoSaveToTIFF(InStream, OutStream: TStream);
+begin
+  RewriteTiff(InStream, OutStream, Self);
+end;
+
+procedure TExifData.GetGraphicSaveMethod(Stream: TStream; var Method: TGraphicSaveMethod);
+begin
+  if HasJPEGHeader(Stream) then
+    Method := DoSaveToJPEG
+  else if HasPSDHeader(Stream) then
+    Method := DoSaveToPSD
+  else if HasTiffHeader(Stream) then
+    Method := DoSaveToTIFF
+end;
+
+procedure TExifData.SaveToGraphic(const FileName: string);
+begin
+  DoSaveToGraphic(FileName, GetGraphicSaveMethod);
+end;
+
+procedure TExifData.SaveToGraphic(Graphic: TGraphic);
+begin
+  DoSaveToGraphic(Graphic, GetGraphicSaveMethod);
+end;
+
+procedure TExifData.SaveToJPEG(const JPEGFileName: string; Dummy: Boolean = True);
+begin
+  SaveToGraphic(JPEGFileName);
 end;
 
 procedure TExifData.SaveToJPEG(JPEGImage: TJPEGImage);
-var
-  InStream, OutStream: TMemoryStream;
 begin
-  OutStream := nil;
-  InStream := TMemoryStream.Create;
-  try
-    JPEGImage.SaveToStream(InStream);
-    InStream.Position := 0;
-    OutStream := TMemoryStream.Create;
-    DoSaveToJPEG(InStream, OutStream);
-    OutStream.Position := 0;
-    JPEGImage.LoadFromStream(OutStream);
-  finally
-    InStream.Free;
-    OutStream.Free;
-  end;
+  SaveToGraphic(JPEGImage);
 end;
 
 type
   TSectionSavingInfo = record
     StartOffset, DirectorySize, OffsettedDataSize: Int64;
-    function EndOffsetPlus1: LongWord; {$IFDEF CANINLINE}inline;{$ENDIF}
+    function EndOffsetPlus1: LongWord; {$IFDEF CanInline}inline;{$ENDIF}
   end;
 
 function TSectionSavingInfo.EndOffsetPlus1: LongWord;
@@ -5652,12 +5386,15 @@ begin
   Result := StartOffset + DirectorySize + OffsettedDataSize;
 end;
 
-procedure TExifData.SaveToStream(Stream: TStream); //Sections are written out in TExifSection order,
-type                                               //with a section's offsetted data immediately
-  TOffsetSectionKind = esDetails..esThumbnail;     //following its tag directory. If a MakerNote tag
-const                                              //exists and the MakerNotePosition property is the
-  OffsetSectionKinds = [Low(TOffsetSectionKind)..High(TOffsetSectionKind)]; //default or mpNeverMove,
-var                                                //then sections are saved around the MakerNote data.
+{ TExifData.SaveToStream: sections are written out in TExifSection order, with a
+  section's offsetted data immediately following its tag directory. If a MakerNote tag
+  exists, then sections are saved around that tag's data.}
+procedure TExifData.SaveToStream(Stream: TStream);
+type
+  TOffsetSectionKind = esDetails..esThumbnail;
+const
+  OffsetSectionKinds = [Low(TOffsetSectionKind)..High(TOffsetSectionKind)];
+var
   BaseStreamPos: Int64;
   MakerNoteTag, MakerNoteOffsetTag: TExifTag;
   MakerNoteDataOffset: Int64;
@@ -5683,7 +5420,7 @@ var                                                //then sections are saved aro
     if (Kind <> esGeneral) and (Sections[Kind].Count = 0) then Exit; //don't write out empty sections
     for Tag in Sections[Kind] do
       if Tag.DataSize > 4 then Inc(SavingInfo[Kind].OffsettedDataSize, Tag.DataSize);
-    SavingInfo[Kind].DirectorySize := 2 + (TagHeaderSize * Sections[Kind].Count) + 4; //length + tag recs + pos of next IFD
+    SavingInfo[Kind].DirectorySize := 2 + (TTiffTag.HeaderSize * Sections[Kind].Count) + 4; //length + tag recs + pos of next IFD
   end;
 
   procedure WriteDirectory(Kind: TExifSectionKind);
@@ -5692,7 +5429,7 @@ var                                                //then sections are saved aro
     Tag: TExifTag;
   begin
     if SavingInfo[Kind].DirectorySize = 0 then Exit;
-    Stream.Position := BaseStreamPos + SizeOf(ExifHeader) + SavingInfo[Kind].StartOffset;
+    Stream.Position := BaseStreamPos + SavingInfo[Kind].StartOffset;
     Stream.WriteWord(Sections[Kind].Count, Endianness);
     NextDataOffset := SavingInfo[Kind].StartOffset + SavingInfo[Kind].DirectorySize;
     for Tag in Sections[Kind] do
@@ -5738,7 +5475,7 @@ begin
       MakerNoteDataOffset := MakerNoteTag.OriginalDataOffset;
       if Find(ttOffsetSchema, MakerNoteOffsetTag) and
          (MakerNoteOffsetTag.DataType = tdLongInt) and (MakerNoteOffsetTag.ElementCount = 1) and
-         (MakerNoteDataOffset - PLongInt(MakerNoteOffsetTag.Data)^ > SizeOf(ExifHeader)) then
+         (MakerNoteDataOffset - PLongInt(MakerNoteOffsetTag.Data)^ > 0) then
       begin
         Dec(MakerNoteDataOffset, PLongInt(MakerNoteOffsetTag.Data)^);
         PLongInt(MakerNoteOffsetTag.Data)^ := 0;
@@ -5753,19 +5490,19 @@ begin
   { initialise saving the thumbnail section }
   ThumbnailImageStream := nil;
   try
-    if (FThumbnailOrNil <> nil) and not FThumbnailOrNil.Empty then
+    if HasThumbnail then
     begin
       ThumbnailImageStream := TMemoryStream.Create;
-      FThumbnailOrNil.SaveToStream(ThumbnailImageStream);
+      Thumbnail.SaveToStream(ThumbnailImageStream);
       ThumbnailImageStream.Position := 0;
       ThumbnailImageStream.Size := GetJPEGDataSize(ThumbnailImageStream);
       if ThumbnailImageStream.Size > MaxThumbnailSize then
       begin
         ThumbnailImageStream.Clear;
         StandardizeThumbnail;
-        if FThumbnailOrNil.CompressionQuality > 90 then
-          FThumbnailOrNil.CompressionQuality := 90;
-        FThumbnailOrNil.SaveToStream(ThumbnailImageStream);
+        if Thumbnail.CompressionQuality > 90 then
+          Thumbnail.CompressionQuality := 90;
+        Thumbnail.SaveToStream(ThumbnailImageStream);
         Assert(ThumbnailImageStream.Size <= MaxThumbnailSize);
       end;
       with Sections[esThumbnail] do
@@ -5795,20 +5532,14 @@ begin
           PLongWord(OffsetTags[Kind].Data)^ := SavingInfo[Kind].StartOffset;
     end;
     { let's do the actual writing }
-    Stream.WriteBuffer(ExifHeader, SizeOf(ExifHeader));
-    if Endianness = BigEndian then
-      Stream.WriteWord(TiffBigEndianCode, BigEndian)
-    else
-      Stream.WriteWord(TiffSmallEndianCode, SmallEndian);
-    Stream.WriteWord(TiffMagicNum, Endianness);
-    Stream.WriteLongWord(SavingInfo[esGeneral].StartOffset, Endianness);
+    WriteTiffHeader(Stream, Endianness);
     for Kind := Low(TExifSectionKind) to High(TExifSectionKind) do
       WriteDirectory(Kind);
     if ThumbnailImageStream <> nil then
       Stream.WriteBuffer(ThumbnailImageStream.Memory^, ThumbnailImageStream.Size);
     if PreserveMakerNotePos then
     begin
-      Stream.Position := BaseStreamPos + SizeOf(ExifHeader) + MakerNoteDataOffset;
+      Stream.Position := BaseStreamPos + MakerNoteDataOffset;
       Stream.WriteBuffer(MakerNoteTag.Data^, MakerNoteTag.DataSize);
     end;
   finally
@@ -5884,7 +5615,7 @@ begin
     begin
       OutStream.WriteBuffer(InStream.Memory^, Segment.Offset + Segment.TotalSize);
       for I := 0 to SavedSegments.Count - 1 do
-        WriteJPEGSegmentToStream(OutStream, SavedSegments[I] as IJPEGSegment);
+        WriteJPEGSegment(OutStream, SavedSegments[I] as IJPEGSegment);
       OutStream.CopyFrom(InStream, InStream.Size - InStream.Position);
       OutStream.Position := 0;
       LoadFromStream(OutStream);
@@ -5955,9 +5686,9 @@ begin
     try
       inherited SaveToStream(MemStream);
       MemStream.Position := 0;
-      FExifData.LoadFromJPEG(MemStream);
+      FExifData.LoadFromGraphic(MemStream);
       MemStream.Position := 0;
-      FIPTCData.LoadFromJPEG(MemStream);
+      FIPTCData.LoadFromGraphic(MemStream);
     finally
       MemStream.Free;
     end;
@@ -6004,31 +5735,34 @@ end;
 
 constructor TExifMakerNote.Create(ASection: TExifSection);
 var
+  BasePosition: Int64;
   HeaderSize: Integer;
   InternalOffset: Int64;
   SourceTag: TExifTag;
-  TiffInfo: TTiffInfo;
+  Stream: TUserMemoryStream;
 begin
   inherited Create;
   FTags := ASection;
   if ClassType = TUnrecognizedMakerNote then Exit;
   if not ASection.Owner[esDetails].Find(ttMakerNote, SourceTag) or not FormatIsOK(SourceTag,
-    HeaderSize) then raise EInvalidMakerNoteFormat.Create(SInvalidMakerNoteFormat);
+    HeaderSize) then raise EInvalidMakerNoteFormat.CreateRes(@SInvalidMakerNoteFormat);
   FDataOffsetsType := doFromExifStart;
-  TiffInfo.Endianness := Tags.Owner.Endianness;
-  GetIFDInfo(SourceTag, TiffInfo.Endianness, FDataOffsetsType);
+  FEndianness := Tags.Owner.Endianness;
+  GetIFDInfo(SourceTag, FEndianness, FDataOffsetsType);
   case FDataOffsetsType of
-    doFromExifStart: TiffInfo.BasePosition := -SourceTag.OriginalDataOffset;
-    doFromMakerNoteStart: TiffInfo.BasePosition := 0;
-    doFromIFDStart: TiffInfo.BasePosition := HeaderSize;
+    doFromExifStart: BasePosition := -SourceTag.OriginalDataOffset;
+    doFromIFDStart: BasePosition := HeaderSize;
+  else //i.e., doFromMakerNoteStart - use 'else' to avoid compiler warning 
+    BasePosition := 0;
   end;
   if FDataOffsetsType = doFromIFDStart then
     InternalOffset := -8
   else
     InternalOffset := Tags.Owner.OffsetSchema;
-  TiffInfo.Stream := TUserMemoryStream.Create(SourceTag.Data, SourceTag.DataSize);
+  Stream := TUserMemoryStream.Create(SourceTag.Data, SourceTag.DataSize);
   try
-    Tags.Load(TiffInfo, HeaderSize - TiffInfo.BasePosition, InternalOffset);
+    Tags.Load(ParseTiffDirectory(Stream, FEndianness, BasePosition,
+      HeaderSize - BasePosition, InternalOffset), False);
     { When edited in Vista's Explorer, Exif data are *always* re-written in big endian
       format. Since MakerNotes are left 'as is', however, this means a parser can't rely
       on the container's endianness to determine the endianness of the MakerNote. So, if
@@ -6037,18 +5771,18 @@ begin
     if (Tags.Count = 0) or ((Tags.LoadErrors <> []) and
       not (leBadOffset in Tags.LoadErrors) and (Tags.Count < 3)) then
     begin
-      if TiffInfo.Endianness = SmallEndian then
-        TiffInfo.Endianness := BigEndian
+      if FEndianness = SmallEndian then
+        FEndianness := BigEndian
       else
-        TiffInfo.Endianness := SmallEndian;
-      Tags.Load(TiffInfo, HeaderSize - TiffInfo.BasePosition, InternalOffset);
+        FEndianness := SmallEndian;
+      Tags.Load(ParseTiffDirectory(Stream, FEndianness, BasePosition,
+        HeaderSize - BasePosition, InternalOffset), False);
       if Tags.LoadErrors <> [] then Tags.Clear;
       if Tags.Count = 0 then Tags.LoadErrors := [leBadOffset];
     end;
   finally
-    TiffInfo.Stream.Free;
+    Stream.Free;
   end;
-  FEndianness := TiffInfo.Endianness;
 end;
 
 class function TExifMakerNote.FormatIsOK(SourceTag: TExifTag): Boolean;

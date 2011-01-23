@@ -1,7 +1,7 @@
 {**************************************************************************************}
 {                                                                                      }
 { CCR Exif - Delphi class library for reading and writing Exif metadata in JPEG files  }
-{ Version 1.1.2 (2011-01-23)                                                           }
+{ Version 1.5.0 beta                                                                   }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -23,14 +23,18 @@ unit CCR.Exif.Consts;
 interface
 
 const
-  CCRExifVersion = '1.1.2';
+  CCRExifVersion = '1.5.0 beta';
 
 resourcestring
+  SStreamIsReadOnly = 'Stream is read-only';
+  SUnsupportedGraphicFormat = 'Unsupported graphic format';
   SInvalidJPEGHeader = 'JPEG header is not valid';
+  SInvalidPSDHeader = 'Photoshop (PSD) file header is not valid';
   SFileIsNotAValidJPEG = '"%s" is not a valid JPEG file';
-  SInvalidTiffData = 'Malformed TIFF data';
+  SInvalidTiffData = 'Invalid TIFF data';
+  SInvalidOffsetTag = 'Tag does not specify an offset';
   SInvalidExifData = 'Malformed EXIF data';
-  SNoExifHeaderFound = 'No Exif header found';
+  SNoExifHeaderFound = 'No Exif header found' deprecated; //always forgiving about this since v1.5.0
   SAsciiValueCannotBeArray = 'An ASCII tag cannot be an array';
   SUndefinedValueMustBeBeArray = 'An undefined tag must be an array';
   SInvalidFraction = '''%s'' is not a valid fraction';
@@ -42,6 +46,8 @@ resourcestring
 
   SInvalidMakerNoteFormat = 'Invalid MakerNote format';
 
+  SCannotRewriteOldStyleTiffJPEG = 'Cannot rewrite old style TIFF-JPEG'; 
+
   SInvalidXMPPacket = 'XMP packet is not valid';
   SSubPropertiesMustBeNamed = 'Sub-properties must be named';
   SSubPropertiesNotSupported = 'Property type does not support sub-properties';
@@ -49,7 +55,7 @@ resourcestring
   SPreferredPrefixMustBeSet = 'The schema''s PreferredPrefix property must be set before a new item can be added';
 
   SInvalidAdobeSegment = 'Invalid Adobe metadata segment';
-  SInvalidIPTCRecordNumber = 'Invalid IPTC record number (%d)';
+  SInvalidIPTCRecordNumber = 'Invalid IPTC record number (%d)' deprecated; //parsing is just broken off now
   SInvalidIPTCTagSizeField = 'Invalid IPTC tag size field (%d)';
 
 implementation

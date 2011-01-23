@@ -48,6 +48,7 @@ object OutputFrame: TOutputFrame
     BevelOuter = bvSpace
     BevelKind = bkTile
     BorderStyle = bsNone
+    PopupMenu = mnuEdit
     ReadOnly = True
     ScrollBars = ssVertical
     TabOrder = 2
@@ -120,8 +121,22 @@ object OutputFrame: TOutputFrame
       Height = 194
       Align = alClient
       BorderStyle = bsNone
+      PopupMenu = mnuEdit
       ReadOnly = True
       TabOrder = 1
+    end
+  end
+  object mnuEdit: TPopupMenu
+    OnPopup = mnuEditPopup
+    Left = 12
+    Top = 16
+    object itmCopySelText: TMenuItem
+      Caption = 'Copy Selected Text'
+      OnClick = itmCopySelTextClick
+    end
+    object itmSelectAll: TMenuItem
+      Caption = 'Select All'
+      OnClick = itmSelectAllClick
     end
   end
 end

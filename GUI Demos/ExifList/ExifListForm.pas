@@ -1,7 +1,7 @@
 {**************************************************************************************}
 {                                                                                      }
-{ CCR Exif - Delphi class library for reading and writing Exif metadata in JPEG files  }
-{ Version 1.1.2 (2011-01-23)                                                           }
+{ CCR Exif - Delphi class library for reading and writing image metadata               }
+{ Version 1.5.0 beta                                                                   }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -30,15 +30,12 @@ unit ExifListForm;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, IniFiles, Controls, Forms, Dialogs,
-  ExtDlgs, StdCtrls, ExtCtrls, ComCtrls, Buttons, ActnList, CCR.Exif.Demos, ExifListFrame;
+  SysUtils, Classes, Graphics, IniFiles, Controls, Forms, ActnList, StdActns, ExtActns,
+  StdCtrls, ExtCtrls, ComCtrls, Buttons, CCR.Exif.Demos, ExifListFrame;
 
 type
   TfrmExifList = class(TForm)
-    dlgOpen: TOpenPictureDialog;
     ActionList: TActionList;
-    actOpen: TAction;
-    dlgSave: TSavePictureDialog;
     PageControl: TPageControl;
     tabOriginal: TTabSheet;
     tabResaved: TTabSheet;
@@ -48,14 +45,17 @@ type
     btnCopy: TBitBtn;
     actCopy: TAction;
     actSelectAll: TAction;
+    btnOpenInDefProg: TBitBtn;
+    actOpenInDefProg: TFileRun;
+    actOpen: TOpenPicture;
     procedure FormCreate(Sender: TObject);
-    procedure actOpenExecute(Sender: TObject);
     procedure btnExitClick(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure actCopyUpdate(Sender: TObject);
     procedure PageControlChange(Sender: TObject);
     procedure actCopyExecute(Sender: TObject);
     procedure actSelectAllExecute(Sender: TObject);
+    procedure actOpenAccept(Sender: TObject);
   private
     FActiveFrame, FOriginalFrame, FResavedFrame: TOutputFrame;
     FMakerNoteValueMap: TMemIniFile;
@@ -68,7 +68,7 @@ var
 
 implementation
 
-uses ShellApi, CCR.Exif;
+uses CCR.Exif;
 
 {$R *.dfm}
 
@@ -118,9 +118,9 @@ begin
   actCopy.Enabled := FActiveFrame.CanCopyToClipboard;
 end;
 
-procedure TfrmExifList.actOpenExecute(Sender: TObject);
+procedure TfrmExifList.actOpenAccept(Sender: TObject);
 begin
-  if dlgOpen.Execute then OpenFile(dlgOpen.FileName);
+  OpenFile(actOpen.Dialog.FileName);
 end;
 
 procedure TfrmExifList.actSelectAllExecute(Sender: TObject);
@@ -135,8 +135,14 @@ end;
 
 procedure TfrmExifList.DoFileOpen(const FileName1, FileName2: string);
 begin
+  actOpenInDefProg.Enabled := False; //in case of an exception on loading
   FOriginalFrame.LoadFromFile(FileName1, FMakerNoteValueMap);
-  if FileName2 = '' then Exit;
+  if FileName2 = '' then
+  begin
+    actOpenInDefProg.FileName := FileName1;
+    actOpenInDefProg.Enabled := True;
+    Exit;
+  end;
   FResavedFrame.LoadFromFile(FileName2, FMakerNoteValueMap);
   tabOriginal.Caption := ExtractFileName(FileName1);
   tabResaved.Caption := ExtractFileName(FileName2);

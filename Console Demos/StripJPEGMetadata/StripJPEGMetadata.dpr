@@ -1,7 +1,7 @@
 {**************************************************************************************}
 {                                                                                      }
 { CCR Exif - Delphi class library for reading and writing Exif metadata in JPEG files  }
-{ Version 1.1.2 (2011-01-23)                                                           }
+{ Version 1.5.0 beta                                                                   }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -32,9 +32,10 @@ uses
   CCR.Exif in '..\..\CCR.Exif.pas',
   CCR.Exif.Consts in '..\..\CCR.Exif.Consts.pas',
   CCR.Exif.IPTC in '..\..\CCR.Exif.IPTC.pas',
-  CCR.Exif.JPEGUtils in '..\..\CCR.Exif.JPEGUtils.pas',
+  CCR.Exif.BaseUtils in '..\..\CCR.Exif.BaseUtils.pas',
   CCR.Exif.StreamHelper in '..\..\CCR.Exif.StreamHelper.pas',
   CCR.Exif.TagIDs in '..\..\CCR.Exif.TagIDs.pas',
+  CCR.Exif.TiffUtils in '..\..\CCR.Exif.TiffUtils.pas',
   CCR.Exif.XMPUtils in '..\..\CCR.Exif.XMPUtils.pas';
 
 procedure OutputInfo;

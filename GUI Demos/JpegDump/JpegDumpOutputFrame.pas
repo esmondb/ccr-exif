@@ -1,7 +1,7 @@
 {**************************************************************************************}
 {                                                                                      }
-{ CCR Exif - Delphi class library for reading and writing Exif metadata in JPEG files  }
-{ Version 1.1.2 (2011-01-23)                                                           }
+{ CCR Exif - Delphi class library for reading and writing image metadata               }
+{ Version 1.5.0 beta                                                                   }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -24,7 +24,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, StdCtrls, ExtCtrls, 
-  CCR.Exif, CCR.Exif.IPTC, CCR.Exif.JpegUtils, CCR.Exif.TagIDs, CCR.Exif.XMPUtils;
+  CCR.Exif, CCR.Exif.BaseUtils, CCR.Exif.IPTC, CCR.Exif.TagIDs, CCR.Exif.XMPUtils;
 
 type
   TOutputFrame = class(TFrame)
@@ -105,10 +105,10 @@ begin
             ttBitsPerSample             : Result := 'ttBitsPerSample';
             ttCompression               : Result := 'ttCompression';
             ttPhotometricInterp         : Result := 'ttPhotometricInterp';
-            ttStripOffset               : Result := 'ttStripOffset';
+            ttStripOffsets              : Result := 'ttStripOffsets';
             ttSamplesPerPixel           : Result := 'ttSamplesPerPixel';
             ttRowsPerStrip              : Result := 'ttRowsPerStrip';
-            ttStripByteCount            : Result := 'ttStripByteCount';
+            ttStripByteCounts           : Result := 'ttStripByteCounts';
             ttPlanarConfiguration       : Result := 'ttPlanarConfiguration';
             ttJpegIFOffset              : Result := 'ttJpegIFOffset';
             ttJpegIFByteCount           : Result := 'ttJpegIFByteCount';
@@ -246,7 +246,7 @@ begin
   S := S + ' ---';
   Memo.Lines.Add(S);
   AddLine('Segment offset'#9'$%.4x', [Segment.Offset]);
-  if (Segment.MarkerNum in MarkersWithNoData) and (Segment.Data.Size = 0) then
+  if (Segment.MarkerNum in TJPEGSegment.MarkersWithNoData) and (Segment.Data.Size = 0) then
     Memo.Lines.Add('Segment has no data')
   else
   begin
@@ -261,7 +261,7 @@ procedure TOutputFrame.LoadAdobeApp13(const Segment: IFoundJPEGSegment);
 const
   SYesNo: array[Boolean] of string = ('No', 'Yes');
 var
-  Block: IAdobeBlock;
+  Block: IAdobeResBlock;
   Counter: Integer;
   FoundIPTC: Boolean;
   IPTCData: TIPTCData;
@@ -275,7 +275,7 @@ begin
   for Block in Segment do
   begin
     Inc(Counter);
-    FoundIPTC := FoundIPTC or Block.HasIPTCData;
+    FoundIPTC := FoundIPTC or Block.IsIPTCBlock;
   end;
   AddLine('Contains IPTC data'#9'%s', [SYesNo[FoundIPTC]]);
   AddLine('Number of data blocks'#9'%d', [Counter]);
@@ -286,7 +286,7 @@ begin
     for Block in Segment do
     begin
       Inc(Counter);
-      if Block.HasIPTCData then
+      if Block.IsIPTCBlock then
         AddLine('Data block %d (IPTC):', [Counter])
       else
         AddLine('Data block %d:', [Counter]);
@@ -298,7 +298,7 @@ begin
         S := '(none)';
       AddLine('Name'#9'%s', [S]);
       AddLine('Data size'#9'%d bytes', [Block.Data.Size]);
-      if Block.HasIPTCData then
+      if Block.IsIPTCBlock then
       begin
         IPTCData.LoadFromStream(Block.Data);
         for Section in IPTCData do
@@ -585,9 +585,9 @@ begin
           AddBlankLine;
         end;
         jmApp1:
-          if HasExifHeader(Segment.Data) then
+          if Segment.IsExifBlock then
             LoadExif(Segment)
-          else if HasXMPSegmentHeader(Segment.Data) then
+          else if Segment.IsXMPBlock then
             LoadXMP(Segment)
           else
             DoUnrecognised;

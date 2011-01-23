@@ -1,7 +1,7 @@
 {**************************************************************************************}
 {                                                                                      }
-{ CCR Exif - Delphi class library for reading and writing Exif metadata in JPEG files  }
-{ Version 1.1.2 (2011-01-23)                                                           }
+{ CCR Exif - Delphi class library for reading and writing image metadata               }
+{ Version 1.5.0 beta                                                                   }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -18,9 +18,8 @@
 {                                                                                      }
 {**************************************************************************************}
 
+{$I CCR.Exif.inc}
 unit CCR.Exif.IPTC;
-
-interface
 {
   As saved, IPTC data is a flat list of tags ('datasets'), no more no less, which is
   reflected in the implementation of TIPTCData.LoadFromStream. However, as found in JPEG
@@ -30,94 +29,24 @@ interface
   encoding tag is set, with the UTF-8 marker as its data. If you don't load any tags
   before adding others, however, the default is to persist to UTF-8, writing said marker
   tag of course. To force interpreting loaded tags as UTF-8, set the
-  AlwaysAssumeUTF8Encoding property of TIPTCData to True *before* calling LoadFromJPEG
-  or LoadFromStream.
+  AlwaysAssumeUTF8Encoding property of TIPTCData to True *before* calling
+  LoadFromGraphic or LoadFromStream.
 }
+interface
+
 uses
   Types, SysUtils, Classes, Graphics, JPEG,
-  CCR.Exif.JPEGUtils, CCR.Exif.StreamHelper, CCR.Exif.TagIDs;
+  CCR.Exif.BaseUtils, CCR.Exif.TagIDs, CCR.Exif.TiffUtils;
 
 type
-  TLongIntTagValue = record
-  private
-    FValue: LongInt;
-    FMissingOrInvalid: Boolean;
-    function GetAsString: string;
-  public
-    constructor CreateFromString(const AString: string);
-    class function CreateMissingOrInvalid: TLongIntTagValue; static;
-    class operator Equal(const A, B: TLongIntTagValue): Boolean;
-    class operator NotEqual(const A, B: TLongIntTagValue): Boolean;
-    class operator Implicit(const Source: TLongIntTagValue): Int64;
-    class operator Implicit(const Source: TLongIntTagValue): LongInt;
-    class operator Implicit(const Source: LongInt): TLongIntTagValue;
-    class operator LessThan(const A, B: TLongIntTagValue): Boolean;
-    class operator LessThanOrEqual(const A, B: TLongIntTagValue): Boolean;
-    class operator GreaterThan(const A, B: TLongIntTagValue): Boolean;
-    class operator GreaterThanOrEqual(const A, B: TLongIntTagValue): Boolean;
-    class operator Negative(const Source: TLongIntTagValue): TLongIntTagValue;
-    property AsString: string read GetAsString;
-    property MissingOrInvalid: Boolean read FMissingOrInvalid;
-    property Value: LongInt read FValue;
-  end;
-
-  TLongWordTagValue = record
-  private
-    FValue: LongWord;
-    FMissingOrInvalid: Boolean;
-    function GetAsString: string;
-  public
-    constructor CreateFromString(const AString: string);
-    class function CreateMissingOrInvalid: TLongWordTagValue; static;
-    class operator Equal(const A, B: TLongWordTagValue): Boolean;
-    class operator NotEqual(const A, B: TLongWordTagValue): Boolean;
-    class operator Implicit(const Source: TLongWordTagValue): Int64;
-    class operator Implicit(const Source: TLongWordTagValue): UInt64;
-    class operator Implicit(const Source: TLongWordTagValue): LongWord;
-    class operator Implicit(const Source: LongWord): TLongWordTagValue;
-    class operator LessThan(const A, B: TLongWordTagValue): Boolean;
-    class operator LessThanOrEqual(const A, B: TLongWordTagValue): Boolean;
-    class operator GreaterThan(const A, B: TLongWordTagValue): Boolean;
-    class operator GreaterThanOrEqual(const A, B: TLongWordTagValue): Boolean;
-    property AsString: string read GetAsString;
-    property MissingOrInvalid: Boolean read FMissingOrInvalid;
-    property Value: LongWord read FValue;
-  end;
-
-  TWordTagValue = record
-  strict private
-    FValue: Word;
-    FMissingOrInvalid: Boolean;
-    function GetAsString: string;
-  public
-    constructor CreateFromString(const AString: string);
-    class function CreateMissingOrInvalid: TWordTagValue; static;
-    class operator Equal(const A, B: TWordTagValue): Boolean;
-    class operator NotEqual(const A, B: TWordTagValue): Boolean;
-    class operator Implicit(const Source: TWordTagValue): Int64;
-    class operator Implicit(const Source: TWordTagValue): UInt64;
-    class operator Implicit(const Source: TWordTagValue): Integer;
-    class operator Implicit(const Source: TWordTagValue): Word;
-    class operator Implicit(const Source: TWordTagValue): TLongIntTagValue;
-    class operator Implicit(const Source: TWordTagValue): TLongWordTagValue;
-    class operator Implicit(const Source: Word): TWordTagValue;
-    class operator LessThan(const A, B: TWordTagValue): Boolean;
-    class operator LessThanOrEqual(const A, B: TWordTagValue): Boolean;
-    class operator GreaterThan(const A, B: TWordTagValue): Boolean;
-    class operator GreaterThanOrEqual(const A, B: TWordTagValue): Boolean;
-    property AsString: string read GetAsString;
-    property MissingOrInvalid: Boolean read FMissingOrInvalid;
-    property Value: Word read FValue;
-  end;
-
-  EInvalidIPTCData = class(Exception);
+  EInvalidIPTCData = class(ECCRExifException);
 
   TStringDynArray = Types.TStringDynArray;
 
   TIPTCData = class;
   TIPTCSection = class;
 
-  TIPTCTagID = type Byte;
+  TIPTCTagID = CCR.Exif.BaseUtils.TIPTCTagID;
   TIPTCTagIDs = set of TIPTCTagID;
 
   TIPTCTag = class //an instance represents a 'dataset' in IPTC jargon; instances need not be written in numerical order
@@ -142,8 +71,11 @@ type
     procedure UpdateData(const Buffer); overload; inline;
     procedure UpdateData(NewDataSize: Integer; const Buffer); overload;
     procedure UpdateData(NewDataSize: Integer; Source: TStream); overload;
-    { ReadString treats the raw data as AnsiChar data, whatever the spec says. }
-    function ReadString: string; overload;
+    { ReadString treats the data as string data, whatever the spec says. It respects
+      TIPTCData.UTF8Encoded however. }
+    function ReadString: string;
+    { ReadUTF8String just assumes the tag data is UTF-8 text. }
+    function ReadUTF8String: UTF8String; inline;
     procedure WriteString(const NewValue: RawByteString); overload;
     procedure WriteString(const NewValue: UnicodeString); overload;
     { AsString assumes the underlying data type is as per the spec (unlike the case of
@@ -156,7 +88,7 @@ type
     property Section: TIPTCSection read FSection;
   end;
 
-  TIPTCSectionID = 1..9;
+  TIPTCSectionID = CCR.Exif.BaseUtils.TIPTCSectionID;
 
 {$Z1} //only TIPTCImageOrientation directly maps to the stored value
   TIPTCActionAdvised = (iaTagMissing, iaObjectKill, iaObjectReplace, iaObjectAppend, iaObjectReference);
@@ -222,14 +154,14 @@ type
     property Tags[Index: Integer]: TIPTCTag read GetTag; default;
   end;
 
-  TIPTCData = class(TInterfacedPersistent, IStreamPersist)
+  TIPTCData = class(TComponent, IStreamPersist, IStreamPersistEx, ITiffRewriteCallback)
   public type
     TEnumerator = record
     private
       FCurrentID: TIPTCSectionID;
       FDoneFirst: Boolean;
       FSource: TIPTCData;
-        function GetCurrent: TIPTCSection;
+      function GetCurrent: TIPTCSection;
     public
       constructor Create(ASource: TIPTCData);
       function MoveNext: Boolean;
@@ -237,11 +169,16 @@ type
     end;
   strict private
     FAlwaysAssumeUTF8Encoding: Boolean;
+    FDataToLazyLoad: IMetadataBlock;
     FSections: array[TIPTCSectionID] of TIPTCSection;
+    FTiffRewriteCallback: TSimpleTiffRewriteCallbackImpl;
     FUTF8Encoded: Boolean;
-    function GetEmpty: Boolean;
-    function GetSection(ID: TIPTCSectionID): TIPTCSection;
+    procedure GetGraphicSaveMethod(Stream: TStream; var Method: TGraphicSaveMethod);
     function GetModified: Boolean;
+    function GetSection(ID: Integer): TIPTCSection;
+    function GetSectionByID(ID: TIPTCSectionID): TIPTCSection;
+    function GetUTF8Encoded: Boolean;
+    procedure SetDataToLazyLoad(const Value: IMetadataBlock);
     procedure SetModified(Value: Boolean);
     procedure SetUTF8Encoded(Value: Boolean);
     function GetEnvelopeString(TagID: Integer): string;
@@ -265,37 +202,55 @@ type
     function GetImageOrientation: TIPTCImageOrientation;
     procedure SetImageOrientation(Value: TIPTCImageOrientation);
   protected
-    function CreateIPTCSegment: IJPEGSegment;
+    function CreateAdobeBlock: IAdobeResBlock; inline;
     procedure DefineProperties(Filer: TFiler); override;
     procedure DoSaveToJPEG(InStream, OutStream: TStream);
+    procedure DoSaveToPSD(InStream, OutStream: TStream);
+    procedure DoSaveToTIFF(InStream, OutStream: TStream);
+    function GetEmpty: Boolean;
+    procedure NeedLazyLoadedData;
+    property TiffRewriteCallback: TSimpleTiffRewriteCallbackImpl read FTiffRewriteCallback implements ITiffRewriteCallback;
   public const
     UTF8Marker: array[1..3] of Byte = ($1B, $25, $47);
   public
-    constructor Create;
+    constructor Create(AOwner: TComponent = nil); override;
+    class function CreateAsSubComponent(AOwner: TComponent): TIPTCData; //use a class function rather than a constructor to avoid compiler warning re C++ accessibility
     destructor Destroy; override;
     function GetEnumerator: TEnumerator; overload;
     procedure AddFromStream(Stream: TStream);
     procedure Assign(Source: TPersistent); override;
     procedure Clear;
-    procedure LoadFromJPEG(JPEGStream: TStream); overload;
-    procedure LoadFromJPEG(JPEGImage: TJPEGImage); overload;
-    procedure LoadFromJPEG(const FileName: string); overload;
+    { Whether or not metadata was found, LoadFromGraphic returns True if the graphic format
+      was recognised as one that *could* contain relevant metadata and False otherwise. }
+    function LoadFromGraphic(Stream: TStream): Boolean; overload;
+    function LoadFromGraphic(Graphic: TGraphic): Boolean; overload;
+    function LoadFromGraphic(const FileName: string): Boolean; overload;
     procedure LoadFromStream(Stream: TStream);
-    procedure SaveToJPEG(const JPEGFileName: string; BufferedWrite: Boolean = True); overload; //file must already exist
-    procedure SaveToJPEG(JPEGImage: TJPEGImage); overload;
-    procedure SaveToStream(Stream: TStream); overload;
+    { SaveToGraphic raises an exception if the target graphic either doesn't exist, or
+      is neither a JPEG nor a PSD image. }
+    procedure SaveToGraphic(const FileName: string); overload;
+    procedure SaveToGraphic(Graphic: TGraphic); overload;
+    procedure SaveToStream(Stream: TStream);
     procedure SortTags;
-    property Empty: Boolean read GetEmpty;
     property Modified: Boolean read GetModified write SetModified;
-    property EnvelopeSection: TIPTCSection read FSections[1];
-    property ApplicationSection: TIPTCSection read FSections[2];
-    property FirstDescriptorSection: TIPTCSection read FSections[7];
-    property ObjectDataSection: TIPTCSection read FSections[8];
-    property SecondDescriptorSection: TIPTCSection read FSections[9];
-    property Sections[ID: TIPTCSectionID]: TIPTCSection read GetSection; default;
+    property EnvelopeSection: TIPTCSection index 1 read GetSection;
+    property ApplicationSection: TIPTCSection index 2 read GetSection;
+    property DataToLazyLoad: IMetadataBlock read FDataToLazyLoad write SetDataToLazyLoad;
+    property FirstDescriptorSection: TIPTCSection index 7 read GetSection;
+    property ObjectDataSection: TIPTCSection index 8 read GetSection;
+    property SecondDescriptorSection: TIPTCSection index 9 read GetSection;
+    property Sections[ID: TIPTCSectionID]: TIPTCSection read GetSectionByID; default;
+  public //deprecated methods - to be removed in a future release
+    procedure LoadFromJPEG(JPEGStream: TStream); overload; deprecated {$IFDEF DEPCON}'Use LoadFromGraphic'{$ENDIF};
+    procedure LoadFromJPEG(JPEGImage: TJPEGImage); overload; inline; deprecated {$IFDEF DEPCON}'Use LoadFromGraphic'{$ENDIF};
+    procedure LoadFromJPEG(const FileName: string); overload; deprecated {$IFDEF DEPCON}'Use LoadFromGraphic'{$ENDIF};
+    procedure SaveToJPEG(const JPEGFileName: string;
+      Dummy: Boolean = True); overload; inline; deprecated {$IFDEF DEPCON}'Use SaveToGraphic'{$ENDIF};
+    procedure SaveToJPEG(JPEGImage: TJPEGImage); overload; inline; deprecated {$IFDEF DEPCON}'Use SaveToGraphic'{$ENDIF};
   published
     property AlwaysAssumeUTF8Encoding: Boolean read FAlwaysAssumeUTF8Encoding write FAlwaysAssumeUTF8Encoding default False;
-    property UTF8Encoded: Boolean read FUTF8Encoded write SetUTF8Encoded default True;
+    property Empty: Boolean read GetEmpty;
+    property UTF8Encoded: Boolean read GetUTF8Encoded write SetUTF8Encoded default True;
     { record 1 }
     property ModelVersion: TWordTagValue index itModelVersion read GetEnvelopeWord write SetEnvelopeWord stored False;
     property Destination: string index itDestination read GetEnvelopeString write SetEnvelopeString stored False;
@@ -359,16 +314,9 @@ type
     property AudioTypeCode: string index itAudioType read GetApplicationString write SetApplicationString stored False;
   end;
 
-function BinToHexStr(Data: Pointer; Size: Integer): string; overload;
-function BinToHexStr(const Buffer; Size: Integer): string; overload; inline;
-
 implementation
 
-uses Contnrs, Math, CCR.Exif.Consts;
-
-{$IFOPT R-}
-  {$DEFINE RANGECHECKINGOFF}
-{$ENDIF}
+uses Contnrs, Math, CCR.Exif.Consts, CCR.Exif.StreamHelper;
 
 const
   PriorityChars: array[TIPTCPriority] of AnsiChar = (#0, '8', '7', '6', '5', '4',
@@ -376,19 +324,6 @@ const
 
 type
   TIPTCTagDataType = (idString, idWord, idBinary);
-
-function BinToHexStr(Data: Pointer; Size: Integer): string;
-begin
-  SetString(Result, nil, 0);
-  if Size = 0 then Exit;
-  SetString(Result, nil, Size * 2);
-  BinToHex(PAnsiChar(Data), PChar(Result), Size);
-end;
-
-function BinToHexStr(const Buffer; Size: Integer): string;
-begin
-  Result := BinToHexStr(@Buffer, Size);
-end;
 
 function FindProperDataType(Tag: TIPTCTag): TIPTCTagDataType;
 begin
@@ -405,259 +340,6 @@ begin
           itRecordVersion: Result := idWord;
         end;
     end;
-end;
-
-{ TLongIntTagValue }
-
-constructor TLongIntTagValue.CreateFromString(const AString: string);
-begin
-  if not TryStrToInt(AString, FValue) then
-    Self := CreateMissingOrInvalid;
-end;
-
-class function TLongIntTagValue.CreateMissingOrInvalid;
-begin
-  Result.FMissingOrInvalid := True;
-  Result.FValue := 0;
-end;
-
-function TLongIntTagValue.GetAsString: string;
-begin
-  if FMissingOrInvalid then
-    Result := ''
-  else
-    Result := IntToStr(FValue);
-end;
-
-class operator TLongIntTagValue.Equal(const A, B: TLongIntTagValue): Boolean;
-begin
-  Result := (A.Value = B.Value) and (A.MissingOrInvalid = B.MissingOrInvalid);
-end;
-
-class operator TLongIntTagValue.Implicit(const Source: TLongIntTagValue): Int64;
-begin
-  Result := Source.Value;
-end;
-
-class operator TLongIntTagValue.Implicit(const Source: TLongIntTagValue): LongInt;
-begin
-  Result := Source.Value;
-end;
-
-class operator TLongIntTagValue.Implicit(const Source: LongInt): TLongIntTagValue;
-begin
-  Result.FValue := Source;
-  Result.FMissingOrInvalid := False;
-end;
-
-class operator TLongIntTagValue.LessThan(const A, B: TLongIntTagValue): Boolean;
-begin
-  Result := (A.Value < B.Value) and not A.MissingOrInvalid and not B.MissingOrInvalid;
-end;
-
-class operator TLongIntTagValue.LessThanOrEqual(const A, B: TLongIntTagValue): Boolean;
-begin
-  Result := (A.MissingOrInvalid and B.MissingOrInvalid) or
-    ((A.Value <= B.Value) and not A.MissingOrInvalid and not B.MissingOrInvalid);
-end;
-
-class operator TLongIntTagValue.NotEqual(const A, B: TLongIntTagValue): Boolean;
-begin
-  Result := not (A = B);
-end;
-
-class operator TLongIntTagValue.GreaterThan(const A, B: TLongIntTagValue): Boolean;
-begin
-  Result := (A.Value > B.Value) and not A.MissingOrInvalid and not B.MissingOrInvalid;
-end;
-
-class operator TLongIntTagValue.GreaterThanOrEqual(const A, B: TLongIntTagValue): Boolean;
-begin
-  Result := (A.MissingOrInvalid and B.MissingOrInvalid) or
-    ((A.Value >= B.Value) and not A.MissingOrInvalid and not B.MissingOrInvalid);
-end;
-
-class operator TLongIntTagValue.Negative(const Source: TLongIntTagValue): TLongIntTagValue;
-begin
-  if Source.MissingOrInvalid then
-    Result := Source
-  else
-    Result := -Source.Value;
-end;
-
-{ TLongWordTagValue }
-
-constructor TLongWordTagValue.CreateFromString(const AString: string);
-var
-  Int64Val: Int64;
-begin
-  if not TryStrToInt64(AString, Int64Val) or (Int64Val < 0) or (Int64Val > High(LongWord)) then
-    Self := CreateMissingOrInvalid;
-end;
-
-class function TLongWordTagValue.CreateMissingOrInvalid;
-begin
-  Result.FMissingOrInvalid := True;
-  Result.FValue := 0;
-end;
-
-class operator TLongWordTagValue.Equal(const A, B: TLongWordTagValue): Boolean;
-begin
-  Result := (A.Value = B.Value) and (A.MissingOrInvalid = B.MissingOrInvalid);
-end;
-
-function TLongWordTagValue.GetAsString: string;
-begin
-  if FMissingOrInvalid then
-    Result := ''
-  else
-    Result := IntToStr(FValue);
-end;
-
-class operator TLongWordTagValue.GreaterThan(const A, B: TLongWordTagValue): Boolean;
-begin
-  Result := (A.Value > B.Value) and not B.MissingOrInvalid; //don't need check for A.MissingOrInvalid
-end;
-
-class operator TLongWordTagValue.GreaterThanOrEqual(const A, B: TLongWordTagValue): Boolean;
-begin
-  Result := (A.MissingOrInvalid and B.MissingOrInvalid) or
-    ((A.Value >= B.Value) and not A.MissingOrInvalid and not B.MissingOrInvalid);
-end;
-
-class operator TLongWordTagValue.Implicit(const Source: TLongWordTagValue): Int64;
-begin
-  Result := Source.Value;
-end;
-
-class operator TLongWordTagValue.Implicit(const Source: TLongWordTagValue): UInt64;
-begin
-  Result := Source.Value;
-end;
-
-class operator TLongWordTagValue.Implicit(const Source: TLongWordTagValue): LongWord;
-begin
-  Result := Source.Value;
-end;
-
-class operator TLongWordTagValue.Implicit(const Source: LongWord): TLongWordTagValue;
-begin
-  Result.FValue := Source;
-  Result.FMissingOrInvalid := False;
-end;
-
-class operator TLongWordTagValue.LessThan(const A, B: TLongWordTagValue): Boolean;
-begin
-  Result := (A.Value < B.Value) and not A.MissingOrInvalid;
-end;
-
-class operator TLongWordTagValue.LessThanOrEqual(const A, B: TLongWordTagValue): Boolean;
-begin
-  Result := (A.MissingOrInvalid and B.MissingOrInvalid) or
-    ((A.Value <= B.Value) and not A.MissingOrInvalid and not B.MissingOrInvalid);
-end;
-
-class operator TLongWordTagValue.NotEqual(const A, B: TLongWordTagValue): Boolean;
-begin
-  Result := not (A = B);
-end;
-
-{ TWordTagValue }
-
-constructor TWordTagValue.CreateFromString(const AString: string);
-var
-  IntVal: Integer;
-begin
-  if not TryStrToInt(AString, IntVal) or (IntVal < 0) or (IntVal > High(Word)) then
-    Self := CreateMissingOrInvalid;
-end;
-
-class function TWordTagValue.CreateMissingOrInvalid;
-begin
-  Result.FMissingOrInvalid := True;
-  Result.FValue := 0;
-end;
-
-class operator TWordTagValue.Equal(const A, B: TWordTagValue): Boolean;
-begin
-  Result := (A.Value = B.Value) and (A.MissingOrInvalid = B.MissingOrInvalid);
-end;
-
-function TWordTagValue.GetAsString: string;
-begin
-  if FMissingOrInvalid then
-    Result := ''
-  else
-    Result := IntToStr(FValue);
-end;
-
-class operator TWordTagValue.GreaterThan(const A, B: TWordTagValue): Boolean;
-begin
-  Result := (A.Value > B.Value) and not B.MissingOrInvalid; //don't need check for A.MissingOrInvalid
-end;
-
-class operator TWordTagValue.GreaterThanOrEqual(const A, B: TWordTagValue): Boolean;
-begin
-  Result := (A.MissingOrInvalid and B.MissingOrInvalid) or
-    ((A.Value >= B.Value) and not A.MissingOrInvalid and not B.MissingOrInvalid);
-end;
-
-class operator TWordTagValue.Implicit(const Source: TWordTagValue): TLongIntTagValue;
-begin
-  if Source.MissingOrInvalid then
-    Result := TLongIntTagValue.CreateMissingOrInvalid
-  else
-    Result := Source.Value;
-end;
-
-class operator TWordTagValue.Implicit(const Source: TWordTagValue): TLongWordTagValue;
-begin
-  if Source.MissingOrInvalid then
-    Result := TLongWordTagValue.CreateMissingOrInvalid
-  else
-    Result := Source.Value;
-end;
-
-class operator TWordTagValue.Implicit(const Source: TWordTagValue): Int64;
-begin
-  Result := Source.Value;
-end;
-
-class operator TWordTagValue.Implicit(const Source: TWordTagValue): UInt64;
-begin
-  Result := Source.Value;
-end;
-
-class operator TWordTagValue.Implicit(const Source: TWordTagValue): Integer;
-begin
-  Result := Source.Value;
-end;
-
-class operator TWordTagValue.Implicit(const Source: TWordTagValue): Word;
-begin
-  Result := Source.Value;
-end;
-
-class operator TWordTagValue.Implicit(const Source: Word): TWordTagValue;
-begin
-  Result.FValue := Source;
-  Result.FMissingOrInvalid := False;
-end;
-
-class operator TWordTagValue.LessThan(const A, B: TWordTagValue): Boolean;
-begin
-  Result := (A.Value < B.Value) and not A.MissingOrInvalid;
-end;
-
-class operator TWordTagValue.LessThanOrEqual(const A, B: TWordTagValue): Boolean;
-begin
-  Result := (A.MissingOrInvalid and B.MissingOrInvalid) or
-    ((A.Value <= B.Value) and not A.MissingOrInvalid and not B.MissingOrInvalid);
-end;
-
-class operator TWordTagValue.NotEqual(const A, B: TWordTagValue): Boolean;
-begin
-  Result := not (A = B);
 end;
 
 { TIPTCTag }
@@ -715,44 +397,22 @@ begin
     Result := FSection.FTags.IndexOf(Self);
 end;
 
-//procedure TIPTCTag.ReadString(var Result: AnsiString);
-//begin
-//  if (Section <> nil) and (Section.Owner <> nil) and Section.Owner.UTF8Encoded then
-//  else
-//    SetString(Result, PAnsiChar(FData), FDataSize);
-//end;
-//
-//function TIPTCTag.ReadString: string;
-//{$IFDEF UNICODE}
-//var
-//  AnsiStr: AnsiString;
-//begin
-//  ReadString(AnsiStr);
-//  Result := string(AnsiStr);
-//end;
-//{$ELSE}
-//begin
-//  ReadString(Result)
-//end;
-//{$ENDIF}
-
 function TIPTCTag.ReadString: string;
 var
   Ansi: AnsiString;
-  UTF8: UTF8String;
 begin
   if (Section <> nil) and (Section.Owner <> nil) and Section.Owner.UTF8Encoded then
   begin
-    SetString(UTF8, PAnsiChar(FData), FDataSize);
-    {$IFDEF UNICODE}
-    Result := string(UTF8);
-    {$ELSE}
-    Result := Utf8ToAnsi(UTF8);
-    {$ENDIF}
+    Result := UTF8ToString(FData, FDataSize);
     Exit;
   end;
   SetString(Ansi, PAnsiChar(FData), FDataSize);
   Result := string(Ansi);
+end;
+
+function TIPTCTag.ReadUTF8String: UTF8String;
+begin
+  SetString(Result, PAnsiChar(FData), FDataSize);
 end;
 
 procedure TIPTCTag.SetAsString(const Value: string);
@@ -769,8 +429,8 @@ begin
   else
     {$RANGECHECKS ON}
     WordVal := StrToInt(Value);
-    {$IFDEF RANGECHECKINGOFF}{$RANGECHECKS OFF}{$ENDIF}
-    WordVal :=  Swap(WordVal);
+    {$IFDEF RangeCheckingOff}{$RANGECHECKS OFF}{$ENDIF}
+    WordVal := Swap(WordVal);
     UpdateData(2, WordVal);
   end;
 end;
@@ -1250,14 +910,22 @@ end;
 
 { TIPTCData }
 
-constructor TIPTCData.Create;
+constructor TIPTCData.Create(AOwner: TComponent);
 var
   ID: TIPTCSectionID;
 begin
-  inherited Create;
+  inherited Create(AOwner);
   for ID := Low(ID) to High(ID) do
     FSections[ID] := TIPTCSection.Create(Self, ID);
+  FTiffRewriteCallback := TSimpleTiffRewriteCallbackImpl.Create(Self, ttIPTC);
   FUTF8Encoded := True;
+end;
+
+class function TIPTCData.CreateAsSubComponent(AOwner: TComponent): TIPTCData;
+begin
+  Result := Create(AOwner);
+  Result.Name := 'IPTCData';
+  Result.SetSubComponent(True);
 end;
 
 destructor TIPTCData.Destroy;
@@ -1266,45 +934,27 @@ var
 begin
   for ID := Low(ID) to High(ID) do
     FSections[ID].Free;
+  FTiffRewriteCallback.Free;
   inherited;
 end;
 
 procedure TIPTCData.AddFromStream(Stream: TStream);
 var
-  MaxHeaderStart: Int64;
-  RecID, TagID: Byte;
-  DataSize: Int64;
+  Info: TIPTCTagInfo;
   NewTag: TIPTCTag;
 begin
-  MaxHeaderStart := Stream.Size - 5;
-  while (Stream.Position <= MaxHeaderStart) do
+  NeedLazyLoadedData;
+  while TAdobeResBlock.TryReadIPTCHeader(Stream, Info) do
   begin
-    if Stream.ReadByte <> NewIPTCTagMarker then
-    begin
-      Stream.Seek(-1, soCurrent);
-      Break;
-    end;
-    RecID := Stream.ReadByte;
-    if (RecID < Low(TIPTCSectionID)) or (RecID > High(TIPTCSectionID)) then
-      raise EInvalidIPTCData.CreateFmt(SInvalidIPTCRecordNumber, [RecID]);
-    TagID := Stream.ReadByte;
-    DataSize := Stream.ReadSmallInt(BigEndian);
-    if DataSize < 0 then
-      case Abs(DataSize) of
-        1: DataSize := Stream.ReadByte;
-        2: DataSize := Stream.ReadWord(BigEndian);
-        4: DataSize := Stream.ReadLongWord(BigEndian);
-      else raise EInvalidIPTCData.CreateFmt(SInvalidIPTCTagSizeField, [Abs(DataSize)]);
-      end;
-    NewTag := FSections[RecID].Append(TagID);
+    NewTag := FSections[Info.SectionID].Append(Info.TagID);
     try
-      NewTag.UpdateData(DataSize, Stream);
+      NewTag.UpdateData(Info.DataSize, Stream);
     except
       NewTag.Free;
       raise;
     end;
-    if (RecID = 1) and (TagID = 90) and (DataSize = SizeOf(UTF8Marker)) and
-      CompareMem(NewTag.Data, @UTF8Marker, DataSize) then
+    if (Info.SectionID = 1) and (Info.TagID = 90) and (Info.DataSize = SizeOf(UTF8Marker)) and
+      CompareMem(NewTag.Data, @UTF8Marker, Info.DataSize) then
       FUTF8Encoded := True;
   end;
 end;
@@ -1322,18 +972,22 @@ begin
       inherited;
     Exit;
   end;
-  for SectID := Low(SectID) to High(SectID) do
-  begin
-    FSections[SectID].Clear;
-    for Tag in TIPTCData(Source).Sections[SectID] do
-      FSections[SectID].Add(Tag.ID).UpdateData(Tag.DataSize, Tag.Data^);
-  end;
+  if TIPTCData(Source).DataToLazyLoad <> nil then
+    DataToLazyLoad := TIPTCData(Source).DataToLazyLoad
+  else
+    for SectID := Low(SectID) to High(SectID) do
+    begin
+      FSections[SectID].Clear;
+      for Tag in TIPTCData(Source).Sections[SectID] do
+        FSections[SectID].Add(Tag.ID).UpdateData(Tag.DataSize, Tag.Data^);
+    end;
 end;
 
 procedure TIPTCData.Clear;
 var
   ID: TIPTCSectionID;
 begin
+  FDataToLazyLoad := nil;
   for ID := Low(ID) to High(ID) do
     FSections[ID].Clear;
 end;
@@ -1343,14 +997,14 @@ begin
   Filer.DefineBinaryProperty('Data', LoadFromStream, SaveToStream, not Empty);
 end;
 
-function TIPTCData.CreateIPTCSegment: IJPEGSegment;
+function TIPTCData.CreateAdobeBlock: IAdobeResBlock;
 begin
-  Result := CreateAdobeApp13Segment([CreateAdobeBlock($0404, '', Self)]);
+  Result := CCR.Exif.BaseUtils.CreateAdobeBlock(TAdobeResBlock.IPTCTypeID, Self);
 end;
 
 procedure TIPTCData.DoSaveToJPEG(InStream, OutStream: TStream);
 var
-  Block: IAdobeBlock;
+  Block: IAdobeResBlock;
   RewrittenSegment: IJPEGSegment;
   SavedIPTC: Boolean;
   Segment: IFoundJPEGSegment;
@@ -1367,12 +1021,12 @@ begin
         RewrittenSegment := CreateAdobeApp13Segment
       else
       begin
-        RewrittenSegment := CreateIPTCSegment;
+        RewrittenSegment := CreateAdobeApp13Segment([CreateAdobeBlock]);
         SavedIPTC := True;
       end;
       for Block in Segment do
-        if not Block.HasIPTCData then Block.SaveToStream(RewrittenSegment.Data);
-      WriteJPEGSegmentToStream(OutStream, RewrittenSegment);
+        if not Block.IsIPTCBlock then Block.SaveToStream(RewrittenSegment.Data);
+      WriteJPEGSegment(OutStream, RewrittenSegment);
       StartPos := Segment.Offset + Segment.TotalSize;
     end;
   if not SavedIPTC then
@@ -1382,13 +1036,36 @@ begin
     begin //insert immediately after any Exif or XMP segments if they exist, at the top of the file if they do not
       InStream.Position := StartPos;
       OutStream.CopyFrom(InStream, Segment.Offset - StartPos);
-      WriteJPEGSegmentToStream(OutStream, CreateIPTCSegment);
+      WriteJPEGSegment(OutStream, CreateAdobeApp13Segment([CreateAdobeBlock]));
       StartPos := Segment.Offset;
       Break;
     end;
   end;
   InStream.Position := StartPos;
   OutStream.CopyFrom(InStream, InStream.Size - StartPos);
+end;
+
+procedure TIPTCData.DoSaveToPSD(InStream, OutStream: TStream);
+var
+  Block: IAdobeResBlock;
+  Info: TPSDInfo;
+  NewBlocks: IInterfaceList;
+  StartPos: Int64;
+begin
+  StartPos := InStream.Position;
+  NewBlocks := TInterfaceList.Create;
+  if not Empty then NewBlocks.Add(CreateAdobeBlock);
+  for Block in ParsePSDHeader(InStream, Info) do
+    if not Block.IsIPTCBlock then NewBlocks.Add(Block);
+  WritePSDHeader(OutStream, Info.Header);
+  WritePSDResourceSection(OutStream, NewBlocks);
+  InStream.Position := StartPos + Info.LayersSectionOffset;
+  OutStream.CopyFrom(InStream, InStream.Size - InStream.Position);
+end;
+
+procedure TIPTCData.DoSaveToTIFF(InStream, OutStream: TStream);
+begin
+  RewriteTiff(InStream, OutStream, Self);
 end;
 
 function TIPTCData.GetActionAdvised: TIPTCActionAdvised;
@@ -1422,7 +1099,7 @@ end;
 
 function TIPTCData.GetDate(PackedIndex: Integer): TDateTime;
 begin
-  Result := FSections[Lo(PackedIndex)].GetDateValue(Hi(PackedIndex));
+  Result := Sections[Lo(PackedIndex)].GetDateValue(Hi(PackedIndex));
 end;
 
 function TIPTCData.GetImageOrientation: TIPTCImageOrientation;
@@ -1488,6 +1165,7 @@ var
   Section: TIPTCSection;
 begin
   Result := False;
+  if DataToLazyLoad <> nil then Exit;
   for Section in FSections do
     if Section.Count <> 0 then Exit;
   Result := True;
@@ -1495,6 +1173,7 @@ end;
 
 function TIPTCData.GetEnumerator: TEnumerator;
 begin
+  NeedLazyLoadedData;
   Result := TEnumerator.Create(Self);
 end;
 
@@ -1508,68 +1187,130 @@ var
   ID: TIPTCSectionID;
 begin
   Result := True;
-  for ID := Low(ID) to High(ID) do
-    if FSections[ID].Modified then Exit;
+  if DataToLazyLoad = nil then
+    for ID := Low(ID) to High(ID) do
+      if FSections[ID].Modified then Exit;
   Result := False;
 end;
 
-function TIPTCData.GetSection(ID: TIPTCSectionID): TIPTCSection;
+function TIPTCData.GetSection(ID: Integer): TIPTCSection;
 begin
+  NeedLazyLoadedData;
   Result := FSections[ID];
 end;
 
-procedure TIPTCData.LoadFromJPEG(JPEGStream: TStream);
-var
-  AdobeBlock: IAdobeBlock;
-  Segment: IFoundJPEGSegment;
+function TIPTCData.GetSectionByID(ID: TIPTCSectionID): TIPTCSection;
 begin
-  for Segment in JPEGHeader(JPEGStream, [jmApp13]) do
-    for AdobeBlock in Segment do
-      if AdobeBlock.HasIPTCData then
+  NeedLazyLoadedData;
+  Result := FSections[ID];
+end;
+
+function TIPTCData.GetUTF8Encoded: Boolean;
+begin
+  NeedLazyLoadedData;
+  Result := FUTF8Encoded;
+end;
+
+function TIPTCData.LoadFromGraphic(Stream: TStream): Boolean;
+var
+  AdobeBlock: IAdobeResBlock;
+  Directory: IFoundTiffDirectory;
+  Info: TPSDInfo;
+  Segment: IFoundJPEGSegment;
+  Tag: ITiffTag;
+begin
+  Result := True;
+  if HasJPEGHeader(Stream) then
+  begin
+    for Segment in JPEGHeader(Stream, [jmApp13]) do
+      for AdobeBlock in Segment do
+        if AdobeBlock.IsIPTCBlock then
+        begin
+          LoadFromStream(AdobeBlock.Data);
+          Exit;
+        end
+  end
+  else if HasPSDHeader(Stream) then
+  begin
+    for AdobeBlock in ParsePSDHeader(Stream, Info) do
+      if AdobeBlock.IsIPTCBlock then
       begin
         LoadFromStream(AdobeBlock.Data);
         Exit;
       end;
+  end
+  else if HasTiffHeader(Stream) then
+  begin
+    for Directory in ParseTiff(Stream) do
+    begin
+      if Directory.FindTag(ttIPTC, Tag) then
+      begin
+        LoadFromStream(Tag.Data);
+        Exit;
+      end;
+      Break; //only interested in the main IFD
+    end;
+  end
+  else
+    Result := False;
   Clear;
 end;
 
-procedure TIPTCData.LoadFromJPEG(JPEGImage: TJPEGImage);
+function TIPTCData.LoadFromGraphic(Graphic: TGraphic): Boolean;
 var
   Stream: TMemoryStream;
 begin
   Stream := TMemoryStream.Create;
   try
-    JPEGImage.SaveToStream(Stream);
+    Graphic.SaveToStream(Stream);
     Stream.Position := 0;
-    LoadFromJPEG(Stream);
+    Result := LoadFromGraphic(Stream);
   finally
     Stream.Free;
   end;
 end;
 
-procedure TIPTCData.LoadFromJPEG(const FileName: string);
+function TIPTCData.LoadFromGraphic(const FileName: string): Boolean;
 var
   Stream: TFileStream;
 begin
-  Stream := TFileStream.Create(FileName, fmOpenRead);
+  Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
   try
-    LoadFromJPEG(Stream);
+    Result := LoadFromGraphic(Stream)
   finally
     Stream.Free;
   end;
+end;
+
+procedure TIPTCData.LoadFromJPEG(JPEGStream: TStream);
+begin
+  if HasJPEGHeader(JPEGStream) then
+    LoadFromGraphic(JPEGStream)
+  else
+    raise EInvalidJPEGHeader.CreateRes(@SInvalidJPEGHeader);
+end;
+
+procedure TIPTCData.LoadFromJPEG(JPEGImage: TJPEGImage);
+begin
+  LoadFromGraphic(JPEGImage)
+end;
+
+procedure TIPTCData.LoadFromJPEG(const FileName: string);
+begin
+  if HasJPEGHeader(FileName) then
+    LoadFromGraphic(FileName)
+  else
+    raise EInvalidJPEGHeader.CreateRes(@SInvalidJPEGHeader);
 end;
 
 procedure TIPTCData.LoadFromStream(Stream: TStream);
 var
   I: Integer;
   Section: TIPTCSection;
-  WasUTF8Encoded: Boolean;
 begin
   Clear;
-  WasUTF8Encoded := FUTF8Encoded;
   FUTF8Encoded := AlwaysAssumeUTF8Encoding;
   AddFromStream(Stream);
-  if Empty then FUTF8Encoded := WasUTF8Encoded;
   for Section in FSections do
   begin
     Section.Modified := False;
@@ -1583,45 +1324,45 @@ begin
   end;
 end;
 
-procedure TIPTCData.SaveToJPEG(const JPEGFileName: string;
-  BufferedWrite: Boolean = True);
+procedure TIPTCData.NeedLazyLoadedData;
 var
-  InStream: TMemoryStream;
-  OutStream: TStream;
+  Item: IMetadataBlock;
 begin
-  OutStream := nil;
-  InStream := TMemoryStream.Create;
-  try
-    InStream.LoadFromFile(JPEGFileName);
-    if BufferedWrite then
-      OutStream := TMemoryStream.Create
-    else
-      OutStream := TFileStream.Create(JPEGFileName, fmCreate);
-    DoSaveToJPEG(InStream, OutStream);
-    if BufferedWrite then TMemoryStream(OutStream).SaveToFile(JPEGFileName);
-  finally
-    OutStream.Free;
-    InStream.Free;
-  end;
+  if FDataToLazyLoad = nil then Exit;
+  Item := FDataToLazyLoad;
+  FDataToLazyLoad := nil; //in case of an exception, nil this beforehand
+  Item.Data.Seek(0, soFromBeginning);
+  LoadFromStream(Item.Data);
+end;
+
+procedure TIPTCData.GetGraphicSaveMethod(Stream: TStream; var Method: TGraphicSaveMethod);
+begin
+  if HasJPEGHeader(Stream) then
+    Method := DoSaveToJPEG
+  else if HasPSDHeader(Stream) then
+    Method := DoSaveToPSD
+  else if HasTiffHeader(Stream) then
+    Method := DoSaveToTIFF
+end;
+
+procedure TIPTCData.SaveToGraphic(const FileName: string);
+begin
+  DoSaveToGraphic(FileName, GetGraphicSaveMethod);
+end;
+
+procedure TIPTCData.SaveToGraphic(Graphic: TGraphic);
+begin
+  DoSaveToGraphic(Graphic, GetGraphicSaveMethod);
+end;
+
+procedure TIPTCData.SaveToJPEG(const JPEGFileName: string; Dummy: Boolean);
+begin
+  SaveToGraphic(JPEGFileName);
 end;
 
 procedure TIPTCData.SaveToJPEG(JPEGImage: TJPEGImage);
-var
-  InStream, OutStream: TMemoryStream;
 begin
-  OutStream := nil;
-  InStream := TMemoryStream.Create;
-  try
-    JPEGImage.SaveToStream(InStream);
-    InStream.Position := 0;
-    OutStream := TMemoryStream.Create;
-    DoSaveToJPEG(InStream, OutStream);
-    OutStream.Position := 0;
-    JPEGImage.LoadFromStream(OutStream);
-  finally
-    InStream.Free;
-    OutStream.Free;
-  end;
+  SaveToGraphic(JPEGImage);
 end;
 
 procedure TIPTCData.SaveToStream(Stream: TStream);
@@ -1631,6 +1372,11 @@ var
   Section: TIPTCSection;
   Tag: TIPTCTag;
 begin
+  if DataToLazyLoad <> nil then
+  begin
+    DataToLazyLoad.Data.SaveToStream(Stream);
+    Exit;
+  end;
   if UTF8Encoded then
     Sections[1].AddOrUpdate(90, SizeOf(UTF8Marker), UTF8Marker)
   else if Sections[1].Find(90, Tag) and (Tag.DataSize = SizeOf(UTF8Marker)) and
@@ -1638,7 +1384,7 @@ begin
   for Section in FSections do
     for Tag in Section do
     begin
-      Stream.WriteBuffer(NewIPTCTagMarker, SizeOf(NewIPTCTagMarker));
+      Stream.WriteBuffer(TAdobeResBlock.NewIPTCTagMarker, SizeOf(TAdobeResBlock.NewIPTCTagMarker));
       Stream.WriteBuffer(Tag.Section.ID, SizeOf(TIPTCSectionID));
       Stream.WriteBuffer(Tag.ID, SizeOf(TIPTCTagID));
       if Tag.DataSize <= High(SmallInt) then
@@ -1652,10 +1398,18 @@ begin
     end;
 end;
 
+procedure TIPTCData.SetDataToLazyLoad(const Value: IMetadataBlock);
+begin
+  if Value = FDataToLazyLoad then Exit;
+  Clear;
+  FDataToLazyLoad := Value;
+end;
+
 procedure TIPTCData.SortTags;
 var
   SectID: TIPTCSectionID;
 begin
+  NeedLazyLoadedData;
   for SectID := Low(SectID) to High(SectID) do
     FSections[SectID].Sort;
 end;
@@ -1714,6 +1468,7 @@ procedure TIPTCData.SetModified(Value: Boolean);
 var
   ID: TIPTCSectionID;
 begin
+  NeedLazyLoadedData;
   for ID := Low(ID) to High(ID) do
     FSections[ID].Modified := Value;
 end;
@@ -1725,7 +1480,7 @@ var
   Tag: TIPTCTag;
   Strings: array[TIPTCSectionID] of TStringDynArray;
 begin
-  if Value = FUTF8Encoded then Exit;
+  if Value = UTF8Encoded then Exit;
   for SectID := Low(SectID) to High(SectID) do
   begin
     SetLength(Strings[SectID], FSections[SectID].Count);
