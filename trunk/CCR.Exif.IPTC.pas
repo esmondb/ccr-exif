@@ -216,7 +216,7 @@ type
     constructor Create(AOwner: TComponent = nil); override;
     class function CreateAsSubComponent(AOwner: TComponent): TIPTCData; //use a class function rather than a constructor to avoid compiler warning re C++ accessibility
     destructor Destroy; override;
-    function GetEnumerator: TEnumerator; overload;
+    function GetEnumerator: TEnumerator;
     procedure AddFromStream(Stream: TStream);
     procedure Assign(Source: TPersistent); override;
     procedure Clear;
