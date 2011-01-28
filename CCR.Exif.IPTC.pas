@@ -170,6 +170,7 @@ type
   strict private
     FAlwaysAssumeUTF8Encoding: Boolean;
     FDataToLazyLoad: IMetadataBlock;
+    FLoadErrors: TMetadataLoadErrors;
     FSections: array[TIPTCSectionID] of TIPTCSection;
     FTiffRewriteCallback: TSimpleTiffRewriteCallbackImpl;
     FUTF8Encoded: Boolean;
@@ -232,6 +233,7 @@ type
     procedure SaveToGraphic(Graphic: TGraphic); overload;
     procedure SaveToStream(Stream: TStream);
     procedure SortTags;
+    property LoadErrors: TMetadataLoadErrors read FLoadErrors write FLoadErrors; //!!!v. rarely set at present
     property Modified: Boolean read GetModified write SetModified;
     property EnvelopeSection: TIPTCSection index 1 read GetSection;
     property ApplicationSection: TIPTCSection index 2 read GetSection;
@@ -241,12 +243,12 @@ type
     property SecondDescriptorSection: TIPTCSection index 9 read GetSection;
     property Sections[ID: TIPTCSectionID]: TIPTCSection read GetSectionByID; default;
   public //deprecated methods - to be removed in a future release
-    procedure LoadFromJPEG(JPEGStream: TStream); overload; deprecated {$IFDEF DEPCON}'Use LoadFromGraphic'{$ENDIF};
-    procedure LoadFromJPEG(JPEGImage: TJPEGImage); overload; inline; deprecated {$IFDEF DEPCON}'Use LoadFromGraphic'{$ENDIF};
-    procedure LoadFromJPEG(const FileName: string); overload; deprecated {$IFDEF DEPCON}'Use LoadFromGraphic'{$ENDIF};
+    procedure LoadFromJPEG(JPEGStream: TStream); overload; deprecated {$IFDEF DepCom}'Use LoadFromGraphic'{$ENDIF};
+    procedure LoadFromJPEG(JPEGImage: TJPEGImage); overload; inline; deprecated {$IFDEF DepCom}'Use LoadFromGraphic'{$ENDIF};
+    procedure LoadFromJPEG(const FileName: string); overload; deprecated {$IFDEF DepCom}'Use LoadFromGraphic'{$ENDIF};
     procedure SaveToJPEG(const JPEGFileName: string;
-      Dummy: Boolean = True); overload; inline; deprecated {$IFDEF DEPCON}'Use SaveToGraphic'{$ENDIF};
-    procedure SaveToJPEG(JPEGImage: TJPEGImage); overload; inline; deprecated {$IFDEF DEPCON}'Use SaveToGraphic'{$ENDIF};
+      Dummy: Boolean = True); overload; inline; deprecated {$IFDEF DepCom}'Use SaveToGraphic'{$ENDIF};
+    procedure SaveToJPEG(JPEGImage: TJPEGImage); overload; inline; deprecated {$IFDEF DepCom}'Use SaveToGraphic'{$ENDIF};
   published
     property AlwaysAssumeUTF8Encoding: Boolean read FAlwaysAssumeUTF8Encoding write FAlwaysAssumeUTF8Encoding default False;
     property Empty: Boolean read GetEmpty;
@@ -987,6 +989,7 @@ procedure TIPTCData.Clear;
 var
   ID: TIPTCSectionID;
 begin
+  FLoadErrors := [];
   FDataToLazyLoad := nil;
   for ID := Low(ID) to High(ID) do
     FSections[ID].Clear;
@@ -1015,8 +1018,11 @@ begin
   for Segment in JPEGHeader(InStream, [jmApp13]) do
     if Segment.IsAdobeApp13 then
     begin //IrfanView just wipes the original segment and replaces it with the new IPTC data, even if it contained non-IPTC blocks too. Eek!
-      InStream.Position := StartPos;
-      OutStream.CopyFrom(InStream, Segment.Offset - StartPos);
+      if StartPos <> Segment.Offset then
+      begin
+        InStream.Position := StartPos;
+        OutStream.CopyFrom(InStream, Segment.Offset - StartPos);
+      end;
       if SavedIPTC then
         RewrittenSegment := CreateAdobeApp13Segment
       else

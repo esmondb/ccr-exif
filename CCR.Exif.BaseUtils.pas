@@ -57,6 +57,9 @@ function BinToHexStr(const Buffer; Size: Integer): string; overload; inline;
 type
   ECCRExifException = class(Exception);
 
+  TMetadataLoadError = (leBadOffset, leBadTagCount, leBadTagHeader);
+  TMetadataLoadErrors = set of TMetadataLoadError;
+
   TNoRefCountInterfacedObject = class(TObject, IInterface)
   protected
     function QueryInterface(const IID: TGUID; out Obj): HResult; stdcall;
@@ -235,17 +238,19 @@ type
     function GetName: AnsiString;
     procedure SetName(const Value: AnsiString);
     function GetTotalSize: Integer;
+    function GetLoadedCleanly: Boolean;
 
-    function HasIPTCData: Boolean; deprecated {$IFDEF DEPCON}'Renamed IsIPTCBlock'{$ENDIF};
+    function HasIPTCData: Boolean; deprecated {$IFDEF DepCom}'Renamed IsIPTCBlock'{$ENDIF};
     procedure LoadFromStream(Stream: TStream);
     procedure SaveToStream(Stream: TStream);
+    property LoadedCleanly: Boolean read GetLoadedCleanly;
     property Signature: AnsiString read GetSignature write SetSignature;
     property TypeID: Word read GetTypeID write SetTypeID;
     property Name: AnsiString read GetName write SetName;
     property TotalSize: Integer read GetTotalSize;
   end;
 
-  IAdobeBlock = IAdobeResBlock deprecated {$IFDEF DEPCON}'Renamed IAdobeResBlock'{$ENDIF};
+  IAdobeBlock = IAdobeResBlock deprecated {$IFDEF DepCom}'Renamed IAdobeResBlock'{$ENDIF};
 
   IAdobeResBlockEnumerator = interface
     function GetCurrent: IAdobeResBlock;
@@ -513,11 +518,13 @@ uses {$IFDEF HasIOUtils}IOUtils,{$ENDIF}
 type
   TAdobeBlock = class(TMetadataBlock, IStreamPersist, IAdobeResBlock)
   strict private
+    FLoadedCleanly: Boolean;
     FSignature: AnsiString;
     FTypeID: Word;
     FName: AnsiString;
     class function GetValidSignature(const S: AnsiString): AnsiString; static;
   protected
+    procedure Clear;
     function HasExifBlockID: Boolean; override;
     function HasIPTCBlockID: Boolean; override;
     function HasXMPBlockID: Boolean; override;
@@ -532,9 +539,11 @@ type
     function GetName: AnsiString;
     procedure SetName(const Value: AnsiString);
     function GetTotalSize: Integer;
+    function GetLoadedCleanly: Boolean;
     function HasIPTCData: Boolean;
   public
-    constructor Create(AStream: TStream = nil); overload;
+    constructor Create; overload;
+    constructor Create(AStream: TStream); overload;
     constructor Create(const ASignature: AnsiString; ATypeID: Word;
       const AName: AnsiString; const ADataSource: IStreamPersist); overload;
   end;
@@ -864,7 +873,9 @@ end;
 
 constructor TLongIntTagValue.CreateFromString(const AString: string);
 begin
-  if not TryStrToInt(AString, FValue) then
+  if TryStrToInt(AString, FValue) then
+    FMissingOrInvalid := False
+  else
     Self := CreateMissingOrInvalid;
 end;
 
@@ -944,7 +955,12 @@ constructor TLongWordTagValue.CreateFromString(const AString: string);
 var
   Int64Val: Int64;
 begin
-  if not TryStrToInt64(AString, Int64Val) or (Int64Val < 0) or (Int64Val > High(LongWord)) then
+  if TryStrToInt64(AString, Int64Val) and (Int64Val >= 0) and (Int64Val <= High(LongWord)) then
+  begin
+    FValue := Int64Val;
+    FMissingOrInvalid := False;
+  end
+  else
     Self := CreateMissingOrInvalid;
 end;
 
@@ -1021,7 +1037,12 @@ constructor TWordTagValue.CreateFromString(const AString: string);
 var
   IntVal: Integer;
 begin
-  if not TryStrToInt(AString, IntVal) or (IntVal < 0) or (IntVal > High(Word)) then
+  if TryStrToInt(AString, IntVal) and (IntVal >= 0) and (IntVal <= High(Word)) then
+  begin
+    FValue := IntVal;
+    FMissingOrInvalid := False;
+  end
+  else
     Self := CreateMissingOrInvalid;
 end;
 
@@ -1199,20 +1220,41 @@ begin
   StrPLCopy(PAnsiChar(Result), S, 4);
 end;
 
+constructor TAdobeBlock.Create;
+begin
+  inherited Create;
+  Clear;
+end;
+
 constructor TAdobeBlock.Create(AStream: TStream);
 begin
   inherited Create;
-  if AStream <> nil then LoadFromStream(AStream);
+  LoadFromStream(AStream)
 end;
 
 constructor TAdobeBlock.Create(const ASignature: AnsiString; ATypeID: Word;
   const AName: AnsiString; const ADataSource: IStreamPersist);
 begin
   inherited Create;
+  FLoadedCleanly := True;
   FSignature := GetValidSignature(ASignature);
   FTypeID := ATypeID;
   FName := AName;
   if ADataSource <> nil then ADataSource.SaveToStream(Data);
+end;
+
+procedure TAdobeBlock.Clear;
+begin
+  Data.Clear;
+  FSignature := GetValidSignature('');
+  FTypeID := 0;
+  FName := '';
+  FLoadedCleanly := True;
+end;
+
+function TAdobeBlock.GetLoadedCleanly: Boolean;
+begin
+  Result := FLoadedCleanly;
 end;
 
 function TAdobeBlock.GetName: AnsiString;
@@ -1258,24 +1300,33 @@ begin
 end;
 
 procedure TAdobeBlock.LoadFromStream(Stream: TStream);
-var
-  Len: Integer;
+var                 //Method amended in trunk r.14 to avoid exceptions on some malformed
+  Len: Integer;     //data, implementing LoadedCleanly property at the same time.
+  Header: packed record
+    Signature: array[0..3] of AnsiChar;
+    BigEndianTypeID: Word;
+    NameLen: Byte;
+  end;
 begin
-  SetString(FSignature, nil, 4);
-  Stream.ReadBuffer(Pointer(FSignature)^, 4);
-  FTypeID := Stream.ReadWord(BigEndian);
-  Len := Stream.ReadByte;
-  SetString(FName, nil, Len);
-  if Len <> 0 then Stream.ReadBuffer(Pointer(FName)^, Len);
-  if not Odd(Len) then Stream.ReadByte;
-  Len := Stream.ReadLongInt(BigEndian);
-  if Len < 0 then Len := 0; //!!!
-  Data.SetSize(Len);
+  Clear;
+  FLoadedCleanly := False;
+  if not Stream.TryReadBuffer(Header, SizeOf(Header)) then Exit;
+  SetString(FSignature, Header.Signature, 4);
+  FTypeID := Swap(Header.BigEndianTypeID);
+  SetString(FName, nil, Header.NameLen);
+  if Header.NameLen <> 0 then
+    if not Stream.TryReadBuffer(Pointer(FName)^, Header.NameLen) then Exit;
+  if not Odd(Header.NameLen) then
+    if Stream.Read(Len, 1) <> 1 then Exit;
+  if not Stream.ReadLongInt(BigEndian, Len) or (Len < 0) then Exit;
   if Len <> 0 then
   begin
-    Stream.ReadBuffer(Data.Memory^, Len);
-    if Odd(Len) then Stream.ReadByte;
+    Data.SetSize(Len);
+    if not Stream.TryReadBuffer(Data.Memory^, Len) then Exit;
+    if Odd(Len) then
+      if Stream.Read(Len, 1) <> 1 then Exit;
   end;
+  FLoadedCleanly := True;
 end;
 
 procedure TAdobeBlock.SaveToStream(Stream: TStream);
@@ -1348,7 +1399,10 @@ begin
   end;
   FStream.Position := FNextPos;
   FCurrent := TAdobeBlock.Create(FStream);
-  FNextPos := FStream.Position;
+  if FCurrent.LoadedCleanly then
+    FNextPos := FStream.Position
+  else
+    FNextPos := FPosTooFar;
 end;
 
 { TJPEGSegmentHeader }
@@ -1933,7 +1987,7 @@ var
 begin
   Result := [];
   StartPos := InStream.Position;
-  for Segment in JPEGHeader(InStream, Markers) do
+  for Segment in JPEGHeader(InStream, Markers - [jmEndOfImage]) do
   begin
     Include(Result, Segment.MarkerNum);
     if Segment.Offset <> StartPos then

@@ -71,9 +71,9 @@ type
 const
   tdExifFraction = tdLongWordFraction;
   tdExifSignedFraction = tdLongIntFraction;
-  leBadOffset = CCR.Exif.TiffUtils.leBadOffset;
-  leBadTagCount = CCR.Exif.TiffUtils.leBadTagCount;
-  leBadTagHeader = CCR.Exif.TiffUtils.leBadTagHeader;
+  leBadOffset = CCR.Exif.BaseUtils.leBadOffset;
+  leBadTagCount = CCR.Exif.BaseUtils.leBadTagCount;
+  leBadTagHeader = CCR.Exif.BaseUtils.leBadTagHeader;
 
   StandardExifThumbnailWidth   = 160;
   StandardExifThumbnailHeight  = 120;
@@ -170,8 +170,8 @@ type
     property WellFormed: Boolean read FWellFormed;
   end;
 
-  TExifSectionLoadError = TTiffDirectoryLoadError;
-  TExifSectionLoadErrors = TTiffDirectoryLoadErrors;
+  TExifSectionLoadError = TMetadataLoadError;
+  TExifSectionLoadErrors = TMetadataLoadErrors;
 
   TExifSectionKindEx = (esUserDefined, esGeneral, esDetails, esInterop, esGPS,
     esThumbnail, esMakerNote);
@@ -1023,11 +1023,11 @@ type
     procedure StandardizeThumbnail;
     property Sections[Section: TExifSectionKind]: TExtendableExifSection read GetSection; default;
   public //deprecated methods - to be removed in a future release
-    procedure LoadFromJPEG(JPEGStream: TStream); overload; deprecated {$IFDEF DEPCON}'Use LoadFromGraphic'{$ENDIF};
-    procedure LoadFromJPEG(JPEGImage: TJPEGImage); overload; inline; deprecated {$IFDEF DEPCON}'Use LoadFromGraphic'{$ENDIF};
-    procedure LoadFromJPEG(const FileName: string); overload; inline; deprecated {$IFDEF DEPCON}'Use LoadFromGraphic'{$ENDIF};
-    procedure SaveToJPEG(const JPEGFileName: string; Dummy: Boolean = True); overload; inline; deprecated {$IFDEF DEPCON}'Use SaveToGraphic'{$ENDIF};
-    procedure SaveToJPEG(JPEGImage: TJPEGImage); overload; inline; deprecated {$IFDEF DEPCON}'Use SaveToGraphic'{$ENDIF};
+    procedure LoadFromJPEG(JPEGStream: TStream); overload; deprecated {$IFDEF DepCom}'Use LoadFromGraphic'{$ENDIF};
+    procedure LoadFromJPEG(JPEGImage: TJPEGImage); overload; inline; deprecated {$IFDEF DepCom}'Use LoadFromGraphic'{$ENDIF};
+    procedure LoadFromJPEG(const FileName: string); overload; inline; deprecated {$IFDEF DepCom}'Use LoadFromGraphic'{$ENDIF};
+    procedure SaveToJPEG(const JPEGFileName: string; Dummy: Boolean = True); overload; inline; deprecated {$IFDEF DepCom}'Use SaveToGraphic'{$ENDIF};
+    procedure SaveToJPEG(JPEGImage: TJPEGImage); overload; inline; deprecated {$IFDEF DepCom}'Use SaveToGraphic'{$ENDIF};
   published
     property RemovePaddingTagsOnSave: Boolean read FRemovePaddingTagsOnSave write
       FRemovePaddingTagsOnSave default True;

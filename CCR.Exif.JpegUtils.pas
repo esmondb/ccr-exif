@@ -19,7 +19,7 @@
 {**************************************************************************************}
 {$I CCR.Exif.inc}
 unit CCR.Exif.JPEGUtils
-{$IFDEF DEPCON}
+{$IFDEF DepCom}
 deprecated 'Use CCR.Exif.BaseUtils instead'
 {$ELSE}
 {$MESSAGE WARN 'CCR.Exif.JPEGUtils is deprecated: use CCR.Exif.BaseUtils instead'}
@@ -173,7 +173,7 @@ type
   end;
 
 const
-  JPEGSegmentHeaderSize = 4 deprecated {$IFDEF DEPCON}'Use TJPEGSegment.HeaderSize in CCR.Exif.BaseUtils instead'{$ENDIF};
+  JPEGSegmentHeaderSize = 4 deprecated {$IFDEF DepCom}'Use TJPEGSegment.HeaderSize in CCR.Exif.BaseUtils instead'{$ENDIF};
 
   AllJPEGMarkers = [Low(TJPEGMarker)..High(TJPEGMarker)];
   AnyJPEGMarker = AllJPEGMarkers;
@@ -228,12 +228,12 @@ function HasJPEGHeader(const FileName: string): Boolean; overload;
 function GetJPEGDataSize(Data: TStream): Int64; overload;
 function GetJPEGDataSize(JPEG: TJPEGImage): Int64; overload;
 
-procedure WriteJPEGFileHeaderToStream(Stream: TStream); inline; deprecated {$IFDEF DEPCON}'Use WriteJPEGFileHeader in CCR.Exif.BaseUtils instead'{$ENDIF};
+procedure WriteJPEGFileHeaderToStream(Stream: TStream); inline; deprecated {$IFDEF DepCom}'Use WriteJPEGFileHeader in CCR.Exif.BaseUtils instead'{$ENDIF};
 procedure WriteJPEGSegmentToStream(Stream: TStream; MarkerNum: TJPEGMarker;
-  const Data; DataSize: Word); overload; deprecated {$IFDEF DEPCON}'Use WriteJPEGSegment in CCR.Exif.BaseUtils instead'{$ENDIF};
+  const Data; DataSize: Word); overload; deprecated {$IFDEF DepCom}'Use WriteJPEGSegment in CCR.Exif.BaseUtils instead'{$ENDIF};
 procedure WriteJPEGSegmentToStream(Stream: TStream; MarkerNum: TJPEGMarker;
-  Data: TStream; DataSize: Word = 0); overload; deprecated {$IFDEF DEPCON}'Use WriteJPEGSegment in CCR.Exif.BaseUtils instead'{$ENDIF};
-procedure WriteJPEGSegmentToStream(Stream: TStream; Segment: IJPEGSegment); overload; deprecated {$IFDEF DEPCON}'Use WriteJPEGSegment in CCR.Exif.BaseUtils instead'{$ENDIF};
+  Data: TStream; DataSize: Word = 0); overload; deprecated {$IFDEF DepCom}'Use WriteJPEGSegment in CCR.Exif.BaseUtils instead'{$ENDIF};
+procedure WriteJPEGSegmentToStream(Stream: TStream; Segment: IJPEGSegment); overload; deprecated {$IFDEF DepCom}'Use WriteJPEGSegment in CCR.Exif.BaseUtils instead'{$ENDIF};
 
 const
   NewIPTCTagMarker: Byte = 28;

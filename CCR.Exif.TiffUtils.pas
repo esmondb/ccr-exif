@@ -62,8 +62,8 @@ type
 
   TTiffTagInfoDynArray = array of TTiffTagInfo;
 
-  TTiffDirectoryLoadError = (leBadOffset, leBadTagCount, leBadTagHeader);
-  TTiffDirectoryLoadErrors = set of TTiffDirectoryLoadError;
+  TTiffDirectoryLoadError = TMetadataLoadError deprecated;   //symbol only added in first trunk version of 1.5.0 beta anyhow
+  TTiffDirectoryLoadErrors = TMetadataLoadErrors deprecated; //ditto
 
   TiffString = type AnsiString;
 
@@ -143,14 +143,14 @@ type
   IFoundTiffDirectory = interface(ITiffDirectory)
   ['{811FD9EE-A528-4E61-BDBB-43A1D685FE83}']
     function GetIndex: Integer;
-    function GetLoadErrors: TTiffDirectoryLoadErrors;
+    function GetLoadErrors: TMetadataLoadErrors;
     function GetParser: ITiffParser;
     function GetTagInfo: TTiffTagInfoDynArray;
 
     function IsLastDirectoryInFile: Boolean;
     function IsExifThumbailDirectory: Boolean;
     function TryLoadExifThumbnail(Dest: TJPEGImage): Boolean;
-    property LoadErrors: TTiffDirectoryLoadErrors read GetLoadErrors;
+    property LoadErrors: TMetadataLoadErrors read GetLoadErrors;
     property Parser: ITiffParser read GetParser;
     property TagInfo: TTiffTagInfoDynArray read GetTagInfo;
   end;
@@ -336,17 +336,17 @@ type
   TFoundTiffDirectory = class(TInterfacedObject, ITiffDirectory, IFoundTiffDirectory)
   strict private
     FIndex: Integer;
-    FLoadErrors: TTiffDirectoryLoadErrors;
+    FLoadErrors: TMetadataLoadErrors;
     FParent: ITiffDirectory;
     FParser: ITiffParser;
     FTags: TTiffTagInfoDynArray;
   protected
     FMoreToFollow: Boolean;
     constructor Create(const AParser: ITiffParser; const AParent: ITiffDirectory; AIndex: Integer;
-      const Tags: TTiffTagInfoDynArray; const LoadErrors: TTiffDirectoryLoadErrors); overload;
+      const Tags: TTiffTagInfoDynArray; const LoadErrors: TMetadataLoadErrors); overload;
     function GetEnumerator: ITiffDirectoryEnumerator;
     function GetIndex: Integer;
-    function GetLoadErrors: TTiffDirectoryLoadErrors;
+    function GetLoadErrors: TMetadataLoadErrors;
     function GetParent: ITiffDirectory;
     function GetParser: ITiffParser;
     function LoadSubDirectory(OffsetTagID: TTiffTagID): ITiffDirectory;
@@ -677,7 +677,7 @@ end;
 }
 function LoadTiffDirectory(Stream: TStream; Endianness: TEndianness;
   const BasePosition, Offset, InternalOffset: Int64;
-  out LoadErrors: TTiffDirectoryLoadErrors): TTiffTagInfoDynArray; overload;
+  out LoadErrors: TMetadataLoadErrors): TTiffTagInfoDynArray; overload;
 var
   I, TagCount: Integer;
   MaxTagCount, StartPos, StreamSize, Offset64: Int64;
@@ -733,7 +733,7 @@ begin
 end;
 
 function LoadTiffDirectory(const Parser: ITiffParser; const Offset: Int64;
-  out LoadErrors: TTiffDirectoryLoadErrors): TTiffTagInfoDynArray; overload; inline;
+  out LoadErrors: TMetadataLoadErrors): TTiffTagInfoDynArray; overload; inline;
 begin
   Result := LoadTiffDirectory(Parser.Stream, Parser.Endianness, Parser.BasePosition,
     Offset, 0, LoadErrors);
@@ -919,7 +919,7 @@ begin
 end;
 
 constructor TFoundTiffDirectory.Create(const AParser: ITiffParser; const AParent: ITiffDirectory;
-  AIndex: Integer; const Tags: TTiffTagInfoDynArray; const LoadErrors: TTiffDirectoryLoadErrors);
+  AIndex: Integer; const Tags: TTiffTagInfoDynArray; const LoadErrors: TMetadataLoadErrors);
 begin
   inherited Create;
   FLoadErrors := LoadErrors;
@@ -933,7 +933,7 @@ class function TFoundTiffDirectory.TryCreate(const AParser: ITiffParser;
   const AParent: ITiffDirectory; AIndex: Integer; const AOffset: Int64; out Instance: IFoundTiffDirectory): Boolean;
 var
   Tags: TTiffTagInfoDynArray;
-  LoadErrors: TTiffDirectoryLoadErrors;
+  LoadErrors: TMetadataLoadErrors;
 begin
   Tags := LoadTiffDirectory(AParser.Stream, AParser.Endianness,
     AParser.BasePosition, AOffset, 0, LoadErrors);
@@ -951,7 +951,7 @@ begin
   Result := FIndex;
 end;
 
-function TFoundTiffDirectory.GetLoadErrors: TTiffDirectoryLoadErrors;
+function TFoundTiffDirectory.GetLoadErrors: TMetadataLoadErrors;
 begin
   Result := FLoadErrors;
 end;

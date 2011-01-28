@@ -3,7 +3,7 @@
 {$IFEND}
 
 {$IF CompilerVersion >= 20}
-  {$DEFINE DEPCON}
+  {$DEFINE DepCom} //deprecated directive allows comments from D2009
 {$IFEND}
 
 {$IF CompilerVersion >= 21}
@@ -17,5 +17,5 @@
 
 {$IFOPT R-}
   {$DEFINE RangeCheckingOff}
-{$ENDIF}   
+{$ENDIF}
 
