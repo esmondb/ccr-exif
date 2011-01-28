@@ -177,9 +177,9 @@ type
     property SubPropertyCount: Integer read GetSubPropertyCount write SetSubPropertyCount;
   end;
 
-  TXMPSchemaKind = TXMPNamespace deprecated {$IFDEF DEPCON}'Renamed TXMPNamespace'{$ENDIF};
-  TXMPKnownSchemaKind = TXMPKnownNamespace deprecated {$IFDEF DEPCON}'Renamed TXMPKnownNamespace'{$ENDIF};
-  TXMPKnownSchemaKinds = set of TXMPKnownNamespace deprecated {$IFDEF DEPCON}'Use set of TXMPKnownNamespace'{$ENDIF};
+  TXMPSchemaKind = TXMPNamespace deprecated {$IFDEF DepCom}'Renamed TXMPNamespace'{$ENDIF};
+  TXMPKnownSchemaKind = TXMPKnownNamespace deprecated {$IFDEF DepCom}'Renamed TXMPKnownNamespace'{$ENDIF};
+  TXMPKnownSchemaKinds = set of TXMPKnownNamespace deprecated {$IFDEF DepCom}'Use set of TXMPKnownNamespace'{$ENDIF};
 
   TXMPSchema = class(TInterfacedPersistent, IXMPPropertyCollection)
   strict private
@@ -197,9 +197,9 @@ type
     function GetProperty(Index: Integer): TXMPProperty;
     function GetPropertyCount: Integer;
   public //deprecated - to be removed in a later release
-    function Kind: TXMPNamespace; deprecated {$IFDEF DEPCON}'Use NamespaceInfo.Kind'{$ENDIF};
-    function PreferredPrefix: UnicodeString; deprecated {$IFDEF DEPCON}'Use NamespaceInfo.Prefix'{$ENDIF};
-    function URI: UnicodeString; deprecated {$IFDEF DEPCON}'Use NamespaceInfo.URI'{$ENDIF};
+    function Kind: TXMPNamespace; deprecated {$IFDEF DepCom}'Use NamespaceInfo.Kind'{$ENDIF};
+    function PreferredPrefix: UnicodeString; deprecated {$IFDEF DepCom}'Use NamespaceInfo.Prefix'{$ENDIF};
+    function URI: UnicodeString; deprecated {$IFDEF DepCom}'Use NamespaceInfo.URI'{$ENDIF};
   public
     constructor Create(AOwner: TXMPPacket; const AURI: UnicodeString);
     destructor Destroy; override;
@@ -312,7 +312,7 @@ type
     property Schemas[Index: Integer]: TXMPSchema read GetSchema; default;
     property Schemas[const URI: UnicodeString]: TXMPSchema read FindOrAddSchema; default;
   public //deprecated methods - to be removed in a future release
-    function LoadFromJPEG(const JPEGFileName: string): Boolean; inline; deprecated {$IFDEF DEPCON}'Use LoadFromGraphic'{$ENDIF};
+    function LoadFromJPEG(const JPEGFileName: string): Boolean; inline; deprecated {$IFDEF DepCom}'Use LoadFromGraphic'{$ENDIF};
   published
     property Empty: Boolean read GetEmpty;
     property RawXML: UTF8String read GetRawXML write SetRawXML;
@@ -326,7 +326,7 @@ const
 
 function DateTimeToXMPString(Value: TDateTime; ApplyLocalBias: Boolean): UnicodeString;
 function EscapeXML(const Source: UnicodeString): UnicodeString;
-function HasXMPSegmentHeader(Stream: TStream): Boolean; deprecated {$IFDEF DEPCON}'Use Segment.HasXMPHeader'{$ENDIF};
+function HasXMPSegmentHeader(Stream: TStream): Boolean; deprecated {$IFDEF DepCom}'Use Segment.HasXMPHeader'{$ENDIF};
 
 implementation
 

@@ -37,7 +37,6 @@
     </DelphiCompile>
     <DCCReference Include="..\..\CCR.Exif.Consts.pas" />
     <DCCReference Include="..\..\CCR.Exif.IPTC.pas" />
-    <DCCReference Include="..\..\CCR.Exif.JPEGUtils.pas" />
     <DCCReference Include="..\..\CCR.Exif.pas" />
     <DCCReference Include="..\..\CCR.Exif.StreamHelper.pas" />
     <DCCReference Include="..\..\CCR.Exif.TagIDs.pas" />
