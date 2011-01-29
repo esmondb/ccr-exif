@@ -4500,7 +4500,7 @@ begin
     ttDateTimeDigitized: XMPName := 'DateTimeDigitized';
   else Exit;
   end;
-  XMPPacket.UpdateDateTimeProperty(xsExif, XMPName, Value);
+  XMPPacket.UpdateDateTimeProperty(xsExif, XMPName, Value, False);
 end;
 
 procedure TCustomExifData.SetDetailsFraction(TagID: Integer;
@@ -4677,7 +4677,7 @@ end;
 procedure TCustomExifData.SetDateTime(const Value: TDateTime);
 begin
   FSections[esGeneral].SetDateTimeValue(ttDateTime, ttSubsecTime, Value);
-  XMPPacket.UpdateDateTimeProperty(xsTIFF, 'DateTime', Value);
+  XMPPacket.UpdateDateTimeProperty(xsTIFF, 'DateTime', Value, False);
 end;
 
 procedure TCustomExifData.SetGeneralString(TagID: Integer; const Value: string);
@@ -4747,7 +4747,7 @@ begin
     GPSTimeStampHour := TExifFraction.Create(Hour, 1);
     GPSTimeStampMinute := TExifFraction.Create(Minute, 1);
     GPSTimeStampSecond := TExifFraction.Create(Second, 1);
-    XMPPacket.UpdateDateTimeProperty(xsExif, XMPName, Value);
+    XMPPacket.UpdateDateTimeProperty(xsExif, XMPName, Value, False);
   finally
     EndUpdate;
   end;

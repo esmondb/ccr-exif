@@ -11,6 +11,10 @@
   {$DEFINE HasIOUtils}
 {$IFEND}
 
+{$IF CompilerVersion >= 22}
+  {$DEFINE HasTTimeZone}
+{$IFEND}
+
 {$IFOPT Q+}
   {$DEFINE OverflowCheckingOn}
 {$ENDIF}
