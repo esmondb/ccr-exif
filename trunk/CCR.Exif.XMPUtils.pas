@@ -41,7 +41,7 @@ unit CCR.Exif.XMPUtils;
 interface
 
 uses
-  SysUtils, Classes, Graphics, xmldom, CCR.Exif.BaseUtils, CCR.Exif.TiffUtils;
+  Types, SysUtils, Classes, Graphics, xmldom, CCR.Exif.BaseUtils, CCR.Exif.TiffUtils;
 
 type
   EInvalidXMPPacket = class(Exception);
@@ -305,7 +305,7 @@ type
     procedure UpdateProperty(SchemaKind: TXMPKnownNamespace;
       const PropName: UnicodeString; const NewValue: Integer); overload;
     procedure UpdateDateTimeProperty(SchemaKind: TXMPKnownNamespace;
-      const PropName: UnicodeString; const NewValue: TDateTime; ApplyLocalBias: Boolean = False); overload;
+      const PropName: UnicodeString; const NewValue: TDateTime; ApplyLocalBias: Boolean = True); overload;
     property AboutAttributeValue: UnicodeString read FAboutAttributeValue write SetAboutAttributeValue;
     property DataToLazyLoad: IMetadataBlock read FDataToLazyLoad write SetDataToLazyLoad;
     property Schemas[Kind: TXMPKnownNamespace]: TXMPSchema read FindOrAddSchema; default;
@@ -324,14 +324,14 @@ type
 const
   XMPBoolStrs: array[Boolean] of string = ('False', 'True'); //case as per the XMP spec
 
-function DateTimeToXMPString(Value: TDateTime; ApplyLocalBias: Boolean): UnicodeString;
+function DateTimeToXMPString(const Value: TDateTime; ApplyLocalBias: Boolean = True): UnicodeString;
 function EscapeXML(const Source: UnicodeString): UnicodeString;
 function HasXMPSegmentHeader(Stream: TStream): Boolean; deprecated {$IFDEF DepCom}'Use Segment.HasXMPHeader'{$ENDIF};
 
 implementation
 
 uses
-  Math, RTLConsts, Contnrs, StrUtils, XSBuiltIns, //XSBuiltIns for DateTimeToXMLTime
+  {$IFNDEF HasTTimeZone}Windows,{$ENDIF} Math, RTLConsts, Contnrs, DateUtils, StrUtils,
   CCR.Exif.Consts, CCR.Exif.TagIDs, CCR.Exif.StreamHelper;
 
 const
@@ -370,9 +370,69 @@ type
     constructor Create(Source: TList);
   end;
 
-function DateTimeToXMPString(Value: TDateTime; ApplyLocalBias: Boolean): UnicodeString;
+function GetUTCOffset(const Value: TDateTime; out AHours, AMins: Integer): Int64;
+{$IFDEF HasTTimeZone} //!!! XE version written 'blind', so untested
 begin
-  Result := DateTimeToXMLTime(Value, ApplyLocalBias)
+  with TTimeZone.Local.GetUTCOffset(Value) do
+  begin
+    Result := Ticks;
+    AHours := Hours;
+    AMins := Minutes;
+  end;
+{$ELSE} {$J+}
+const
+  UseNewAPI: (Maybe, No, Yes) = Maybe;
+  GetTimeZoneInformationForYear: function(wYear: Word; DynInfo: Pointer;
+    var TZInfo: TTimeZoneInformation): BOOL; stdcall = nil;
+  TzSpecificLocalTimeToSystemTime: function(var TZInfo: TTimeZoneInformation;
+    const LocalTime: TSystemTime; out UTCTime: TSystemTime): BOOL; stdcall = nil;
+var
+  DoFallback: Boolean;
+  LocalTime, UTCTime: TSystemTime;
+  TimeZoneInfo: TTimeZoneInformation;
+begin
+  Result := 0;
+  DoFallback := True;
+  if UseNewAPI = Maybe then
+  begin
+    GetTimeZoneInformationForYear := GetProcAddress(GetModuleHandle(kernel32), 'GetTimeZoneInformationForYear');
+    TzSpecificLocalTimeToSystemTime := GetProcAddress(GetModuleHandle(kernel32), 'TzSpecificLocalTimeToSystemTime');
+    if Assigned(GetTimeZoneInformationForYear) and Assigned(TzSpecificLocalTimeToSystemTime) then
+      UseNewAPI := Yes
+    else
+      UseNewAPI := No;
+  end;
+  if UseNewAPI = Yes then
+  begin
+    DateTimeToSystemTime(Value, LocalTime);
+    if GetTimeZoneInformationForYear(LocalTime.wYear, nil, TimeZoneInfo) then
+      if TzSpecificLocalTimeToSystemTime(TimeZoneInfo, LocalTime, UTCTime) then
+      begin
+        Result := Round(MinsPerDay * (Value - SystemTimeToDateTime(UTCTime)));
+        DoFallback := False;
+      end;
+  end;
+  if DoFallback then
+    case GetTimeZoneInformation(TimeZoneInfo) of
+      TIME_ZONE_ID_UNKNOWN: Result := TimeZoneInfo.Bias;
+      TIME_ZONE_ID_STANDARD: Result := TimeZoneInfo.Bias + TimeZoneInfo.StandardBias;
+      TIME_ZONE_ID_DAYLIGHT: Result := TimeZoneInfo.Bias + TimeZoneInfo.DaylightBias;
+    end;
+  AHours := Abs(Result) div MinsPerHour;
+  AMins := Abs(Result) mod MinsPerHour;
+{$ENDIF}
+end;
+
+function DateTimeToXMPString(const Value: TDateTime; ApplyLocalBias: Boolean): UnicodeString;
+const
+  PlusNegSyms: array[Boolean] of string = ('-', '+');
+var
+  Hours, Mins: Integer;
+begin
+  Result := FormatDateTime('yyyy''-''mm''-''dd''T''hh'':''nn'':''ss''.''zzz', Value);
+  if ApplyLocalBias then
+    Result := Format('%s%s%.2d:%.2d', [Result,
+      PlusNegSyms[GetUTCOffset(Value, Hours, Mins) >= 0], Hours, Mins]);
 end;
 
 function DefinesNS(const Attr: IDOMNode): Boolean;
@@ -1892,7 +1952,7 @@ begin
     RemoveProperty(SchemaKind, PropName)
   else
   begin
-    S := DateTimeToXMLTime(NewValue, ApplyLocalBias);
+    S := DateTimeToXMPString(NewValue, ApplyLocalBias);
     UpdateProperty(SchemaKind, PropName, xpSimple, S);
   end;
 end;
