@@ -1140,6 +1140,13 @@ begin
     end;
 end;
 
+{$IF CompilerVersion >= 22}
+function DecimalSeparator: Char; inline; //avoid compiler warning about deprecated symbol
+begin
+  Result := FormatSettings.DecimalSeparator;
+end;
+{$IFEND}
+
 function GetGPSTagXMPName(TagID: TExifTagID): UnicodeString;
 begin
   case TagID of
