@@ -371,7 +371,7 @@ type
   end;
 
 function GetUTCOffset(const Value: TDateTime; out AHours, AMins: Integer): Int64;
-{$IFDEF HasTTimeZone} //!!! XE version written 'blind', so untested
+{$IFDEF HasTTimeZone}
 begin
   with TTimeZone.Local.GetUTCOffset(Value) do
   begin
