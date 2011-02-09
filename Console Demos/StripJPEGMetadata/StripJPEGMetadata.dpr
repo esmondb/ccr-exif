@@ -51,14 +51,14 @@ begin
   WriteLn('');
   WriteLn('Switches:');
   WriteLn('/all     Remove all APP and COM segments, excepting any JFIF header. This is');
-  WriteLn('         the default if no specific segements or metadata kinds are specfied.');
+  WriteLn('         the default if no specific segments or metadata kinds are specfied.');
   WriteLn('/app#    Remove any APP# segements, where # is a number between 0 and 15');
   WriteLn('         inclusive.');
   WriteLn('/com     Remove any JPEG comment (i.e., any COM segment).');
   WriteLn('/exif    Remove any Exif data.');
   WriteLn('/iptc    Remove any IPTC data, as stored in a APP13 segment. Any non-IPTC');
   WriteLn('         data in the latter will be preserved.');
-  WriteLn('/xmp     Remove any XMP packets');
+  WriteLn('/xmp     Remove any XMP packets.');
   WriteLn('/backup  If a file of the form "MyFile (original).jpg" does not already');
   WriteLn('         exist, it is created by copying the source before any metadata is');
   WriteLn('         removed.');
@@ -99,7 +99,7 @@ begin
     end;
   end;
   RemovedKinds := RemoveMetadataFromJPEG(JpegFile, StripKinds); //defined and implemented in CCR.Exif.pas
-  RemovedSegments := RemoveJPEGSegments(JpegFile, StripSegments);  //defined and implemented in CCR.Exif.JPEGUtils.pas
+  RemovedSegments := RemoveJPEGSegments(JpegFile, StripSegments);  //defined and implemented in CCR.Exif.BaseUtils.pas
   if not Quiet then
     if (RemovedKinds <> []) and (RemovedSegments <> []) then
       Writeln('Removed metadata from ', JpegFile)
@@ -127,7 +127,7 @@ begin
         S := LowerCase(Copy(S, 2, MaxInt));
         if S = '' then Continue;
         if S = 'all' then
-          StripSegments := [jmApp1..jmAppSpecificLast]
+          StripSegments := [jmApp1..jmAppSpecificLast, jmComment]
         else if S = 'exif' then
           Include(StripKinds, mkExif)
         else if S = 'iptc' then
