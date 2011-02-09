@@ -51,7 +51,7 @@ begin
   WriteLn('');
   WriteLn('Switches:');
   WriteLn('/all     Remove all APP and COM segments, excepting any JFIF header. This is');
-  WriteLn('         the default if no specific segments or metadata kinds are specfied.');
+  WriteLn('         the default if no specific segments or metadata kinds are specified.');
   WriteLn('/app#    Remove any APP# segements, where # is a number between 0 and 15');
   WriteLn('         inclusive.');
   WriteLn('/com     Remove any JPEG comment (i.e., any COM segment).');
