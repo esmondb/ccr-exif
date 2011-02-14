@@ -95,12 +95,25 @@ const
   SNoYes: array[Boolean] of string = ('No', 'Yes');
   SUnrecognized = '[Unrecognised value (%d)]';
 
+function ColorSpaceToStr(Value: TExifColorSpace): string;
+begin
+  case Value of
+    csTagMissing: Result := '';
+    csRGB: Result := 'sRGB';
+    csAdobeRGB: Result := 'Adobe RGB';
+    csWideGamutRGB: Result := 'Wide gamut RGB (Sony)';
+    csICCProfile: Result := 'ICC profile (Sony)';
+    csUncalibrated: Result := 'Uncalibrated (maybe Adobe RGB)';
+  else FmtStr(Result, SUnrecognized, [Ord(Value)]);
+  end;
+end;
+
 function DirectionRefToStr(Value: TGPSDirectionRef): string;
 begin
   case Value of
     drMissingOrInvalid, drTrueNorth: Result := 'true north';
     drMagneticNorth: Result := 'magnetic north';
-  else Result := '';
+  else FmtStr(Result, SUnrecognized, [Ord(Value)]);
   end;
 end;
 
@@ -110,13 +123,14 @@ begin
     dsMissingOrInvalid, dsKilometres: Result := 'kilometres';
     dsMiles: Result := 'miles';
     dsKnots: Result := 'knots';
-  else Result := '';
+  else FmtStr(Result, SUnrecognized, [Ord(Value)]);
   end;
 end;
 
 function ExposureProgramToStr(Value: TExifExposureProgram): string;
 begin
   case Value of
+    eeTagMissing: Result := '';
     eeUndefined: Result := 'Undefined';
     eeManual: Result := 'Manual';
     eeNormal: Result := 'Normal';
@@ -126,7 +140,6 @@ begin
     eeAction: Result := 'Action';
     eePortrait: Result := 'Portrait';
     eeLandscape: Result := 'Landscape';
-    eeTagMissing: Result := '';
   else FmtStr(Result, SUnrecognized, [Ord(Value)]);
   end;
 end;
@@ -134,10 +147,10 @@ end;
 function FileSourceToStr(Value: TExifFileSource): string;
 begin
   case Value of
+    fsUnknown: Result := '';
     fsFilmScanner: Result := 'Film scanner';
     fsReflectionPrintScanner: Result := 'Reflection print scanner';
     fsDigitalCamera: Result := 'Digital camera';
-    fsUnknown: Result := '';
   else FmtStr(Result, SUnrecognized, [Ord(Value)]);
   end;
 end;
@@ -145,22 +158,23 @@ end;
 function FlashModeToStr(Value: TExifFlashMode): string;
 begin
   case Value of
+    efUnknown: Result := '';
     efCompulsoryFire: Result := 'Compulsory fire';
     efCompulsorySuppression: Result := 'Compulsory suppression';
     efAuto: Result := 'Auto';
-  else Result := '';
+  else FmtStr(Result, SUnrecognized, [Ord(Value)]);
   end;
 end;
 
 function GainControlToStr(Value: TExifGainControl): string;
 begin
   case Value of
+    egTagMissing: Result := '';
     egNone: Result := 'None';
     egLowGainUp: Result := 'Low gain up';
     egHighGainUp: Result := 'High gain up';
     egLowGainDown: Result := 'Low gain down';
     egHighGainDown: Result := 'High gain down';
-    egTagMissing: Result := '';
   else FmtStr(Result, SUnrecognized, [Ord(Value)]);
   end;
 end;
@@ -168,9 +182,9 @@ end;
 function GPSAltitudeRefToStr(Value: TGPSAltitudeRef): string;
 begin
   case Value of
+    alTagMissing: Result := '';
     alAboveSeaLevel: Result := 'above sea level';
     alBelowSeaLevel: Result := 'below sea level';
-    alTagMissing: Result := '';
   else FmtStr(Result, SUnrecognized, [Ord(Value)]);
   end;
 end;
@@ -178,9 +192,9 @@ end;
 function GPSDifferentialToStr(Value: TGPSDifferential): string;
 begin
   case Value of
+    dfTagMissing: Result := '';
     dfWithoutCorrection: Result := 'Without correction';
     dfCorrectionApplied: Result := 'Correction applied';
-    dfTagMissing: Result := '';
   else FmtStr(Result, SUnrecognized, [Ord(Value)]);
   end;
 end;
@@ -188,9 +202,10 @@ end;
 function GPSMeasureModeToStr(Value: TGPSMeasureMode): string;
 begin
   case Value of
+    mmUnknown: Result := '';
     mm2D: Result := '2D';
     mm3D: Result := '3D';
-  else Result := '';
+  else FmtStr(Result, SUnrecognized, [Ord(Value)]);
   end;
 end;
 
@@ -200,22 +215,24 @@ begin
     srMissingOrInvalid, srKilometresPerHour: Result := 'km/h'; //km/h is the default according to the Exit spec
     srMilesPerHour: Result := 'mph';
     srKnots: Result := 'knots';
-  else Result := '';
+  else FmtStr(Result, SUnrecognized, [Ord(Value)]);
   end;
 end;
 
 function GPSStatusToStr(Value: TGPSStatus): string;
 begin
   case Value of
+    stMissingOrInvalid: Result := '';
     stMeasurementActive: Result := 'Measurement active/in progress';
     stMeasurementVoid: Result := 'Measurement void/in interop';
-  else Result := '';
+  else FmtStr(Result, SUnrecognized, [Ord(Value)]);
   end;
 end;
 
 function LightSourceToStr(Value: TExifLightSource): string;
 begin
   case Value of
+    elTagMissing: Result := '';
     elUnknown: Result := 'Unknown';
     elDaylight: Result := 'Daylight';
     elFluorescent: Result := 'Fluorescent';
@@ -237,7 +254,6 @@ begin
     elD50: Result := 'D50';
     elISOStudioTungsten: Result := 'ISO studio tungsten';
     elOther: Result := 'Other';
-    elTagMissing: Result := '';
   else FmtStr(Result, SUnrecognized, [Ord(Value)]);
   end;
 end;
@@ -245,6 +261,7 @@ end;
 function MeteringModeToStr(Value: TExifMeteringMode): string;
 begin
   case Value of
+    emTagMissing: Result := '';
     emUnknown: Result := 'Unknown';
     emAverage: Result := 'Average';
     emCenterWeightedAverage: Result := 'Centre weighted average';
@@ -252,7 +269,6 @@ begin
     emMultiSpot: Result := 'Multiple spot';
     emPattern: Result := 'Pattern';
     emPartial: Result := 'Partial';
-    emTagMissing: Result := '';
   else FmtStr(Result, SUnrecognized, [Ord(Value)]);
   end;
 end;
@@ -260,6 +276,7 @@ end;
 function OrientationToStr(Value: TTiffOrientation): string;
 begin
   case Value of
+    toUndefined: Result := '';
     toTopLeft: Result := 'Normal';
     toTopRight: Result := 'Mirror horizontal';
     toBottomRight: Result := 'Rotate 180°';
@@ -268,7 +285,6 @@ begin
     toRightTop: Result := 'Rotate 90°';
     toRightBottom: Result := 'Mirror hotizontal and rotate 90°';
     toLeftBottom: Result := 'Rotate 270°';
-    toUndefined: Result := '';
   else FmtStr(Result, SUnrecognized, [Ord(Value)]);
   end;
 end;
@@ -276,9 +292,9 @@ end;
 function RenderingToStr(Value: TExifRendering): string;
 begin
   case Value of
+    erTagMissing: Result := '';
     erNormal: Result := 'Normal';
     erCustom: Result := 'Custom';
-    erTagMissing: Result := '';
   else FmtStr(Result, SUnrecognized, [Ord(Value)]);
   end;
 end;
@@ -286,20 +302,21 @@ end;
 function ResolutionUnitsToStr(Value: TTiffResolutionUnit): string;
 begin
   case Value of
+    trNone: Result := '';
     trInch: Result := 'inches';
     trCentimetre: Result := 'centimetres';
-  else Result := '';
+  else FmtStr(Result, SUnrecognized, [Ord(Value)]);
   end;
 end;
 
 function SceneCaptureTypeToStr(Value: TExifSceneCaptureType): string;
 begin
   case Value of
+    ecTagMissing: Result := '';
     ecStandard: Result := 'Standard';
     ecLandscape: Result := 'Landscape';
     ecPortrait: Result := 'Portrait';
     ecNightScene: Result := 'NightScene';
-    ecTagMissing: Result := '';
   else FmtStr(Result, SUnrecognized, [Ord(Value)]);
   end;
 end;
@@ -307,8 +324,8 @@ end;
 function SceneTypeToStr(Value: TExifSceneType): string;
 begin
   case Value of
-    esDirectlyPhotographed: Result := 'Directly photographed';
     esUnknown: Result := '';
+    esDirectlyPhotographed: Result := 'Directly photographed';
   else FmtStr(Result, SUnrecognized, [Ord(Value)]);
   end;
 end;
@@ -316,6 +333,7 @@ end;
 function SensingMethodToStr(Value: TExifSensingMethod): string;
 begin
   case Value of
+    esTagMissing: Result := '';
     esMonochrome: Result := 'Monochrome';
     esOneChip: Result := 'One chip';
     esTwoChip: Result := 'Two chip';
@@ -323,7 +341,6 @@ begin
     esColorSequential: Result := 'Colour sequential';
     esTrilinear: Result := 'Trilinear';
     esColorSequentialLinear: Result := 'Colour sequential linear';
-    esTagMissing: Result := '';
   else FmtStr(Result, SUnrecognized, [Ord(Value)]);
   end;
 end;
@@ -341,11 +358,11 @@ end;
 function SubjectDistanceRangeToStr(Value: TExifSubjectDistanceRange): string;
 begin
   case Value of
+    edTagMissing: Result := '';
     edUnknown: Result := 'Unknown';
     edMacro: Result := 'Macro';
     edClose: Result := 'Close';
     edDistant: Result := 'Distant';
-    edTagMissing: Result := '';
   else FmtStr(Result, SUnrecognized, [Ord(Value)]);
   end;
 end;
@@ -353,9 +370,9 @@ end;
 function WhiteBalanceModeToStr(Value: TExifWhiteBalanceMode): string;
 begin
   case Value of
+    ewTagMissing: Result := '';
     ewAuto: Result := 'Auto';
     ewManual: Result := 'Manual';
-    ewTagMissing: Result := '';
   else FmtStr(Result, SUnrecognized, [Ord(Value)]);
   end;
 end;
@@ -647,10 +664,7 @@ begin
     AddValue('Exif version', ExifData.ExifVersion.AsString);
     AddValue('Aperture value', ExifData.ApertureValue);
     AddValue('Brightness value', ExifData.BrightnessValue);
-    case ExifData.ColorSpace of
-      csRGB: AddValue('Colour space', 'RGB');
-      csUncalibrated: AddValue('Colour space', 'Uncalibrated');
-    end;
+    AddValue('Colour space', ColorSpaceToStr(ExifData.ColorSpace));
     AddValue('Compressed bits per pixel', ExifData.CompressedBitsPerPixel);
     AddValue('Date/time original', ExifData.DateTimeOriginal);
     AddValue('Date/time digitised', ExifData.DateTimeDigitized);
