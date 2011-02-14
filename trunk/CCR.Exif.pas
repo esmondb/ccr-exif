@@ -398,7 +398,8 @@ type
   TTiffResolutionUnit = (trNone = 1, trInch, trCentimetre);
   TExifResolutionUnit = TTiffResolutionUnit;
 
-  TExifColorSpace = (csTagMissing = 0, csRGB = 1, csAdobeRGB, csUncalibrated = $FFFF);
+  TExifColorSpace = (csTagMissing = 0, csRGB = 1, csAdobeRGB = 2, csWideGamutRGB = $FFFD,
+    csICCProfile = $FFFE, csUncalibrated = $FFFF);
   TExifContrast = (cnTagMissing = -1, cnNormal, cnSoft, cnHard);
   TExifExposureMode = (exTagMissing = -1, exAuto, exManual, exAutoBracket);
   TExifExposureProgram = (eeTagMissing = -1, eeUndefined, eeManual, eeNormal,
@@ -3954,8 +3955,8 @@ begin
     if not EnsureEnumsInRange then
       Exit
     else
-      case Ord(Result) of
-        Ord(Low(TExifColorSpace))..Ord(High(TExifColorSpace)): Exit;
+      case Result of
+        csRGB, csAdobeRGB, csWideGamutRGB, csICCProfile, csUncalibrated: Exit;
       end;
   Result := csTagMissing;
 end;
