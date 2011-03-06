@@ -310,31 +310,30 @@ type
     FOwner: TCustomExifData;
     function GetBitSet: TWordBitSet;
     procedure SetBitSet(const Value: TWordBitSet);
-    function GetFired(Source: Integer): Boolean;
-    procedure SetFired(Dummy: Integer; Value: Boolean);
-    function GetMode(Source: Integer): TExifFlashMode;
-    procedure SetMode(Dummy: Integer; const Value: TExifFlashMode);
-    function GetPresent(Source: Integer): Boolean;
-    procedure SetPresent(Dummy: Integer; Value: Boolean);
-    function GetRedEyeReduction(Source: Integer): Boolean;
-    procedure SetRedEyeReduction(Dummy: Integer; Value: Boolean);
+    function GetFired: Boolean;
+    procedure SetFired(Value: Boolean);
+    function GetMode: TExifFlashMode;
+    procedure SetMode(const Value: TExifFlashMode);
+    function GetPresent: Boolean;
+    procedure SetPresent(Value: Boolean);
+    function GetRedEyeReduction: Boolean;
+    procedure SetRedEyeReduction(Value: Boolean);
     function GetStrobeEnergy: TExifFraction;
     procedure SetStrobeEnergy(const Value: TExifFraction);
-    function GetStrobeLight(Source: Integer): TExifStrobeLight;
-    procedure SetStrobeLight(Dummy: Integer; const Value: TExifStrobeLight);
-    function SourceToValues(Source: Integer): TWordBitSet;
+    function GetStrobeLight: TExifStrobeLight;
+    procedure SetStrobeLight(const Value: TExifStrobeLight);
   public
     constructor Create(AOwner: TCustomExifData);
     procedure Assign(Source: TPersistent); override;
     function MissingOrInvalid: Boolean;
     property BitSet: TWordBitSet read GetBitSet write SetBitSet stored False;
   published
-    property Fired: Boolean index -1 read GetFired write SetFired stored False;
-    property Mode: TExifFlashMode index -1 read GetMode write SetMode stored False;
-    property Present: Boolean index -1 read GetPresent write SetPresent stored False;
-    property RedEyeReduction: Boolean index 6 read GetRedEyeReduction write SetRedEyeReduction stored False;
+    property Fired: Boolean read GetFired write SetFired stored False;
+    property Mode: TExifFlashMode read GetMode write SetMode stored False;
+    property Present: Boolean read GetPresent write SetPresent stored False;
+    property RedEyeReduction: Boolean read GetRedEyeReduction write SetRedEyeReduction stored False;
     property StrobeEnergy: TExifFraction read GetStrobeEnergy write SetStrobeEnergy stored False;
-    property StrobeLight: TExifStrobeLight index -1 read GetStrobeLight write SetStrobeLight stored False;
+    property StrobeLight: TExifStrobeLight read GetStrobeLight write SetStrobeLight stored False;
   end;
 
   TExifVersionElement = 0..9;
@@ -671,6 +670,8 @@ type
       property Current: TExifSection read GetCurrent;
     end;
     TMakerNoteTypePriority = (mtTestForLast, mtTestForFirst);
+  strict private class var
+    Diag35mm: Extended;
   strict private
     FAlwaysWritePreciseTimes: Boolean;
     FChangedWhileUpdating: Boolean;
@@ -2537,6 +2538,31 @@ end;
 
 { TExifFlashInfo }
 
+function DoGetMode(const BitSet: TWordBitSet): TExifFlashMode;
+begin
+  if 4 in BitSet then
+    if 3 in BitSet then
+      Result := efAuto
+    else
+      Result := efCompulsorySuppression
+  else
+    if 3 in BitSet then
+      Result := efCompulsoryFire
+    else
+      Result := efUnknown;
+end;
+
+function DoGetStrobeLight(const BitSet: TWordBitSet): TExifStrobeLight;
+begin
+  if 2 in BitSet then
+    if 1 in BitSet then
+      Result := esDetected
+    else
+      Result := esUndetected
+  else
+    Result := esNoDetectionFunction;
+end;
+
 constructor TExifFlashInfo.Create(AOwner: TCustomExifData);
 begin
   inherited Create;
@@ -2606,27 +2632,19 @@ begin
     else
       Root := FOwner.XMPPacket[xsExif].AddProperty(XMPRoot);
   Root.Kind := xpStructure;
-  Root.UpdateSubProperty('Fired', GetFired(ValueAsSource));
-  Root.UpdateSubProperty('Function', not GetPresent(ValueAsSource));
-  Root.UpdateSubProperty('Mode', Ord(GetMode(ValueAsSource)));
-  Root.UpdateSubProperty('RedEyeMode', GetRedEyeReduction(ValueAsSource));
-  Root.UpdateSubProperty('Return', StrobeLightValues[GetStrobeLight(ValueAsSource)]);
+  Root.UpdateSubProperty('Fired', FiredBit in Value);
+  Root.UpdateSubProperty('Function', NotPresentBit in Value);
+  Root.UpdateSubProperty('Mode', Ord(DoGetMode(Value)));
+  Root.UpdateSubProperty('RedEyeMode', RedEyeReductionBit in Value);
+  Root.UpdateSubProperty('Return', StrobeLightValues[DoGetStrobeLight(Value)]);
 end;
 
-function TExifFlashInfo.SourceToValues(Source: Integer): TWordBitSet;
+function TExifFlashInfo.GetFired: Boolean;
 begin
-  if Source = -1 then
-    Result := BitSet
-  else
-    Word(Result) := Word(Source);
+  Result := FiredBit in BitSet;
 end;
 
-function TExifFlashInfo.GetFired(Source: Integer): Boolean;
-begin
-  Result := FiredBit in SourceToValues(Source)
-end;
-
-procedure TExifFlashInfo.SetFired(Dummy: Integer; Value: Boolean);
+procedure TExifFlashInfo.SetFired(Value: Boolean);
 begin
   if Value then
     BitSet := BitSet + [FiredBit]
@@ -2634,24 +2652,12 @@ begin
     BitSet := BitSet - [FiredBit]
 end;
 
-function TExifFlashInfo.GetMode(Source: Integer): TExifFlashMode;
-var
-  Values: TWordBitSet;
+function TExifFlashInfo.GetMode: TExifFlashMode;
 begin
-  Values := SourceToValues(Source);
-  if 4 in Values then
-    if 3 in Values then
-      Result := efAuto
-    else
-      Result := efCompulsorySuppression
-  else
-    if 3 in Values then
-      Result := efCompulsoryFire
-    else
-      Result := efUnknown;
+  Result := DoGetMode(BitSet);
 end;
 
-procedure TExifFlashInfo.SetMode(Dummy: Integer; const Value: TExifFlashMode);
+procedure TExifFlashInfo.SetMode(const Value: TExifFlashMode);
 var
   Values: TWordBitSet;
 begin
@@ -2667,12 +2673,12 @@ begin
   BitSet := Values;
 end;
 
-function TExifFlashInfo.GetPresent(Source: Integer): Boolean;
+function TExifFlashInfo.GetPresent: Boolean;
 begin
-  Result := not (NotPresentBit in SourceToValues(Source));
+  Result := not (NotPresentBit in BitSet);
 end;
 
-procedure TExifFlashInfo.SetPresent(Dummy: Integer; Value: Boolean);
+procedure TExifFlashInfo.SetPresent(Value: Boolean);
 begin
   if Value then
     BitSet := BitSet - [NotPresentBit]
@@ -2680,12 +2686,12 @@ begin
     BitSet := BitSet + [NotPresentBit]
 end;
 
-function TExifFlashInfo.GetRedEyeReduction(Source: Integer): Boolean;
+function TExifFlashInfo.GetRedEyeReduction: Boolean;
 begin
-  Result := RedEyeReductionBit in SourceToValues(Source)
+  Result := RedEyeReductionBit in BitSet
 end;
 
-procedure TExifFlashInfo.SetRedEyeReduction(Dummy: Integer; Value: Boolean);
+procedure TExifFlashInfo.SetRedEyeReduction(Value: Boolean);
 begin
   if Value then
     BitSet := BitSet + [RedEyeReductionBit]
@@ -2693,21 +2699,12 @@ begin
     BitSet := BitSet - [RedEyeReductionBit]
 end;
 
-function TExifFlashInfo.GetStrobeLight(Source: Integer): TExifStrobeLight;
-var
-  Values: TWordBitSet;
+function TExifFlashInfo.GetStrobeLight: TExifStrobeLight;
 begin
-  Values := SourceToValues(Source);
-  if 2 in Values then
-    if 1 in Values then
-      Result := esDetected
-    else
-      Result := esUndetected
-  else
-    Result := esNoDetectionFunction;
+  Result := DoGetStrobeLight(BitSet);
 end;
 
-procedure TExifFlashInfo.SetStrobeLight(Dummy: Integer; const Value: TExifStrobeLight);
+procedure TExifFlashInfo.SetStrobeLight(const Value: TExifStrobeLight);
 var
   Values: TWordBitSet;
 begin
@@ -4051,8 +4048,33 @@ begin
 end;
 
 function TCustomExifData.GetFocalLengthIn35mmFilm: TWordTagValue;
+var
+  CCDWidth, CCDHeight, ResUnit, FinalValue: Extended;
+  ExifWidth, ExifHeight: Integer;
+  FocalLengthFrac: TExifFraction;
 begin
   Result := FSections[esDetails].GetWordValue(ttFocalLengthIn35mmFilm, 0);
+  if not Result.MissingOrInvalid then Exit;
+  FocalLengthFrac := FocalLength;
+  if FocalLengthFrac.MissingOrInvalid then Exit;
+  ExifWidth := ExifImageWidth;
+  ExifHeight := ExifImageHeight;
+  if (ExifWidth = 0) or (ExifHeight = 0) then Exit;
+  case FocalPlaneResolution.Units of
+    trInch: ResUnit := 25.4;
+    trCentimetre: ResUnit := 10.0;
+  else Exit;
+  end;
+  CCDWidth := FocalPlaneResolution.X.Quotient;
+  CCDHeight := FocalPlaneResolution.Y.Quotient;
+  if (CCDWidth = 0) or (CCDHeight = 0) then Exit;
+  CCDWidth := ExifWidth * ResUnit / CCDWidth;
+  CCDHeight := ExifHeight * ResUnit / CCDHeight;
+  if Diag35mm = 0 then
+    Diag35mm := Sqrt(Sqr(24) + Sqr(36));
+  FinalValue := FocalLengthFrac.Quotient * Diag35mm / Sqrt(Sqr(CCDWidth) + Sqr(CCDHeight));
+  if InRange(FinalValue, 0, High(Word)) then
+    Result := Trunc(FinalValue);
 end;
 
 function TCustomExifData.GetExposureMode: TExifExposureMode;
