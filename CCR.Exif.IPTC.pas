@@ -314,6 +314,12 @@ type
     property ImageOrientation: TIPTCImageOrientation read GetImageOrientation write SetImageOrientation stored False;
     property LanguageIdentifier: string index itLanguageIdentifier read GetApplicationString write SetApplicationString stored False;
     property AudioTypeCode: string index itAudioType read GetApplicationString write SetApplicationString stored False;
+    { Photoshop aliases }
+    property PSDocumentTitle: string index itObjectName read GetApplicationString write SetApplicationString stored False;
+    property PSCopyrightNotice: string index itCopyrightNotice read GetApplicationString write SetApplicationString stored False;
+    property PSDescription: string index itCaptionOrAbstract read GetApplicationString write SetApplicationString stored False;
+    property PSCreator: string index itByline read GetApplicationString write SetApplicationString stored False;
+    property PSCreatorJobTitle: string index itBylineTitle read GetApplicationString write SetApplicationString stored False;
   end;
 
 implementation
