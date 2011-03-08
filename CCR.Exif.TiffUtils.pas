@@ -722,7 +722,14 @@ begin
     end;
     if not Result[I].IsWellFormed then
       if (I = 0) or Result[I - 1].IsWellFormed then
-        Include(LoadErrors, leBadTagHeader)
+      begin
+        Include(LoadErrors, leBadTagHeader);
+        if (I = 0) and (leBadTagCount in LoadErrors) then
+        begin
+          Result := nil;
+          Exit;
+        end;
+      end
       else
       begin
         Include(LoadErrors, leBadTagCount);
