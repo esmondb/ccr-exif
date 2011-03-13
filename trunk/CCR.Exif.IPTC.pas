@@ -315,6 +315,8 @@ type
     property LanguageIdentifier: string index itLanguageIdentifier read GetApplicationString write SetApplicationString stored False;
     property AudioTypeCode: string index itAudioType read GetApplicationString write SetApplicationString stored False;
     { Photoshop aliases }
+    procedure GetPSCreatorValues(Strings: TStrings); inline;//Name=Title
+    procedure SetPSCreatorValues(Strings: TStrings); inline;
     property PSDocumentTitle: string index itObjectName read GetApplicationString write SetApplicationString stored False;
     property PSCopyrightNotice: string index itCopyrightNotice read GetApplicationString write SetApplicationString stored False;
     property PSDescription: string index itCaptionOrAbstract read GetApplicationString write SetApplicationString stored False;
@@ -1104,6 +1106,11 @@ begin
   ApplicationSection.GetRepeatablePairs(itByline, itBylineTitle, Strings);
 end;
 
+procedure TIPTCData.GetPSCreatorValues(Strings: TStrings);
+begin
+  GetBylineValues(Strings);
+end;
+
 procedure TIPTCData.GetContentLocationValues(Strings: TStrings);
 begin
   ApplicationSection.GetRepeatablePairs(itContentLocationCode, itContentLocationName, Strings);
@@ -1429,6 +1436,11 @@ end;
 procedure TIPTCData.SetBylineValues(Strings: TStrings);
 begin
   ApplicationSection.SetRepeatablePairs(itByline, itBylineTitle, Strings);
+end;
+
+procedure TIPTCData.SetPSCreatorValues(Strings: TStrings);
+begin
+  SetBylineValues(Strings);
 end;
 
 procedure TIPTCData.SetContentLocationValues(Strings: TStrings);
