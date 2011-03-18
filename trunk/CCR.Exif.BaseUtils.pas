@@ -30,6 +30,9 @@ uses
 { backfill basic types and routines for D2006-7 }
 
 type
+{$IF not Declared(EProgrammerNotFound)}
+  EProgrammerNotFound = class(Exception);
+{$IFEND}
 {$IFDEF UNICODE}
   TUnicodeStrings = TStrings;
   TUnicodeStringList = TStringList;
