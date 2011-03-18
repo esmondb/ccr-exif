@@ -538,7 +538,7 @@ procedure TOutputFrame.LoadStandardValues(ExifData: TExifData);
     AddValue(Name, Format(Value, Args));
   end;
 
-  procedure AddValue(const Name: string; const Value: Integer); overload;
+  procedure AddValue(const Name: string; const Value: Int64); overload;
   begin
     if Value <> 0 then
       AddValue(Name, IntToStr(Value));
