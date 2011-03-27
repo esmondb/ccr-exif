@@ -205,6 +205,10 @@ const
   ttCanonFirmwareRevision   = $001E; //tdLongWord
   ttCanonCategories         = $0023; //tdLongWord x 2 (first value always 8)
 
+  { Kodak MakerNote tags }
+  ttKodakImageWidth         = $0005;
+  ttKodakYear               = $0006;
+
   { Panasonic MakerNote tags }
   ttPanasonicImageQuality       = $0001;
   ttPanasonicFirmwareVersion    = $0002;

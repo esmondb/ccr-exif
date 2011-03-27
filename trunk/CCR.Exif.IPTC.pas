@@ -133,8 +133,8 @@ type
     procedure Sort;
     function TagExists(ID: TIPTCTagID; MinSize: Integer = 1): Boolean;
     function AddOrUpdate(TagID: TIPTCTagID; NewDataSize: LongInt; const Buffer): TIPTCTag;
-    function GetDateValue(TagID: TIPTCTagID): TDateTime;
-    procedure SetDateValue(TagID: TIPTCTagID; const Value: TDateTime);
+    function GetDateValue(TagID: TIPTCTagID): TDateTimeTagValue;
+    procedure SetDateValue(TagID: TIPTCTagID; const Value: TDateTimeTagValue);
     function GetPriorityValue(TagID: TIPTCTagID): TIPTCPriority;
     procedure SetPriorityValue(TagID: TIPTCTagID; Value: TIPTCPriority);
     function GetRepeatableValue(TagID: TIPTCTagID): TStringDynArray; overload;
@@ -196,8 +196,8 @@ type
     procedure SetUrgency(Value: TIPTCPriority);
     function GetEnvelopePriority: TIPTCPriority;
     procedure SetEnvelopePriority(const Value: TIPTCPriority);
-    function GetDate(PackedIndex: Integer): TDateTime;
-    procedure SetDate(PackedIndex: Integer; const Value: TDateTime);
+    function GetDate(PackedIndex: Integer): TDateTimeTagValue;
+    procedure SetDate(PackedIndex: Integer; const Value: TDateTimeTagValue);
     function GetActionAdvised: TIPTCActionAdvised;
     procedure SetActionAdvised(Value: TIPTCActionAdvised);
     function GetImageOrientation: TIPTCImageOrientation;
@@ -262,7 +262,7 @@ type
     property EnvelopeNumberString: string index itEnvelopeNumber read GetEnvelopeString write SetEnvelopeString stored False;
     property ProductID: string index itProductID read GetEnvelopeString write SetEnvelopeString stored False;
     property EnvelopePriority: TIPTCPriority read GetEnvelopePriority write SetEnvelopePriority stored False;
-    property DateSent: TDateTime index isEnvelope or itDateSent shl 8 read GetDate write SetDate;
+    property DateSent: TDateTimeTagValue index isEnvelope or itDateSent shl 8 read GetDate write SetDate;
     property UNOCode: string index itUNO read GetEnvelopeString write SetEnvelopeString stored False; //should have a specific format
     property ARMIdentifier: TWordTagValue index itARMIdentifier read GetEnvelopeWord write SetEnvelopeWord stored False; //!!!make an enum
     property ARMVersion: TWordTagValue index itARMVersion read GetEnvelopeWord write SetEnvelopeWord stored False; //!!!make an enum
@@ -284,12 +284,12 @@ type
     property ContentLocationNames: TStringDynArray index itContentLocationName read GetApplicationStrings write SetApplicationStrings stored False;
     procedure GetContentLocationValues(Strings: TStrings); //Code=Name
     procedure SetContentLocationValues(Strings: TStrings);
-    property ReleaseDate: TDateTime index isApplication or itReleaseDate shl 8 read GetDate write SetDate stored False;
-    property ExpirationDate: TDateTime index isApplication or itExpirationDate shl 8 read GetDate write SetDate stored False;
+    property ReleaseDate: TDateTimeTagValue index isApplication or itReleaseDate shl 8 read GetDate write SetDate stored False;
+    property ExpirationDate: TDateTimeTagValue index isApplication or itExpirationDate shl 8 read GetDate write SetDate stored False;
     property SpecialInstructions: string index itSpecialInstructions read GetApplicationString write SetApplicationString stored False;
     property ActionAdvised: TIPTCActionAdvised read GetActionAdvised write SetActionAdvised stored False;
-    property DateCreated: TDateTime index isApplication or itDateCreated shl 8 read GetDate write SetDate stored False;
-    property DigitalCreationDate: TDateTime index isApplication or itDigitalCreationDate shl 8 read GetDate write SetDate stored False;
+    property DateCreated: TDateTimeTagValue index isApplication or itDateCreated shl 8 read GetDate write SetDate stored False;
+    property DigitalCreationDate: TDateTimeTagValue index isApplication or itDigitalCreationDate shl 8 read GetDate write SetDate stored False;
     property OriginatingProgram: string index itOriginatingProgram read GetApplicationString write SetApplicationString stored False;
     property ProgramVersion: string index itProgramVersion read GetApplicationString write SetApplicationString stored False;
     property ObjectCycleCode: string index itObjectCycle read GetApplicationString write SetApplicationString stored False; //!!!enum
@@ -587,22 +587,25 @@ begin
   Result := False;
 end;
 
-function TIPTCSection.GetDateValue(TagID: TIPTCTagID): TDateTime;
+function TIPTCSection.GetDateValue(TagID: TIPTCTagID): TDateTimeTagValue;
 var
+  Date: TDateTime;
   S: string;
   Year, Month, Day: Integer;
 begin
   S := GetStringValue(TagID);
-  if not TryStrToInt(Copy(S, 1, 4), Year) or not TryStrToInt(Copy(S, 5, 2), Month) or
-    not TryStrToInt(Copy(S, 7, 2), Day) or not TryEncodeDate(Year, Month, Day, Result) then
-    Result := 0;
+  if TryStrToInt(Copy(S, 1, 4), Year) and TryStrToInt(Copy(S, 5, 2), Month) and
+     TryStrToInt(Copy(S, 7, 2), Day) and TryEncodeDate(Year, Month, Day, Date) then
+    Result := Date
+  else
+    Result := TDateTimeTagValue.CreateMissingOrInvalid;
 end;
 
-procedure TIPTCSection.SetDateValue(TagID: TIPTCTagID; const Value: TDateTime);
+procedure TIPTCSection.SetDateValue(TagID: TIPTCTagID; const Value: TDateTimeTagValue);
 var
   Year, Month, Day: Word;
 begin
-  if Value = 0 then
+  if Value.MissingOrInvalid then
   begin
     Remove(TagID);
     Exit;
@@ -1116,7 +1119,7 @@ begin
   ApplicationSection.GetRepeatablePairs(itContentLocationCode, itContentLocationName, Strings);
 end;
 
-function TIPTCData.GetDate(PackedIndex: Integer): TDateTime;
+function TIPTCData.GetDate(PackedIndex: Integer): TDateTimeTagValue;
 begin
   Result := Sections[Lo(PackedIndex)].GetDateValue(Hi(PackedIndex));
 end;
@@ -1448,7 +1451,7 @@ begin
   ApplicationSection.SetRepeatablePairs(itContentLocationCode, itContentLocationName, Strings);
 end;
 
-procedure TIPTCData.SetDate(PackedIndex: Integer; const Value: TDateTime);
+procedure TIPTCData.SetDate(PackedIndex: Integer; const Value: TDateTimeTagValue);
 begin
   FSections[Lo(PackedIndex)].SetDateValue(Hi(PackedIndex), Value)
 end;

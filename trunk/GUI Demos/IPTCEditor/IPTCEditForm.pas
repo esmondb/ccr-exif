@@ -328,13 +328,13 @@ begin
 end;
 
 procedure TfrmIPTC.DoFileOpen(const FileName: string; const FileToCompare: string = '');
-  procedure DoDate(Control: TDateTimePicker; const Date: TDate);
+  procedure DoDate(Control: TDateTimePicker; const Date: TDateTimeTagValue);
   begin
-    if Date <> 0 then
-      Control.Date := Date
+    if Date.MissingOrInvalid then
+      Control.Date := Now
     else
-      Control.Date := Now;
-    Control.Checked := (Date <> 0);
+      Control.Date := Date;
+    Control.Checked := not Date.MissingOrInvalid;
   end;
 
   procedure DoEnum(Control: TComboBox; const OrdValue: NativeInt);
@@ -478,12 +478,12 @@ begin
 end;
 
 procedure TfrmIPTC.actSaveOrReloadExecute(Sender: TObject);
-  function GetDateValue(Control: TDateTimePicker): TDate;
+  function GetDateValue(Control: TDateTimePicker): TDateTimeTagValue;
   begin
     if Control.Checked then
       Result := Control.Date
     else
-      Result := 0;
+      Result := TDateTimeTagValue.CreateMissingOrInvalid;
   end;
 
   function GetEnumValue(Control: TComboBox): NativeInt;
