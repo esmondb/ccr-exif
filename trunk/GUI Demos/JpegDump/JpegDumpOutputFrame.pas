@@ -59,7 +59,7 @@ const
     'LongWord', 'Fraction', 'ShortInt', 'Undefined', 'SmallInt', 'LongInt',
     'Signed fraction', 'Single', 'Double', 'SubDirOffset');
   SDataOffsetsType: array[TExifDataOffsetsType] of string = ('From start of Exif data',
-    'From MakerNote start', 'From MakerNote IFD start');
+    'From MakerNote start', 'From MakerNote IFD start', 'Not a standard IFD format');
 
 function TagIDToStr(const Tag: TExifTag): string;
 begin
