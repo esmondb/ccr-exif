@@ -923,7 +923,10 @@ end;
 
 class operator TDateTimeTagValue.Equal(const A, B: TDateTimeTagValue): Boolean;
 begin
-  Result := (A.Value = B.Value) and (A.MissingOrInvalid = B.MissingOrInvalid);
+  if A.MissingOrInvalid then
+    Result := B.MissingOrInvalid
+  else
+    Result := (A.Value = B.Value);
 end;
 
 class operator TDateTimeTagValue.NotEqual(const A, B: TDateTimeTagValue): Boolean;
