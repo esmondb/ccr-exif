@@ -574,7 +574,8 @@ type
   TExifMakerNote, implementing the protected version of FormatIsOK and probably
   GetIFDInfo too, before registering it via TExifData.RegisterMakerNoteType. }
 
-  TExifDataOffsetsType = (doFromExifStart, doFromMakerNoteStart, doFromIFDStart);
+  TExifDataOffsetsType = (doFromExifStart, doFromMakerNoteStart, doFromIFDStart,
+    doCustomFormat); //!!!added doCustomFormat v1.5.0
 
   TExifMakerNote = class abstract
   strict private
@@ -616,12 +617,35 @@ type
       var DataOffsetsType: TExifDataOffsetsType); override;
   end;
 
+  TKodakMakerNote = class(TExifMakerNote) //!!!work in very early progress
+  public type
+    TTagSpec = record
+      DataType: TTiffDataType;
+      ElementCount: Byte;
+      constructor Create(ADataType: TTiffDataType; AElementCount: Byte = 1);
+    end;
+    class var TagSpecs: array of TTagSpec;
+    class procedure InitializeTagSpecs; static;
+  protected
+    const HeaderSize = 8;
+    const BigEndianHeader: array[0..HeaderSize - 1] of AnsiChar = 'KDK INFO';
+    class function FormatIsOK(SourceTag: TExifTag; out HeaderSize: Integer): Boolean; override;
+    procedure GetIFDInfo(SourceTag: TExifTag; var Endianness: TEndianness;
+      var DataOffsetsType: TExifDataOffsetsType); override;
+  end experimental;
+
   TPanasonicMakerNote = class(TExifMakerNote)
   protected
     const Header: array[0..11] of AnsiChar = 'Panasonic';
     class function FormatIsOK(SourceTag: TExifTag; out HeaderSize: Integer): Boolean; override;
     procedure GetIFDInfo(SourceTag: TExifTag; var ProbableEndianness: TEndianness;
       var DataOffsetsType: TExifDataOffsetsType); override;
+  end;
+
+  TPentaxMakerNote = class(TExifMakerNote) //won't actually parse the structure, just identify it
+  protected
+    const Header: array[0..3] of AnsiChar = 'AOC'#0;
+    class function FormatIsOK(SourceTag: TExifTag; out HeaderSize: Integer): Boolean; override;
   end;
 
   TNikonType1MakerNote = class(TExifMakerNote)
@@ -2438,13 +2462,16 @@ end;
 
 function TExifSection.TryGetStringValue(TagID: TExifTagID; var Value: string): Boolean;
 var
+  Len: Integer;
   Tag: TExifTag;
   S: AnsiString;
 begin
   Result := Find(TagID, Tag) and (Tag.DataType = tdAscii) and (Tag.ElementCount > 0);
   if Result then
   begin
-    SetString(S, PAnsiChar(Tag.Data), Tag.ElementCount - 1);
+    Len := Tag.ElementCount - 1;
+    if PAnsiChar(Tag.Data)[Len] > ' ' then Inc(Len);
+    SetString(S, PAnsiChar(Tag.Data), Len);
     Value := string(S); //for D2009+ compatibility
   end
 end;
@@ -5780,10 +5807,12 @@ begin
   FEndianness := Tags.Owner.Endianness;
   GetIFDInfo(SourceTag, FEndianness, FDataOffsetsType);
   case FDataOffsetsType of
+    doCustomFormat: Exit;
     doFromExifStart: BasePosition := -SourceTag.OriginalDataOffset;
     doFromIFDStart: BasePosition := HeaderSize;
-  else //i.e., doFromMakerNoteStart - use 'else' to avoid compiler warning 
-    BasePosition := 0;
+    doFromMakerNoteStart: BasePosition := 0;
+  else
+    raise EProgrammerNotFound.CreateRes(@SRangeError);
   end;
   if FDataOffsetsType = doFromIFDStart then
     InternalOffset := -8
@@ -5857,6 +5886,62 @@ begin
   ProbableEndianness := SmallEndian;
 end;
 
+{ TKodakMakerNote }
+
+class function TKodakMakerNote.FormatIsOK(SourceTag: TExifTag;
+  out HeaderSize: Integer): Boolean;
+begin
+  HeaderSize := HeaderSize;
+  Result := (SourceTag.ElementCount > HeaderSize) and
+    (StrLComp(PAnsiChar(SourceTag.Data), 'KDK', 3) = 0);
+end;
+
+procedure TKodakMakerNote.GetIFDInfo(SourceTag: TExifTag;
+  var Endianness: TEndianness; var DataOffsetsType: TExifDataOffsetsType);
+var
+  Buffer: array[Byte] of Byte;
+  I: TTiffTagID;
+begin
+  DataOffsetsType := doCustomFormat;
+  if CompareMem(SourceTag.Data, @BigEndianHeader, HeaderSize) then
+    Endianness := BigEndian
+  else
+    Endianness := SmallEndian;
+  Tags.Clear;
+  SourceTag.DataStream.Position := HeaderSize;
+  InitializeTagSpecs;
+  for I := Low(TagSpecs) to High(TagSpecs) do
+    if SourceTag.DataStream.TryReadBuffer(Buffer,
+      TiffElementSizes[TagSpecs[I].DataType] * TagSpecs[I].ElementCount) then
+    begin
+      Tags.Add(I, TagSpecs[I].DataType, TagSpecs[I].ElementCount).UpdateData(Buffer);
+      //SourceTag.DataStream.Seek(TiffElementSizes[DataType] mod 4, soCurrent); //fields aligned on 4 byte boundaries
+    end
+    else
+    begin
+      Tags.LoadErrors := [leBadOffset];
+      Exit;
+    end;
+end;
+
+constructor TKodakMakerNote.TTagSpec.Create(ADataType: TTiffDataType; AElementCount: Byte);
+begin
+  DataType := ADataType;
+  ElementCount := AElementCount;
+end;
+
+class procedure TKodakMakerNote.InitializeTagSpecs;
+begin
+  if TagSpecs <> nil then Exit;
+  SetLength(TagSpecs, 6);
+  TagSpecs[0] := TTagSpec.Create(tdAscii, 8);//model
+  TagSpecs[1] := TTagSpec.Create(tdByte);    //quality
+  TagSpecs[2] := TTagSpec.Create(tdByte, 2); //burst mode + 1 byte padding
+  TagSpecs[3] := TTagSpec.Create(tdWord); //width
+  TagSpecs[4] := TTagSpec.Create(tdWord); //height
+  TagSpecs[5] := TTagSpec.Create(tdWord); //year
+end;
+
 { TPanasonicMakerNote }
 
 class function TPanasonicMakerNote.FormatIsOK(SourceTag: TExifTag;
@@ -5871,6 +5956,16 @@ procedure TPanasonicMakerNote.GetIFDInfo(SourceTag: TExifTag;
   var ProbableEndianness: TEndianness; var DataOffsetsType: TExifDataOffsetsType);
 begin
   ProbableEndianness := SmallEndian;
+end;
+
+{ TPentaxMakerNote }
+
+class function TPentaxMakerNote.FormatIsOK(SourceTag: TExifTag;
+  out HeaderSize: Integer): Boolean;
+begin
+  HeaderSize := SizeOf(Header);
+  Result := (SourceTag.ElementCount > HeaderSize) and
+    CompareMem(SourceTag.Data, @Header, HeaderSize);
 end;
 
 { TNikonType1MakerNote }
@@ -5938,6 +6033,8 @@ initialization
   TCustomExifData.FMakerNoteClasses := TList.Create;
   TCustomExifData.FMakerNoteClasses.Add(TNikonType2MakerNote);
   TCustomExifData.FMakerNoteClasses.Add(TCanonMakerNote);
+  TCustomExifData.FMakerNoteClasses.Add(TPentaxMakerNote);
+  //TCustomExifData.FMakerNoteClasses.Add(TKodakMakerNote);
   TCustomExifData.FMakerNoteClasses.Add(TSonyMakerNote);
   TCustomExifData.FMakerNoteClasses.Add(TNikonType1MakerNote);
   TCustomExifData.FMakerNoteClasses.Add(TNikonType3MakerNote);
