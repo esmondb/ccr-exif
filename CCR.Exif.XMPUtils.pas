@@ -305,7 +305,7 @@ type
     procedure UpdateProperty(SchemaKind: TXMPKnownNamespace;
       const PropName: UnicodeString; const NewValue: Integer); overload;
     procedure UpdateDateTimeProperty(SchemaKind: TXMPKnownNamespace;
-      const PropName: UnicodeString; const NewValue: TDateTime; ApplyLocalBias: Boolean = True); overload;
+      const PropName: UnicodeString; const NewValue: TDateTimeTagValue; ApplyLocalBias: Boolean = True); overload;
     property AboutAttributeValue: UnicodeString read FAboutAttributeValue write SetAboutAttributeValue;
     property DataToLazyLoad: IMetadataBlock read FDataToLazyLoad write SetDataToLazyLoad;
     property Schemas[Kind: TXMPKnownNamespace]: TXMPSchema read FindOrAddSchema; default;
@@ -1944,11 +1944,12 @@ begin
 end;
 
 procedure TXMPPacket.UpdateDateTimeProperty(SchemaKind: TXMPKnownNamespace;
-  const PropName: UnicodeString; const NewValue: TDateTime; ApplyLocalBias: Boolean);
+  const PropName: UnicodeString; const NewValue: TDateTimeTagValue;
+  ApplyLocalBias: Boolean);
 var
   S: UnicodeString;
 begin
-  if NewValue = 0 then
+  if NewValue.MissingOrInvalid then
     RemoveProperty(SchemaKind, PropName)
   else
   begin

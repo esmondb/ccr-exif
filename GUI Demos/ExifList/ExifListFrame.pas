@@ -64,7 +64,7 @@ type
 
 implementation
 
-uses ClipBrd, DateUtils, StrUtils, Themes, CCR.Exif.TiffUtils;
+uses ClipBrd, DateUtils, StrUtils, Themes, CCR.Exif.BaseUtils, CCR.Exif.TiffUtils;
 
 {$R *.dfm}
 
@@ -549,9 +549,9 @@ procedure TOutputFrame.LoadStandardValues(ExifData: TExifData);
     AddValue(Name, SNoYes[YesNoValue])
   end;
 
-  procedure AddValue(const Name: string; const DateTime: TDateTime); overload;
+  procedure AddValue(const Name: string; const DateTime: TDateTimeTagValue); overload;
   begin
-    if DateTime <> 0 then
+    if not DateTime.MissingOrInvalid then
       AddValue(Name, DateTimeToStr(DateTime));
   end;
 

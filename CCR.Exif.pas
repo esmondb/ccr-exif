@@ -234,7 +234,7 @@ type
     function Find(ID: TExifTagID; out Tag: TExifTag): Boolean;
     function GetByteValue(TagID: TExifTagID; Index: Integer; Default: Byte;
       MinValue: Byte = 0; MaxValue: Byte = High(Byte)): Byte;
-    function GetDateTimeValue(MainID, SubSecsID: TExifTagID; const Default: TDateTime = 0): TDateTime;
+    function GetDateTimeValue(MainID, SubSecsID: TExifTagID): TDateTimeTagValue;
     function GetFractionValue(TagID: TExifTagID; Index: Integer): TExifFraction; overload;
     function GetFractionValue(TagID: TExifTagID; Index: Integer;
       const Default: TExifFraction): TExifFraction; overload;
@@ -254,7 +254,7 @@ type
     procedure Remove(const IDs: array of TExifTagID); overload;
     function RemovePaddingTag: Boolean; //returns True if contained a padding tag
     function SetByteValue(TagID: TExifTagID; Index: Integer; Value: Byte): TExifTag;
-    procedure SetDateTimeValue(MainID, SubSecsID: TExifTagID; const Value: TDateTime);
+    procedure SetDateTimeValue(MainID, SubSecsID: TExifTagID; const Value: TDateTimeTagValue);
     procedure SetFractionValue(TagID: TExifTagID; Index: Integer; const Value: TExifFraction);
     function SetLongWordValue(TagID: TExifTagID; Index: Integer; Value: LongWord): TExifTag;
     procedure SetSignedFractionValue(TagID: TExifTagID; Index: Integer;
@@ -730,14 +730,14 @@ type
     function GetThumbnail: TJPEGImage;
     procedure SetThumbnail(Value: TJPEGImage);
     procedure ThumbnailChanged(Sender: TObject);
-    function GetDateTime: TDateTime;
-    procedure SetDateTime(const Value: TDateTime);
+    function GetDateTime: TDateTimeTagValue;
+    procedure SetDateTime(const Value: TDateTimeTagValue);
     function GetGeneralString(TagID: Integer): string;
     procedure SetGeneralString(TagID: Integer; const Value: string);
     function GetGeneralWinString(TagID: Integer): UnicodeString;
     procedure SetGeneralWinString(TagID: Integer; const Value: UnicodeString);
-    function GetDetailsDateTime(TagID: Integer): TDateTime;
-    procedure SetDetailsDateTime(TagID: Integer; const Value: TDateTime);
+    function GetDetailsDateTime(TagID: Integer): TDateTimeTagValue;
+    procedure SetDetailsDateTime(TagID: Integer; const Value: TDateTimeTagValue);
     function GetDetailsFraction(TagID: Integer): TExifFraction;
     procedure SetDetailsFraction(TagID: Integer; const Value: TExifFraction);
     function GetDetailsSFraction(TagID: Integer): TExifSignedFraction;
@@ -764,8 +764,8 @@ type
     procedure SetGPSAltitudeRef(const Value: TGPSAltitudeRef);
     function GetGPSFraction(TagID: Integer): TExifFraction;
     procedure SetGPSFraction(TagID: Integer; const Value: TExifFraction);
-    function GetGPSDateTimeUTC: TDateTime;
-    procedure SetGPSDateTimeUTC(const Value: TDateTime);
+    function GetGPSDateTimeUTC: TDateTimeTagValue;
+    procedure SetGPSDateTimeUTC(const Value: TDateTimeTagValue);
     function GetGPSTimeStamp(const Index: Integer): TExifFraction;
     procedure SetGPSTimeStamp(const Index: Integer; const Value: TExifFraction);
     function GetGPSString(TagID: Integer): string;
@@ -868,7 +868,7 @@ type
     function HasMakerNote: Boolean;
     function HasThumbnail: Boolean; inline;
     procedure Rewrite;
-    procedure SetAllDateTimeValues(const NewValue: TDateTime);
+    procedure SetAllDateTimeValues(const NewValue: TDateTimeTagValue);
     function ShutterSpeedInMSecs: Extended;
     function Updating: Boolean; reintroduce; inline;
     property EmbeddedIPTC: TIPTCData read FEmbeddedIPTC;
@@ -888,7 +888,7 @@ type
     property CameraMake: string index ttMake read GetGeneralString write SetGeneralString stored False;
     property CameraModel: string index ttModel read GetGeneralString write SetGeneralString stored False;
     property Copyright: string index ttCopyright read GetGeneralString write SetGeneralString stored False;
-    property DateTime: TDateTime read GetDateTime write SetDateTime stored False;
+    property DateTime: TDateTimeTagValue read GetDateTime write SetDateTime stored False;
     property ImageDescription: string index ttImageDescription read GetGeneralString write SetGeneralString stored False;
     property Orientation: TExifOrientation index Ord(esGeneral) read GetOrientation write SetOrientation stored False;
     property Resolution: TCustomExifResolution read FResolution write SetResolution stored False;
@@ -906,8 +906,8 @@ type
     property ColorSpace: TExifColorSpace read GetColorSpace write SetColorSpace stored False;
     property Contrast: TExifContrast read GetContrast write SetContrast stored False;
     property CompressedBitsPerPixel: TExifFraction index ttCompressedBitsPerPixel read GetDetailsFraction write SetDetailsFraction stored False;
-    property DateTimeOriginal: TDateTime index ttDateTimeOriginal read GetDetailsDateTime write SetDetailsDateTime stored False;
-    property DateTimeDigitized: TDateTime index ttDateTimeDigitized read GetDetailsDateTime write SetDetailsDateTime stored False;
+    property DateTimeOriginal: TDateTimeTagValue index ttDateTimeOriginal read GetDetailsDateTime write SetDetailsDateTime stored False;
+    property DateTimeDigitized: TDateTimeTagValue index ttDateTimeDigitized read GetDetailsDateTime write SetDetailsDateTime stored False;
     property DigitalZoomRatio: TExifFraction index ttDigitalZoomRatio read GetDetailsFraction write SetDetailsFraction stored False;
     property ExifVersion: TCustomExifVersion read FExifVersion write SetExifVersion stored False;
     property ExifImageWidth: TLongWordTagValue index ttExifImageWidth read GetDetailsLongWord write SetExifImageSize stored False;
@@ -975,7 +975,7 @@ type
     property GPSDestDistanceRef: TGPSDistanceRef read GetGPSDestDistanceRef write SetGPSDestDistanceRef stored False;
     property GPSDestDistance: TExifFraction index ttGPSDestDistance read GetGPSFraction write SetGPSFraction stored False;
     property GPSDifferential: TGPSDifferential read GetGPSDifferential write SetGPSDifferential stored False;
-    property GPSDateTimeUTC: TDateTime read GetGPSDateTimeUTC write SetGPSDateTimeUTC stored False;
+    property GPSDateTimeUTC: TDateTimeTagValue read GetGPSDateTimeUTC write SetGPSDateTimeUTC stored False;
     { GPS tags whose data are rolled into the GPSDataTimeUTC property, so don't display them for the sake of it }
     property GPSDateStamp: string index ttGPSDateStamp read GetGPSString write SetGPSString stored False;
     property GPSTimeStampHour: TExifFraction index 0 read GetGPSTimeStamp write SetGPSTimeStamp stored False;
@@ -2099,24 +2099,28 @@ begin
     Result := Default;
 end;
 
-function TExifSection.GetDateTimeValue(MainID, SubSecsID: TExifTagID;
-  const Default: TDateTime): TDateTime;
+function TExifSection.GetDateTimeValue(MainID, SubSecsID: TExifTagID): TDateTimeTagValue;
 var
+  DateTime: TDateTime;
   SubSecsTag: TExifTag;
   SubSecs: Integer;
   S: TiffString;
 begin
-  if not TryExifStringToDateTime(GetStringValue(MainID), Result) then
-    Result := Default
-  else if (Owner <> nil) and (SubSecsID <> 0) and Owner[esDetails].Find(SubSecsID, SubSecsTag) and
+  if not TryExifStringToDateTime(GetStringValue(MainID), DateTime) then
+  begin
+    Result := TDateTimeTagValue.CreateMissingOrInvalid;
+    Exit;
+  end;
+  if (Owner <> nil) and (SubSecsID <> 0) and Owner[esDetails].Find(SubSecsID, SubSecsTag) and
     (SubSecsTag.ElementCount > 1) and (SubSecsTag.DataType = tdAscii) then
   begin
     SetLength(S, 3);
     FillChar(Pointer(S)^, 3, '0');
     Move(SubSecsTag.Data^, S[1], Max(3, SubSecsTag.ElementCount - 1));
     if TryStrToInt(string(S), SubSecs) then
-      IncMilliSecond(Result, SubSecs)
+      IncMilliSecond(DateTime, SubSecs);
   end;
+  Result := DateTime;
 end;
 
 function TExifSection.GetFractionValue(TagID: TExifTagID; Index: Integer): TExifFraction;
@@ -2283,7 +2287,8 @@ begin
   Result := ForceSetElement(TagID, tdByte, Index, Value);
 end;
 
-procedure TExifSection.SetDateTimeValue(MainID, SubSecsID: TExifTagID; const Value: TDateTime);
+procedure TExifSection.SetDateTimeValue(MainID, SubSecsID: TExifTagID;
+  const Value: TDateTimeTagValue);
 var
   SubSecsTag: TExifTag;
 begin
@@ -2291,11 +2296,11 @@ begin
     SubSecsTag := nil
   else
     if not Owner[esDetails].Find(SubSecsID, SubSecsTag) then
-      if (Value <> 0) and Owner.AlwaysWritePreciseTimes then
+      if not Value.MissingOrInvalid and Owner.AlwaysWritePreciseTimes then
         SubSecsTag := Owner[esDetails].Add(SubSecsID, tdAscii, 4)
       else
         SubSecsTag := nil;
-  if Value = 0 then
+  if Value.MissingOrInvalid then
   begin
     Remove(MainID);
     FreeAndNil(SubSecsTag);
@@ -3888,7 +3893,7 @@ begin
   end;
 end;
 
-procedure TCustomExifData.SetAllDateTimeValues(const NewValue: TDateTime);
+procedure TCustomExifData.SetAllDateTimeValues(const NewValue: TDateTimeTagValue);
 begin
   BeginUpdate;
   try
@@ -4037,7 +4042,7 @@ begin
   SetDetailsWordEnum(ttContrast, 'Contrast', Value);
 end;
 
-function TCustomExifData.GetDetailsDateTime(TagID: Integer): TDateTime;
+function TCustomExifData.GetDetailsDateTime(TagID: Integer): TDateTimeTagValue;
 var
   SubSecsID: TExifTagID;
 begin
@@ -4152,7 +4157,7 @@ begin
   Result := egTagMissing;
 end;
 
-function TCustomExifData.GetDateTime: TDateTime;
+function TCustomExifData.GetDateTime: TDateTimeTagValue;
 begin
   Result := FSections[esGeneral].GetDateTimeValue(ttDateTime, ttSubsecTime);
 end;
@@ -4179,37 +4184,41 @@ begin
   Result := alTagMissing;
 end;
 
-function TCustomExifData.GetGPSDateTimeUTC: TDateTime;
+function TCustomExifData.GetGPSDateTimeUTC: TDateTimeTagValue;
 var
+  DatePart, TimePart: TDateTime;
   Hour, Minute, Second: TExifFraction;
   S: string;
-  TimePart: TDateTime;
   Year, Month, Day: Integer;
 begin
   S := GPSDateStamp;
   if (Length(S) <> 10) or not TryStrToInt(Copy(S, 1, 4), Year) or
       not TryStrToInt(Copy(S, 6, 2), Month) or not TryStrToInt(Copy(S, 9, 2), Day) or
-      not TryEncodeDate(Year, Month, Day, Result) then
-    Result := 0;
+      not TryEncodeDate(Year, Month, Day, DatePart) then
+    DatePart := 0;
   Hour := GPSTimeStampHour;
   Minute := GPSTimeStampMinute;
   Second := GPSTimeStampSecond;
-  if Hour.MissingOrInvalid or Minute.MissingOrInvalid or Second.MissingOrInvalid then
-    Exit;
-  if TryEncodeTime(Trunc(Hour.Quotient), Trunc(Minute.Quotient), Trunc(Second.Quotient),
-      0, TimePart) then
+  if Hour.MissingOrInvalid or Minute.MissingOrInvalid or Second.MissingOrInvalid or
+    not TryEncodeTime(Trunc(Hour.Quotient), Trunc(Minute.Quotient),
+      Trunc(Second.Quotient), 0, TimePart) then
   begin
-    if Result = 0 then
-    begin
-      Result := DateTime;
-      if Result = 0 then Result := DateTimeOriginal;
-      Result := DateOf(Result);
-    end;
-    if Result >= 0 then
-      Result := Result + TimePart
+    if DatePart = 0 then
+      Result := TDateTimeTagValue.CreateMissingOrInvalid
     else
-      Result := Result - TimePart
+      Result := DatePart;
+    Exit;
   end;
+  if DatePart = 0 then
+  begin
+    DatePart := DateTime;
+    if DatePart = 0 then DatePart := DateTimeOriginal;
+    DatePart := DateOf(DatePart);
+  end;
+  if DatePart >= 0 then
+    Result := DatePart + TimePart
+  else
+    Result := DatePart - TimePart
 end;
 
 function TCustomExifData.GetGPSFraction(TagID: Integer): TExifFraction;
@@ -4541,7 +4550,7 @@ begin
   end;
 end;
 
-procedure TCustomExifData.SetDetailsDateTime(TagID: Integer; const Value: TDateTime);
+procedure TCustomExifData.SetDetailsDateTime(TagID: Integer; const Value: TDateTimeTagValue);
 var
   SubSecsID: TExifTagID;
   XMPName: string;
@@ -4731,7 +4740,7 @@ begin
   SetDetailsWordEnum(ttGainControl, 'GainControl', Value);
 end;
 
-procedure TCustomExifData.SetDateTime(const Value: TDateTime);
+procedure TCustomExifData.SetDateTime(const Value: TDateTimeTagValue);
 begin
   FSections[esGeneral].SetDateTimeValue(ttDateTime, ttSubsecTime, Value);
   XMPPacket.UpdateDateTimeProperty(xsTIFF, 'DateTime', Value, False);
@@ -4784,7 +4793,7 @@ begin
   XMPPacket.UpdateProperty(xsExif, GetGPSTagXMPName(ttGPSAltitudeRef), Ord(Value));
 end;
 
-procedure TCustomExifData.SetGPSDateTimeUTC(const Value: TDateTime);
+procedure TCustomExifData.SetGPSDateTimeUTC(const Value: TDateTimeTagValue);
 const
   XMPName = UnicodeString('GPSTimeStamp');
 var
@@ -4792,7 +4801,7 @@ var
 begin
   BeginUpdate;
   try
-    if Value = 0 then
+    if Value.MissingOrInvalid then
     begin
       FSections[esGPS].Remove(ttGPSDateStamp);
       FSections[esGPS].Remove(ttGPSTimeStamp);
