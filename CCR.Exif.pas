@@ -587,6 +587,8 @@ type
       out HeaderSize: Integer): Boolean; overload; virtual; abstract;
     procedure GetIFDInfo(SourceTag: TExifTag; var ProbableEndianness: TEndianness;
       var DataOffsetsType: TExifDataOffsetsType); virtual;
+    function GetFractionValue(TagID: Integer): TExifFraction;
+    function GetTagAsString(TagID: Integer): string;
     //procedure RewriteSourceTag(Tag: TExifTag); virtual;
     //procedure WriteHeader(Stream: TStream); virtual; abstract;
     //procedure SaveToStream(Stream: TStream; const StartPos: Int64);
@@ -665,6 +667,32 @@ type
     class function FormatIsOK(SourceTag: TExifTag; out HeaderSize: Integer): Boolean; override;
     procedure GetIFDInfo(SourceTag: TExifTag; var ProbableEndianness: TEndianness;
       var DataOffsetsType: TExifDataOffsetsType); override;
+  public
+    property ColorMode: string index ttNikonType3ColorMode read GetTagAsString;
+    property Quality: string index ttNikonType3Quality read GetTagAsString;
+    property WhiteBalance: string index ttNikonType3WhiteBalance read GetTagAsString;
+    property Sharpening: string index ttNikonType3Sharpening read GetTagAsString;
+    property FocusMode: string index ttNikonType3FocusMode read GetTagAsString;
+    property FlashSetting: string index ttNikonType3FlashSetting read GetTagAsString;
+    property AutoFlashMode: string index ttNikonType3AutoFlashMode read GetTagAsString;
+    property MiscRatio: TExifFraction index ttNikonType3MiscRatio read GetFractionValue;
+    property ISOSelection: string index ttNikonType3ISOSelection read GetTagAsString;
+    property AutoExposureBracketComp: TExifFraction index ttNikonType3AutoExposureBracketComp read GetFractionValue;
+    property SerialNumber: string index ttNikonType3SerialNumber read GetTagAsString;
+    property ImageAdjustment: string index ttNikonType3ImageAdjustment read GetTagAsString;
+    property ToneComp: string index ttNikonType3ToneComp read GetTagAsString;
+    property AuxiliaryLens: string index ttNikonType3AuxiliaryLens read GetTagAsString;
+    property DigitalZoom: TExifFraction index ttNikonType3DigitalZoom read GetFractionValue;
+    property SceneMode: string index ttNikonType3SceneMode read GetTagAsString;
+    property LightSource: string index ttNikonType3LightSource read GetTagAsString;
+    property NoiseReduction: string index ttNikonType3NoiseReduction read GetTagAsString;
+    property SceneAssist: string index ttNikonType3SceneAssist read GetTagAsString;
+    property CameraSerialNumber: string index ttNikonType3CameraSerialNumber read GetTagAsString;
+    property Saturation: string index ttNikonType3Saturation read GetTagAsString;
+    property DigitalVarProgram: string index ttNikonType3DigitalVarProg read GetTagAsString;
+    property ImageStabilization: string index ttNikonType3ImageStabilization read GetTagAsString;
+    property AFResponse: string index ttNikonType3AFResponse read GetTagAsString;
+    property CaptureVersion: string index ttNikonType3CaptureVersion read GetTagAsString;
   end;
 
   TSonyMakerNote = class(TExifMakerNote)
@@ -5864,6 +5892,24 @@ end;
 procedure TExifMakerNote.GetIFDInfo(SourceTag: TExifTag;
   var ProbableEndianness: TEndianness; var DataOffsetsType: TExifDataOffsetsType);
 begin
+end;
+
+function TExifMakerNote.GetFractionValue(TagID: Integer): TExifFraction;
+begin
+  if (TagID >= Low(TTiffTagID)) and (TagID <= Low(TTiffTagID)) then
+    Result := Tags.GetFractionValue(TTiffTagID(TagID), 0, NullFraction)
+  else
+    Result := NullFraction;
+end;
+
+function TExifMakerNote.GetTagAsString(TagID: Integer): string;
+var
+  Tag: TExifTag;
+begin
+  if (TagID >= Low(TTiffTagID)) and (TagID <= High(TTiffTagID)) and Tags.Find(TagID, Tag) then
+    Result := Tag.AsString
+  else
+    Result := '';
 end;
 
 { TUnrecognizedMakerNote }
