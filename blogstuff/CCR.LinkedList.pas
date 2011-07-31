@@ -471,7 +471,6 @@ procedure TLinkedList<T>.InsertRangeBefore(ANode: TNode; ACollection: TEnumerabl
 var
   Cursor: TNode;
   Value: T;
-  Values: TArray<T>;
 begin
   Cursor := nil;
   for Value in ACollection do
