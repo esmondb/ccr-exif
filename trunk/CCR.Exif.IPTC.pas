@@ -135,6 +135,12 @@ type
     function AddOrUpdate(TagID: TIPTCTagID; NewDataSize: LongInt; const Buffer): TIPTCTag;
     function GetDateValue(TagID: TIPTCTagID): TDateTimeTagValue;
     procedure SetDateValue(TagID: TIPTCTagID; const Value: TDateTimeTagValue);
+    function GetDateTimeValue(DateTagID, TimeTagID: TIPTCTagID; AsUtc: Boolean = False): TDateTimeTagValue;
+    procedure SetDateTimeValue(DateTagID, TimeTagID: TIPTCTagID;
+      const Value: TDateTimeTagValue; AheadOfUtc: Boolean; UtcOffsetHrs, UtcOffsetMins: Byte); overload;
+    {$IFDEF HasTTimeZone}
+    procedure SetDateTimeValue(DateTagID, TimeTagID: TIPTCTagID; const Value: TDateTimeTagValue); overload;
+    {$ENDIF}
     function GetPriorityValue(TagID: TIPTCTagID): TIPTCPriority;
     procedure SetPriorityValue(TagID: TIPTCTagID; Value: TIPTCPriority);
     function GetRepeatableValue(TagID: TIPTCTagID): TStringDynArray; overload;
@@ -200,6 +206,12 @@ type
     procedure SetDate(PackedIndex: Integer; const Value: TDateTimeTagValue);
     function GetActionAdvised: TIPTCActionAdvised;
     procedure SetActionAdvised(Value: TIPTCActionAdvised);
+    function GetDateTimeCreated: TDateTimeTagValue;
+    function GetDateTimeSent: TDateTimeTagValue;
+    {$IFDEF HasTTimeZone}
+    procedure SetDateTimeCreatedProp(const Value: TDateTimeTagValue);
+    procedure SetDateTimeSentProp(const Value: TDateTimeTagValue);
+    {$ENDIF}
     function GetImageOrientation: TIPTCImageOrientation;
     procedure SetImageOrientation(Value: TIPTCImageOrientation);
   protected
@@ -221,6 +233,10 @@ type
     procedure AddFromStream(Stream: TStream);
     procedure Assign(Source: TPersistent); override;
     procedure Clear;
+    procedure SetDateTimeCreated(const Value: TDateTimeTagValue; AheadOfUtc: Boolean;
+      UtcOffsetHrs, UtcOffsetMins: Byte); overload;
+    procedure SetDateTimeSent(const Value: TDateTimeTagValue; AheadOfUtc: Boolean;
+      UtcOffsetHrs, UtcOffsetMins: Byte); overload;
     { Whether or not metadata was found, LoadFromGraphic returns True if the graphic format
       was recognised as one that *could* contain relevant metadata and False otherwise. }
     function LoadFromGraphic(Stream: TStream): Boolean; overload;
@@ -263,6 +279,8 @@ type
     property ProductID: string index itProductID read GetEnvelopeString write SetEnvelopeString stored False;
     property EnvelopePriority: TIPTCPriority read GetEnvelopePriority write SetEnvelopePriority stored False;
     property DateSent: TDateTimeTagValue index isEnvelope or itDateSent shl 8 read GetDate write SetDate;
+    property TimeSent: string index itTimeSent read GetEnvelopeString write SetEnvelopeString stored False;
+    property DateTimeSent: TDateTimeTagValue read GetDateTimeSent {$IFDEF HasTTimeZone}write SetDateTimeSentProp{$ENDIF} stored False;
     property UNOCode: string index itUNO read GetEnvelopeString write SetEnvelopeString stored False; //should have a specific format
     property ARMIdentifier: TWordTagValue index itARMIdentifier read GetEnvelopeWord write SetEnvelopeWord stored False; //!!!make an enum
     property ARMVersion: TWordTagValue index itARMVersion read GetEnvelopeWord write SetEnvelopeWord stored False; //!!!make an enum
@@ -289,6 +307,7 @@ type
     property SpecialInstructions: string index itSpecialInstructions read GetApplicationString write SetApplicationString stored False;
     property ActionAdvised: TIPTCActionAdvised read GetActionAdvised write SetActionAdvised stored False;
     property DateCreated: TDateTimeTagValue index isApplication or itDateCreated shl 8 read GetDate write SetDate stored False;
+    property DateTimeCreated: TDateTimeTagValue read GetDateTimeCreated {$IFDEF HasTTimeZone}write SetDateTimeCreatedProp{$ENDIF} stored False;
     property DigitalCreationDate: TDateTimeTagValue index isApplication or itDigitalCreationDate shl 8 read GetDate write SetDate stored False;
     property OriginatingProgram: string index itOriginatingProgram read GetApplicationString write SetApplicationString stored False;
     property ProgramVersion: string index itProgramVersion read GetApplicationString write SetApplicationString stored False;
@@ -326,7 +345,9 @@ type
 
 implementation
 
-uses Contnrs, Math, CCR.Exif.Consts, CCR.Exif.StreamHelper;
+uses
+  Contnrs, DateUtils, Math, {$IFDEF HasTTimeZone}TimeSpan,{$ENDIF}
+  CCR.Exif.Consts, CCR.Exif.StreamHelper;
 
 const
   PriorityChars: array[TIPTCPriority] of AnsiChar = (#0, '8', '7', '6', '5', '4',
@@ -613,6 +634,79 @@ begin
   DecodeDate(Value, Year, Month, Day);
   SetStringValue(TagID, Format('%.4d%.2d%.2d', [Year, Month, Day]));
 end;
+
+function TIPTCSection.GetDateTimeValue(DateTagID, TimeTagID: TIPTCTagID; AsUtc: Boolean): TDateTimeTagValue;
+var
+  OffsetHrs, OffsetMins: Integer;
+  I: Integer;
+  S: string;
+  TimePart: TDateTimeTagValue;
+  Temp: TDateTime;
+begin
+  TimePart := TDateTimeTagValue.CreateMissingOrInvalid;
+  S := GetStringValue(TimeTagID);
+  if (Length(S) = 11) and CharInSet(S[7], ['-', '+']) and TryStrToInt(Copy(S, 8, 2),
+    OffsetHrs) and TryStrToInt(Copy(S, 10, 2), OffsetMins) then
+  begin
+    for I in [1, 2, 3, 4, 5, 6, 8, 9, 10, 11] do
+      if not CharInSet(S[I], ['0'..'9']) then
+      begin
+        S := '';
+        Break;
+      end;
+    if (S <> '') then
+    begin
+      if not AsUtc then
+      begin
+        OffsetHrs := 0;
+        OffsetMins := 0;
+      end
+      else if S[7] = '+' then //i.e., if the local time is ahead of GMT
+      begin
+        OffsetHrs := -OffsetHrs;
+        OffsetMins := -OffsetMins;
+      end;
+      if TryEncodeTime(StrToInt(Copy(S, 1, 2)) + OffsetHrs, StrToInt(Copy(S, 3, 2)) +
+        OffsetMins, StrToInt(Copy(S, 5, 2)), 0, Temp) then
+        TimePart := Temp;
+    end;
+  end;
+  Result := GetDateValue(DateTagID);
+  if TimePart.MissingOrInvalid then Exit;
+  if Result.MissingOrInvalid then
+    Result := TimePart
+  else
+    Result := Result.Value + TimePart.Value;
+end;
+
+procedure TIPTCSection.SetDateTimeValue(DateTagID, TimeTagID: TIPTCTagID;
+  const Value: TDateTimeTagValue; AheadOfUtc: Boolean; UtcOffsetHrs, UtcOffsetMins: Byte);
+const
+  PlusOrMinus: array[Boolean] of string = ('-', '+');
+var
+  Year, Month, Day, Hour, Minute, Second, MilliSecond: Word;
+begin
+  if Value.MissingOrInvalid then
+  begin
+    Remove([DateTagID, TimeTagID]);
+    Exit;
+  end;
+  DecodeDateTime(Value, Year, Month, Day, Hour, Minute, Second, MilliSecond);
+  SetStringValue(DateTagID, Format('%.4d%.2d%.2d', [Year, Month, Day]));
+  SetStringValue(TimeTagID, Format('%.2d%.2d%.2d%s%.2d%.2d', [Hour, Minute, Second,
+    PlusOrMinus[AheadOfUtc], UtcOffsetHrs, UtcOffsetMins]));
+end;
+
+{$IFDEF HasTTimeZone}
+procedure TIPTCSection.SetDateTimeValue(DateTagID, TimeTagID: TIPTCTagID; const Value: TDateTimeTagValue);
+var
+  Offset: TTimeSpan;
+begin
+  Offset := TTimeZone.Local.UtcOffset;
+  SetDateTimeValue(DateTagID, TimeTagID, Value, Offset.Ticks >= 0, Abs(Offset.Hours),
+    Abs(Offset.Minutes));
+end;
+{$ENDIF}
 
 function TIPTCSection.GetEnumerator: TEnumerator;
 begin
@@ -1123,6 +1217,42 @@ function TIPTCData.GetDate(PackedIndex: Integer): TDateTimeTagValue;
 begin
   Result := Sections[Lo(PackedIndex)].GetDateValue(Hi(PackedIndex));
 end;
+
+function TIPTCData.GetDateTimeCreated: TDateTimeTagValue;
+begin
+  Result := Sections[isApplication].GetDateTimeValue(itDateCreated, itTimeCreated)
+end;
+
+function TIPTCData.GetDateTimeSent: TDateTimeTagValue;
+begin
+  Result := Sections[isEnvelope].GetDateTimeValue(itDateSent, itTimeSent)
+end;
+
+procedure TIPTCData.SetDateTimeCreated(const Value: TDateTimeTagValue; AheadOfUtc: Boolean;
+  UtcOffsetHrs, UtcOffsetMins: Byte);
+begin
+  Sections[isApplication].SetDateTimeValue(itDateCreated, itTimeCreated, Value,
+    AheadOfUtc, UtcOffsetHrs, UtcOffsetMins);
+end;
+
+procedure TIPTCData.SetDateTimeSent(const Value: TDateTimeTagValue; AheadOfUtc: Boolean;
+  UtcOffsetHrs, UtcOffsetMins: Byte);
+begin
+  Sections[isEnvelope].SetDateTimeValue(itDateSent, itTimeSent, Value,
+    AheadOfUtc, UtcOffsetHrs, UtcOffsetMins);
+end;
+
+{$IFDEF HasTTimeZone}
+procedure TIPTCData.SetDateTimeCreatedProp(const Value: TDateTimeTagValue);
+begin
+  Sections[isApplication].SetDateTimeValue(itDateCreated, itTimeCreated, Value);
+end;
+
+procedure TIPTCData.SetDateTimeSentProp(const Value: TDateTimeTagValue);
+begin
+  Sections[isEnvelope].SetDateTimeValue(itDateSent, itTimeSent, Value);
+end;
+{$ENDIF}
 
 function TIPTCData.GetImageOrientation: TIPTCImageOrientation;
 var
