@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<BorlandProject>
+	<PersonalityInfo>
+		<Option>
+			<Option Name="Personality">Default.Personality</Option>
+			<Option Name="ProjectType"></Option>
+			<Option Name="Version">1.0</Option>
+			<Option Name="GUID">{8BF95095-4741-41BF-8FEA-2299867792A9}</Option>
+		</Option>
+	</PersonalityInfo>
+	<Default.Personality>  <Projects>
+      <Projects Name="CreateXMPSidecar.exe">Console Demos\CreateXMPSidecar\CreateXMPSidecar.bdsproj</Projects>
+      <Projects Name="PanaMakerPatch.exe">Console Demos\PanaMakerPatch\PanaMakerPatch.bdsproj</Projects>
+      <Projects Name="StripJPEGMetadata.exe">Console Demos\StripJPEGMetadata\StripJPEGMetadata.bdsproj</Projects>
+      <Projects Name="XMPResaveTest.exe">Console Demos\XMPResaveTest\XMPResaveTest.bdsproj</Projects>
+      <Projects Name="Targets">CreateXMPSidecar.exe PanaMakerPatch.exe StripJPEGMetadata.exe XMPResaveTest.exe</Projects>
+    </Projects>
+    <Dependencies/>
+  </Default.Personality>
+</BorlandProject>
