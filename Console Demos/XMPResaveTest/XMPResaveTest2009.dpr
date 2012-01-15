@@ -1,4 +1,4 @@
-program XMPResaveTest;
+program XMPResaveTest2009;
 
 {$APPTYPE CONSOLE}
 
@@ -9,7 +9,6 @@ uses
   CCR.Exif.TagIDs in '..\..\CCR.Exif.TagIDs.pas',
   CCR.Exif.TiffUtils in '..\..\CCR.Exif.TiffUtils.pas',
   CCR.Exif.XMPUtils in '..\..\CCR.Exif.XMPUtils.pas',
-  CCR.UseMSXML6 in 'CCR.UseMSXML6.pas',
   XMPResaveTestImpl in 'XMPResaveTestImpl.pas';
 
 begin
