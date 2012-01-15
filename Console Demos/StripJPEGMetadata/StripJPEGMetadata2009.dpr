@@ -1,4 +1,4 @@
-program StripJPEGMetadata;
+program StripJPEGMetadata2009;
 
 {$APPTYPE CONSOLE}
 

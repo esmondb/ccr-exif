@@ -1,0 +1,28 @@
+----------------------------------------------------------------------------
+                     JPEG Metadata Stripper v%1:s
+----------------------------------------------------------------------------
+
+Usage:
+%0:s Jpeg1 [Jpeg2 Jpeg3...] [switches]
+
+The file name(s) may contain wildcards.
+
+Switches:
+-all     Remove all APP and COM segments, excepting any JFIF header. This is
+         the default if no specific segments or metadata kinds are specified
+-app#    Remove any APP# segements, where # is a number between 0 and 15
+         inclusive.
+-com     Remove any JPEG comment (i.e., any COM segment).
+-exif    Remove any Exif data.
+-iptc    Remove any IPTC data, as stored in a APP13 segment. Any non-IPTC
+         data in the latter will be preserved.
+-xmp     Remove any XMP packets.
+-backup  If a file of the form "MyFile (original).jpg" does not already
+         exist, it is created by copying the source before any metadata is
+         removed.
+-quiet   Causes the program not to report what has been removed.
+
+Examples:
+%0:s "My Photo.jpeg"
+%0:s "Another Photo.jpg" -app2 -app13
+%0:s *.jpg *.jpeg -xmp -backup
