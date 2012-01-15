@@ -1,4 +1,4 @@
-program CreateXMPSidecar;
+program CreateXMPSidecar2009;
 
 {$APPTYPE CONSOLE}
 
@@ -12,7 +12,7 @@ uses
   CCR.Exif.StreamHelper in '..\..\CCR.Exif.StreamHelper.pas',
   CCR.Exif.TagIDs in '..\..\CCR.Exif.TagIDs.pas',
   CCR.Exif.TiffUtils in '..\..\CCR.Exif.TiffUtils.pas',
-  CCR.Exif.XMPUtils in '..\..\CCR.Exif.XMPUtils.pas' {$R *.res},
+  CCR.Exif.XMPUtils in '..\..\CCR.Exif.XMPUtils.pas',
   CreateXMPSidecarImpl in 'CreateXMPSidecarImpl.pas';
 
 begin

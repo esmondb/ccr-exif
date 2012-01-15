@@ -1,0 +1,27 @@
+--------------------------------------------------------------
+                XMP Sidecar Creator v%1:s
+--------------------------------------------------------------
+
+Creates an XMP sidecar file for a given JPEG image, using data
+stored in the image's Exif segment. If the JPEG contains an
+XMP packet too, properties from it are outputted as well.
+
+Usage:
+%0:s SourceJpegFile [OutputXMPFile]
+
+Notes:
+- If OutputXMPFile is not specified, the source file name with
+  its extension changed to .xmp is used.
+- Both SourceJpegFile and OutputXMPFile can include an
+  asterisk wildcard.
+- On OS X, wrap parameters that contain wildcards in double
+  quotes (e.g. "*.jpeg") so that the command-line interpreter
+  will not expand them before the application gets to see
+  what you've passed.
+
+Examples:
+%0:s "My Photo.jpg"
+%0:s "My Photo.jpg" "*.xml"
+%0:s "My Photo.jpg" "My Photo (tags).txt"
+%0:s "*.jpg" "*.xml"
+%0:s "*.jpg" "* (tags).txt"

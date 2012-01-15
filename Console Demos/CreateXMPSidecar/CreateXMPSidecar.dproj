@@ -5,7 +5,7 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <DCC_DCCCompiler>DCC32</DCC_DCCCompiler>
-    <DCC_DependencyCheckOutputName>CreateXMPSidecar.exe</DCC_DependencyCheckOutputName>
+    <DCC_DependencyCheckOutputName>..\Bin\Win32\Debug\CreateXMPSidecar.exe</DCC_DependencyCheckOutputName>
     <MainSource>CreateXMPSidecar.dpr</MainSource>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
@@ -14,18 +14,24 @@
     <DCC_LocalDebugSymbols>False</DCC_LocalDebugSymbols>
     <DCC_SymbolReferenceInfo>0</DCC_SymbolReferenceInfo>
     <DCC_Define>RELEASE</DCC_Define>
+    <DCC_ExeOutput>..\Bin\Win32\Release</DCC_ExeOutput>
+    <DCC_DcuOutput>..\..\DCUs\Win32\Release</DCC_DcuOutput>
+    <DCC_ObjOutput>..\..\DCUs\Win32\Release</DCC_ObjOutput>
+    <DCC_HppOutput>..\..\DCUs\Win32\Release</DCC_HppOutput>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <Version>7.0</Version>
     <DCC_Define>DEBUG</DCC_Define>
+    <DCC_ExeOutput>..\Bin\Win32\Debug</DCC_ExeOutput>
+    <DCC_DcuOutput>..\..\DCUs\Win32\Debug</DCC_DcuOutput>
+    <DCC_ObjOutput>..\..\DCUs\Win32\Debug</DCC_ObjOutput>
+    <DCC_HppOutput>..\..\DCUs\Win32\Debug</DCC_HppOutput>
   </PropertyGroup>
   <ProjectExtensions>
     <Borland.Personality>Delphi.Personality</Borland.Personality>
     <Borland.ProjectType />
     <BorlandProject>
-<BorlandProject><Delphi.Personality><Parameters><Parameters Name="UseLauncher">False</Parameters><Parameters Name="LoadAllSymbols">True</Parameters><Parameters Name="LoadUnspecifiedSymbols">False</Parameters></Parameters><VersionInfo><VersionInfo Name="IncludeVerInfo">True</VersionInfo><VersionInfo Name="AutoIncBuild">False</VersionInfo><VersionInfo Name="MajorVer">1</VersionInfo><VersionInfo Name="MinorVer">1</VersionInfo><VersionInfo Name="Release">0</VersionInfo><VersionInfo Name="Build">2010</VersionInfo><VersionInfo Name="Debug">False</VersionInfo><VersionInfo Name="PreRelease">False</VersionInfo><VersionInfo Name="Special">False</VersionInfo><VersionInfo Name="Private">False</VersionInfo><VersionInfo Name="DLL">False</VersionInfo><VersionInfo Name="Locale">2057</VersionInfo><VersionInfo Name="CodePage">1252</VersionInfo></VersionInfo><VersionInfoKeys><VersionInfoKeys Name="CompanyName">Christopher Rolliston</VersionInfoKeys><VersionInfoKeys Name="FileDescription">XMP Sidecar Creator</VersionInfoKeys><VersionInfoKeys Name="FileVersion">1.1.0.2010</VersionInfoKeys><VersionInfoKeys Name="InternalName">CreateXMPSidecar</VersionInfoKeys><VersionInfoKeys Name="LegalCopyright">Copyright (c) CC Rolliston</VersionInfoKeys><VersionInfoKeys Name="LegalTrademarks"></VersionInfoKeys><VersionInfoKeys Name="OriginalFilename">CreateXMPSidecar.exe</VersionInfoKeys><VersionInfoKeys Name="ProductName">Exif Utilities</VersionInfoKeys><VersionInfoKeys Name="ProductVersion">1.1.0.2010</VersionInfoKeys><VersionInfoKeys Name="Comments">http://delphihaven.wordpress.com/</VersionInfoKeys></VersionInfoKeys><Excluded_Packages>
-      
-      
+<BorlandProject><Delphi.Personality><Parameters><Parameters Name="UseLauncher">False</Parameters><Parameters Name="LoadAllSymbols">True</Parameters><Parameters Name="LoadUnspecifiedSymbols">False</Parameters></Parameters><VersionInfo><VersionInfo Name="IncludeVerInfo">False</VersionInfo><VersionInfo Name="AutoIncBuild">False</VersionInfo><VersionInfo Name="MajorVer">1</VersionInfo><VersionInfo Name="MinorVer">1</VersionInfo><VersionInfo Name="Release">0</VersionInfo><VersionInfo Name="Build">2010</VersionInfo><VersionInfo Name="Debug">False</VersionInfo><VersionInfo Name="PreRelease">False</VersionInfo><VersionInfo Name="Special">False</VersionInfo><VersionInfo Name="Private">False</VersionInfo><VersionInfo Name="DLL">False</VersionInfo><VersionInfo Name="Locale">2057</VersionInfo><VersionInfo Name="CodePage">1252</VersionInfo></VersionInfo><VersionInfoKeys><VersionInfoKeys Name="CompanyName">Christopher Rolliston</VersionInfoKeys><VersionInfoKeys Name="FileDescription">XMP Sidecar Creator</VersionInfoKeys><VersionInfoKeys Name="FileVersion">1.1.0.2010</VersionInfoKeys><VersionInfoKeys Name="InternalName">CreateXMPSidecar</VersionInfoKeys><VersionInfoKeys Name="LegalCopyright">Copyright (c) CC Rolliston</VersionInfoKeys><VersionInfoKeys Name="LegalTrademarks"></VersionInfoKeys><VersionInfoKeys Name="OriginalFilename">CreateXMPSidecar.exe</VersionInfoKeys><VersionInfoKeys Name="ProductName">Exif Utilities</VersionInfoKeys><VersionInfoKeys Name="ProductVersion">1.1.0.2010</VersionInfoKeys><VersionInfoKeys Name="Comments">http://delphihaven.wordpress.com/</VersionInfoKeys></VersionInfoKeys><Excluded_Packages>
       <Excluded_Packages Name="$(BDS)\bin\dcloffice2k100.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
       <Excluded_Packages Name="$(BDS)\bin\dclofficexp100.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
     </Excluded_Packages><Source><Source Name="MainSource">CreateXMPSidecar.dpr</Source></Source></Delphi.Personality></BorlandProject></BorlandProject>
@@ -35,14 +41,19 @@
     <DelphiCompile Include="CreateXMPSidecar.dpr">
       <MainSource>MainSource</MainSource>
     </DelphiCompile>
+    <RcCompile Include="Help.rc">
+      <Form>Help.res</Form>
+    </RcCompile>
+    <DCCReference Include="..\..\CCR.Exif.BaseUtils.pas" />
     <DCCReference Include="..\..\CCR.Exif.Consts.pas" />
     <DCCReference Include="..\..\CCR.Exif.IPTC.pas" />
-    <DCCReference Include="..\..\CCR.Exif.JPEGUtils.pas" />
     <DCCReference Include="..\..\CCR.Exif.pas" />
     <DCCReference Include="..\..\CCR.Exif.StreamHelper.pas" />
     <DCCReference Include="..\..\CCR.Exif.TagIDs.pas" />
+    <DCCReference Include="..\..\CCR.Exif.TiffUtils.pas" />
     <DCCReference Include="..\..\CCR.Exif.XMPUtils.pas">
       <Form>$R *.res</Form>
     </DCCReference>
+    <DCCReference Include="CreateXMPSidecarImpl.pas" />
   </ItemGroup>
 </Project>
