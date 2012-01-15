@@ -1,8 +1,8 @@
-program StripJPEGMetadata;
+program StripJPEGMetadataXE;
 
 {$APPTYPE CONSOLE}
 
-{$R 'Help.res' 'Help.rc'}
+{$R *.dres}
 
 uses
   CCR.Exif in '..\..\CCR.Exif.pas',
