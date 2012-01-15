@@ -1,4 +1,4 @@
-program PanaMakerPatch;
+program PanaMakerPatch2009;
 
 {$APPTYPE CONSOLE}
 
