@@ -1,7 +1,7 @@
 {**************************************************************************************}
 {                                                                                      }
 { CCR Exif - Delphi class library for reading and writing image metadata               }
-{ Version 1.5.0 beta                                                                   }
+{ Version 1.5.1 beta                                                                   }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -14,7 +14,7 @@
 { The Original Code is CCR.Exif.BaseUtils.pas.                                         }
 {                                                                                      }
 { The Initial Developer of the Original Code is Chris Rolliston. Portions created by   }
-{ Chris Rolliston are Copyright (C) 2009-2011 Chris Rolliston. All Rights Reserved.    }
+{ Chris Rolliston are Copyright (C) 2009-2012 Chris Rolliston. All Rights Reserved.    }
 {                                                                                      }
 {**************************************************************************************}
 
@@ -24,7 +24,7 @@ unit CCR.Exif.BaseUtils;
 interface
 
 uses
-  {$IFDEF MSWINDOWS}Windows,{$ENDIF} Types, SysUtils, Classes, Graphics,
+  Types, SysUtils, Classes,
   {$IFNDEF UNICODE}WideStrings,{$ENDIF} CCR.Exif.StreamHelper;
 
 { backfill basic types and routines for D2006-7 }
@@ -44,7 +44,6 @@ type
   {$IF not Declared(TBytes)}
   TBytes = array of Byte;           //added in D2007
   {$IFEND}
-
 function CharInSet(Ch: AnsiChar; const CharSet: TSysCharSet): Boolean; inline; overload;
 function CharInSet(Ch: WideChar; const CharSet: TSysCharSet): Boolean; inline; overload;
 function UpCase(const Ch: AnsiChar): AnsiChar; overload;
@@ -55,10 +54,13 @@ function UTF8ToString(UTF8Buffer: Pointer; ByteLen: Integer): string; overload;
 function BinToHexStr(Data: Pointer; Size: Integer): string; overload;
 function BinToHexStr(const Buffer; Size: Integer): string; overload; inline;
 
+function GetExecutableName: string; inline;
+
 { non-specific }
 
 type
   ECCRExifException = class(Exception);
+  EUnsupportedGraphicFormat = class(ECCRExifException);
 
   TMetadataLoadError = (leBadOffset, leBadTagCount, leBadTagHeader);
   TMetadataLoadErrors = set of TMetadataLoadError;
@@ -229,13 +231,13 @@ type
 
 procedure DoSaveToGraphic(const FileName: string;
   const DetectTypeFunc: TGetGraphicSaveMethod); overload;
-procedure DoSaveToGraphic(Graphic: TGraphic;
+procedure DoSaveToGraphic(const Graphic: IStreamPersist; //!!!changed from TGraphic
   const DetectTypeFunc: TGetGraphicSaveMethod); overload;
 
 { PSD file parsing and writing; note that Adobe resource blocks may be found in other types of file too }
 
 type
-  EInvalidPSDHeader = class(EInvalidGraphic);
+  EInvalidPSDHeader = class(ECCRExifException);
 
   TIPTCSectionID = 1..9;
   TIPTCTagID = type Byte;
@@ -329,7 +331,7 @@ procedure WritePSDResourceSection(Stream: TStream; const Blocks: IInterfaceList)
 { JPEG file parsing and writing }
 
 type
-  EInvalidJPEGHeader = class(EInvalidGraphic);
+  EInvalidJPEGHeader = class(ECCRExifException);
 
   PJPEGSegmentHeader = ^TJPEGSegmentHeader;
   TJPEGSegmentHeader = packed record
@@ -503,17 +505,17 @@ function JPEGHeader(JPEGStream: TStream; const MarkersToLookFor: TJPEGMarkers = 
   StreamOwnership: TStreamOwnership = soReference): IJPEGHeaderParser; overload;
 function JPEGHeader(const JPEGFile: string;
   const MarkersToLookFor: TJPEGMarkers = TJPEGSegment.AnyMarker): IJPEGHeaderParser; overload; inline;
-function JPEGHeader(JPEGImage: TGraphic;
+function JPEGHeader(const JPEGImage: IStreamPersist; //!!!changed from TGraphic
   const MarkersToLookFor: TJPEGMarkers = TJPEGSegment.AnyMarker): IJPEGHeaderParser; overload;
 
 function HasJPEGHeader(Stream: TStream): Boolean; overload;
 function HasJPEGHeader(const FileName: string): Boolean; overload;
 
 function GetJPEGDataSize(Data: TStream; ReturnZeroIfFindNoEOI: Boolean = False): Int64; overload;
-function GetJPEGDataSize(JPEGImage: TGraphic): Int64; overload;
+function GetJPEGDataSize(const JPEGImage: IStreamPersist): Int64; overload;
 
 function RemoveJPEGSegments(const JPEGFile: string; Markers: TJPEGMarkers): TJPEGMarkers; overload;
-function RemoveJPEGSegments(JPEGImage: TGraphic; Markers: TJPEGMarkers): TJPEGMarkers; overload;
+function RemoveJPEGSegments(const JPEGImage: IStreamPersist; Markers: TJPEGMarkers): TJPEGMarkers; overload;
 
 function CreateAdobeApp13Segment(const Blocks: array of IAdobeResBlock): IJPEGSegment; overload;
 function CreateAdobeApp13Segment(const Blocks: IInterfaceList = nil): IJPEGSegment; overload;
@@ -538,8 +540,10 @@ const
 
 implementation
 
-uses {$IFDEF HasIOUtils}IOUtils,{$ENDIF}
-  Math, RTLConsts, Contnrs, CCR.Exif.Consts, CCR.Exif.TagIDs;
+uses
+  {$IFDEF MSWINDOWS}Windows,{$ENDIF}{$IFDEF POSIX}Posix.Unistd,{$ENDIF}
+  {$IFDEF HasIOUtils}IOUtils,{$ENDIF}Math, RTLConsts, Contnrs,
+  CCR.Exif.Consts, CCR.Exif.TagIDs;
 
 type
   TAdobeBlock = class(TMetadataBlock, IStreamPersist, IAdobeResBlock)
@@ -708,7 +712,7 @@ begin
     SaveMethod := nil;
     DetectTypeFunc(GraphicStream, SaveMethod);
     if not Assigned(SaveMethod) then
-      raise EInvalidGraphic.CreateRes(@SUnsupportedGraphicFormat);
+      raise EUnsupportedGraphicFormat.CreateRes(@SUnsupportedGraphicFormat);
     if GraphicStream.Size < $FFFFFF then //If the source data is under 16MB, buffer to
       TempStream := TMemoryStream.Create //memory, else buffer to a temporary file.
     else
@@ -742,7 +746,7 @@ begin
   end;
 end;
 
-procedure DoSaveToGraphic(Graphic: TGraphic;
+procedure DoSaveToGraphic(const Graphic: IStreamPersist;
   const DetectTypeFunc: TGetGraphicSaveMethod);
 var
   Stream: TMemoryStream;
@@ -1659,7 +1663,7 @@ begin
     FMarkerNum := Stream.ReadByte;
   until (FMarkerNum <> jmNewOrPadding); //extra $FF bytes are legal as padding
   if not (FMarkerNum in TJPEGSegment.MarkersWithNoData) then
-  begin          
+  begin
     Data.SetSize(Stream.ReadWord(BigEndian) - 2);
     if Stream.Read(Data.Memory^, Data.Size) <> Data.Size then
     begin
@@ -1825,7 +1829,7 @@ begin
     soOwned);
 end;
 
-function JPEGHeader(JPEGImage: TGraphic;
+function JPEGHeader(const JPEGImage: IStreamPersist;
   const MarkersToLookFor: TJPEGMarkers): IJPEGHeaderParser;
 var
   Stream: TMemoryStream;
@@ -1868,7 +1872,7 @@ begin
   Data.Position := OrigPos;
 end;
 
-function GetJPEGDataSize(JPEGImage: TGraphic): Int64; overload;
+function GetJPEGDataSize(const JPEGImage: IStreamPersist): Int64; overload;
 var
   Stream: TMemoryStream;
 begin
@@ -2116,7 +2120,7 @@ begin
   end;
 end;
 
-function RemoveJPEGSegments(JPEGImage: TGraphic; Markers: TJPEGMarkers): TJPEGMarkers;
+function RemoveJPEGSegments(const JPEGImage: IStreamPersist; Markers: TJPEGMarkers): TJPEGMarkers;
 var
   InStream, OutStream: TMemoryStream;
 begin
@@ -2270,6 +2274,13 @@ begin
       Supports(Blocks[I], IAdobeResBlock, DynArray[I]);
   end;
   WritePSDResourceSection(Stream, DynArray);
+end;
+
+function GetExecutableName: string;
+var
+  MatchedCase: TFilenameCaseMatch;
+begin
+  Result := ExpandFileNameCase(GetModuleName(0), MatchedCase);
 end;
 
 end.

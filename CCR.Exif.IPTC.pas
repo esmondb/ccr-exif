@@ -1,7 +1,7 @@
 {**************************************************************************************}
 {                                                                                      }
 { CCR Exif - Delphi class library for reading and writing image metadata               }
-{ Version 1.5.0 beta                                                                   }
+{ Version 1.5.1 beta                                                                   }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -14,7 +14,7 @@
 { The Original Code is CCR.Exif.IPTC.pas.                                              }
 {                                                                                      }
 { The Initial Developer of the Original Code is Chris Rolliston. Portions created by   }
-{ Chris Rolliston are Copyright (C) 2009-2011 Chris Rolliston. All Rights Reserved.    }
+{ Chris Rolliston are Copyright (C) 2009-2012 Chris Rolliston. All Rights Reserved.    }
 {                                                                                      }
 {**************************************************************************************}
 
@@ -35,7 +35,7 @@ unit CCR.Exif.IPTC;
 interface
 
 uses
-  Types, SysUtils, Classes, Graphics, JPEG,
+  Types, SysUtils, Classes, {$IFDEF VCL}Jpeg,{$ENDIF}
   CCR.Exif.BaseUtils, CCR.Exif.TagIDs, CCR.Exif.TiffUtils;
 
 type
@@ -240,13 +240,13 @@ type
     { Whether or not metadata was found, LoadFromGraphic returns True if the graphic format
       was recognised as one that *could* contain relevant metadata and False otherwise. }
     function LoadFromGraphic(Stream: TStream): Boolean; overload;
-    function LoadFromGraphic(Graphic: TGraphic): Boolean; overload;
+    function LoadFromGraphic(const Graphic: IStreamPersist): Boolean; overload;
     function LoadFromGraphic(const FileName: string): Boolean; overload;
     procedure LoadFromStream(Stream: TStream);
     { SaveToGraphic raises an exception if the target graphic either doesn't exist, or
       is neither a JPEG nor a PSD image. }
     procedure SaveToGraphic(const FileName: string); overload;
-    procedure SaveToGraphic(Graphic: TGraphic); overload;
+    procedure SaveToGraphic(const Graphic: IStreamPersist); overload;
     procedure SaveToStream(Stream: TStream);
     procedure SortTags;
     property LoadErrors: TMetadataLoadErrors read FLoadErrors write FLoadErrors; //!!!v. rarely set at present
@@ -258,6 +258,7 @@ type
     property ObjectDataSection: TIPTCSection index 8 read GetSection;
     property SecondDescriptorSection: TIPTCSection index 9 read GetSection;
     property Sections[ID: TIPTCSectionID]: TIPTCSection read GetSectionByID; default;
+  {$IF Declared(TJPEGImage)}
   public //deprecated methods - to be removed in a future release
     procedure LoadFromJPEG(JPEGStream: TStream); overload; deprecated {$IFDEF DepCom}'Use LoadFromGraphic'{$ENDIF};
     procedure LoadFromJPEG(JPEGImage: TJPEGImage); overload; inline; deprecated {$IFDEF DepCom}'Use LoadFromGraphic'{$ENDIF};
@@ -265,6 +266,7 @@ type
     procedure SaveToJPEG(const JPEGFileName: string;
       Dummy: Boolean = True); overload; inline; deprecated {$IFDEF DepCom}'Use SaveToGraphic'{$ENDIF};
     procedure SaveToJPEG(JPEGImage: TJPEGImage); overload; inline; deprecated {$IFDEF DepCom}'Use SaveToGraphic'{$ENDIF};
+  {$IFEND}
   published
     property AlwaysAssumeUTF8Encoding: Boolean read FAlwaysAssumeUTF8Encoding write FAlwaysAssumeUTF8Encoding default False;
     property Empty: Boolean read GetEmpty;
@@ -1408,7 +1410,7 @@ begin
   Clear;
 end;
 
-function TIPTCData.LoadFromGraphic(Graphic: TGraphic): Boolean;
+function TIPTCData.LoadFromGraphic(const Graphic: IStreamPersist): Boolean;
 var
   Stream: TMemoryStream;
 begin
@@ -1432,27 +1434,6 @@ begin
   finally
     Stream.Free;
   end;
-end;
-
-procedure TIPTCData.LoadFromJPEG(JPEGStream: TStream);
-begin
-  if HasJPEGHeader(JPEGStream) then
-    LoadFromGraphic(JPEGStream)
-  else
-    raise EInvalidJPEGHeader.CreateRes(@SInvalidJPEGHeader);
-end;
-
-procedure TIPTCData.LoadFromJPEG(JPEGImage: TJPEGImage);
-begin
-  LoadFromGraphic(JPEGImage)
-end;
-
-procedure TIPTCData.LoadFromJPEG(const FileName: string);
-begin
-  if HasJPEGHeader(FileName) then
-    LoadFromGraphic(FileName)
-  else
-    raise EInvalidJPEGHeader.CreateRes(@SInvalidJPEGHeader);
 end;
 
 procedure TIPTCData.LoadFromStream(Stream: TStream);
@@ -1502,19 +1483,9 @@ begin
   DoSaveToGraphic(FileName, GetGraphicSaveMethod);
 end;
 
-procedure TIPTCData.SaveToGraphic(Graphic: TGraphic);
+procedure TIPTCData.SaveToGraphic(const Graphic: IStreamPersist);
 begin
   DoSaveToGraphic(Graphic, GetGraphicSaveMethod);
-end;
-
-procedure TIPTCData.SaveToJPEG(const JPEGFileName: string; Dummy: Boolean);
-begin
-  SaveToGraphic(JPEGFileName);
-end;
-
-procedure TIPTCData.SaveToJPEG(JPEGImage: TJPEGImage);
-begin
-  SaveToGraphic(JPEGImage);
 end;
 
 procedure TIPTCData.SaveToStream(Stream: TStream);
@@ -1657,5 +1628,38 @@ begin
         Tag.WriteString(Strings[SectID][I]);
     end;
 end;
+
+{$IF Declared(TJPEGImage)}
+procedure TIPTCData.LoadFromJPEG(JPEGStream: TStream);
+begin
+  if HasJPEGHeader(JPEGStream) then
+    LoadFromGraphic(JPEGStream)
+  else
+    raise EInvalidJPEGHeader.CreateRes(@SInvalidJPEGHeader);
+end;
+
+procedure TIPTCData.LoadFromJPEG(JPEGImage: TJPEGImage);
+begin
+  LoadFromGraphic(JPEGImage)
+end;
+
+procedure TIPTCData.LoadFromJPEG(const FileName: string);
+begin
+  if HasJPEGHeader(FileName) then
+    LoadFromGraphic(FileName)
+  else
+    raise EInvalidJPEGHeader.CreateRes(@SInvalidJPEGHeader);
+end;
+
+procedure TIPTCData.SaveToJPEG(const JPEGFileName: string; Dummy: Boolean);
+begin
+  SaveToGraphic(JPEGFileName);
+end;
+
+procedure TIPTCData.SaveToJPEG(JPEGImage: TJPEGImage);
+begin
+  SaveToGraphic(JPEGImage);
+end;
+{$IFEND}
 
 end.

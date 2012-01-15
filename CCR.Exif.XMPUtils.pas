@@ -1,7 +1,7 @@
 ﻿{**************************************************************************************}
 {                                                                                      }
 { CCR Exif - Delphi class library for reading and writing image metadata               }
-{ Version 1.5.0 beta                                                                   }
+{ Version 1.5.1 beta                                                                   }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -14,7 +14,7 @@
 { The Original Code is CCR.Exif.XMPUtils.pas.                                          }
 {                                                                                      }
 { The Initial Developer of the Original Code is Chris Rolliston. Portions created by   }
-{ Chris Rolliston are Copyright (C) 2009-2011 Chris Rolliston. All Rights Reserved.    }
+{ Chris Rolliston are Copyright (C) 2009-2012 Chris Rolliston. All Rights Reserved.    }
 {                                                                                      }
 {**************************************************************************************}
 
@@ -25,10 +25,9 @@ unit CCR.Exif.XMPUtils;
   v1.1.0, edited data is written out manually (i.e., the IDOMXXX interfaces are only
   used to read). 
 
-  The only slightly funky thing here is the UpdateXXX methods of TXMPPacket, which are
-  called automatically when you set a tag property of TCustomExifData. Basically, the
-  methods' behaviour depends upon the TXMPPacket's UpdatePolicy property, which has
-  three possible values:
+  Note that the UpdateXXX methods of TXMPPacket are called automatically when you set a
+  tag property of TCustomExifData. Their behaviour depends upon the TXMPPacket's
+  UpdatePolicy property, which has three possible values:
   - xwAlwaysUpdate: if the new value is an empty string, then the XMP property is
     deleted, else it is changed (or added). This setting is the default for standalone
     TXMPPacket instances.
@@ -41,7 +40,7 @@ unit CCR.Exif.XMPUtils;
 interface
 
 uses
-  Types, SysUtils, Classes, Graphics, xmldom, CCR.Exif.BaseUtils, CCR.Exif.TiffUtils;
+  Types, SysUtils, Classes, xmldom, CCR.Exif.BaseUtils, CCR.Exif.TiffUtils;
 
 type
   EInvalidXMPPacket = class(Exception);
@@ -257,7 +256,7 @@ type
       const NewValues: array of UnicodeString); overload;
   protected
     procedure AssignTo(Dest: TPersistent); override;
-    procedure Changed(ResetRawXMLCache: Boolean = True); virtual;
+    procedure Changed(AResetRawXMLCache: Boolean = True); virtual;
     function FindOrAddSchema(const URI: UnicodeString): TXMPSchema; overload;
     function FindOrAddSchema(Kind: TXMPKnownNamespace): TXMPSchema; overload; inline;
     function GetEmpty: Boolean; inline;
@@ -279,13 +278,14 @@ type
     { Whether or not metadata was found, LoadFromGraphic returns True if the graphic
       format was one recognised as one we could extract XMP data from and False otherwise. }
     function LoadFromGraphic(Stream: TStream): Boolean; overload;
-    function LoadFromGraphic(Graphic: TGraphic): Boolean; overload;
+    function LoadFromGraphic(const Graphic: IStreamPersist): Boolean; overload;
     function LoadFromGraphic(const FileName: string): Boolean; overload;
     procedure SaveToFile(const FileName: string);
     procedure SaveToGraphic(const FileName: string); overload;
-    procedure SaveToGraphic(Graphic: TGraphic); overload;
+    procedure SaveToGraphic(const Graphic: IStreamPersist); overload;
     procedure SaveToStream(Stream: TStream);
     function TryLoadFromStream(Stream: TStream): Boolean;
+    procedure ResetRawXMLCache;
     procedure RemoveProperty(SchemaKind: TXMPKnownNamespace;
       const PropName: UnicodeString); overload;
     procedure RemoveProperties(SchemaKind: TXMPKnownNamespace;
@@ -760,7 +760,7 @@ constructor TXMPProperty.Create(ASchema: TXMPSchema; AParentProperty: TXMPProper
   end;
 var
   Attrs: IDOMNamedNodeMap;
-  ChildNode, DataNode: IDOMNode;
+  ChildNode, DataNode, TextNode: IDOMNode;
   DoAdd: Boolean;
   I: Integer;
   PropAndNodeStructure: Boolean;
@@ -792,9 +792,14 @@ begin
   begin
     DataNode := ASourceNode.firstChild;
     if DataNode <> nil then
+    begin
       repeat
+        { Originally, this loop was exited as soon as a text node was found. This
+          however doesn't work with the ADOM backend (as used by default on OS X)
+          because ADOM can intepret whitespace prior to a child element as a text
+          node of the parent. }
         case DataNode.nodeType of
-          TEXT_NODE: Break;
+          TEXT_NODE: TextNode := DataNode;
           ELEMENT_NODE:
           begin
             S := DataNode.nodeName;
@@ -811,6 +816,8 @@ begin
         end;
         DataNode := DataNode.nextSibling;
       until (DataNode = nil);
+      if DataNode = nil then DataNode := TextNode;
+    end;
   end;
   { Get the value, if appropriate, and check for super-inlined structures. For life of
     me I can't see where in the XMP spec the latter are allowed - cf. p.19 of the spec
@@ -1354,10 +1361,15 @@ begin
     inherited;
 end;
 
-procedure TXMPPacket.Changed(ResetRawXMLCache: Boolean = True);
+procedure TXMPPacket.Changed(AResetRawXMLCache: Boolean = True);
 begin
-  if ResetRawXMLCache then FRawXMLCache := '';
+  if AResetRawXMLCache then FRawXMLCache := '';
   if Assigned(FOnChange) then FOnChange(Self);
+end;
+
+procedure TXMPPacket.ResetRawXMLCache;
+begin
+  FRawXMLCache := '';
 end;
 
 procedure TXMPPacket.Clear(StillUpdating: Boolean);
@@ -1554,7 +1566,7 @@ begin
   Clear;
 end;
 
-function TXMPPacket.LoadFromGraphic(Graphic: TGraphic): Boolean;
+function TXMPPacket.LoadFromGraphic(const Graphic: IStreamPersist): Boolean;
 var
   Stream: TMemoryStream;
 begin
@@ -1618,7 +1630,7 @@ begin
   DoSaveToGraphic(FileName, GetGraphicSaveMethod);
 end;
 
-procedure TXMPPacket.SaveToGraphic(Graphic: TGraphic);
+procedure TXMPPacket.SaveToGraphic(const Graphic: IStreamPersist);
 begin
   DoSaveToGraphic(Graphic, GetGraphicSaveMethod);
 end;

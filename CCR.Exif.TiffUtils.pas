@@ -1,7 +1,7 @@
 {**************************************************************************************}
 {                                                                                      }
 { CCR Exif - Delphi class library for reading and writing image metadata               }
-{ Version 1.5.0 beta                                                                   }
+{ Version 1.5.1 beta                                                                   }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -14,7 +14,7 @@
 { The Original Code is CCR.Exif.TiffUtils.pas.                                         }
 {                                                                                      }
 { The Initial Developer of the Original Code is Chris Rolliston. Portions created by   }
-{ Chris Rolliston are Copyright (C) 2009-2011 Chris Rolliston. All Rights Reserved.    }
+{ Chris Rolliston are Copyright (C) 2009-2012 Chris Rolliston. All Rights Reserved.    }
 {                                                                                      }
 {**************************************************************************************}
 
@@ -24,7 +24,7 @@ unit CCR.Exif.TiffUtils;
 interface
 
 uses
-  Types, SysUtils, Classes, Graphics, JPEG, CCR.Exif.BaseUtils, CCR.Exif.StreamHelper;
+  Types, SysUtils, Classes, CCR.Exif.BaseUtils, CCR.Exif.StreamHelper;
 
 type
   EInvalidTiffData = class(ECCRExifException);
@@ -141,7 +141,7 @@ type
   end;
 
   IFoundTiffDirectory = interface(ITiffDirectory)
-  ['{811FD9EE-A528-4E61-BDBB-43A1D685FE83}']
+  ['{A8B5DB5F-2084-437C-872D-0139DE7C3E54}']
     function GetIndex: Integer;
     function GetLoadErrors: TMetadataLoadErrors;
     function GetParser: ITiffParser;
@@ -149,7 +149,7 @@ type
 
     function IsLastDirectoryInFile: Boolean;
     function IsExifThumbailDirectory: Boolean;
-    function TryLoadExifThumbnail(Dest: TJPEGImage): Boolean;
+    function TryLoadExifThumbnail(const Dest: IStreamPersist): Boolean;
     property LoadErrors: TMetadataLoadErrors read GetLoadErrors;
     property Parser: ITiffParser read GetParser;
     property TagInfo: TTiffTagInfoDynArray read GetTagInfo;
@@ -295,6 +295,32 @@ implementation
 
 uses Contnrs, Math, RTLConsts, CCR.Exif.Consts, CCR.Exif.TagIDs;
 
+function TryLoadJpegImageFromStream(const AJpegImage: IStreamPersist; AStream: TStream): Boolean;
+var
+  JpegSize: Int64;
+  Temp: TMemoryStream;
+begin
+  try
+    JpegSize := GetJPEGDataSize(AStream);
+    if JpegSize = (AStream.Size - AStream.Position) then
+      AJpegImage.LoadFromStream(AStream)
+    else
+    begin
+      Temp := TMemoryStream.Create;
+      try
+        Temp.Size := JpegSize;
+        AStream.ReadBuffer(Temp.Memory^, JpegSize);
+        AJpegImage.LoadFromStream(Temp);
+      finally
+        Temp.Free;
+      end;
+    end;
+    Result := True;
+  except
+    on Exception do Result := False;
+  end;
+end;
+
 type
   TFoundTiffDirectory = class;
 
@@ -361,7 +387,7 @@ type
       [Low(TTiffDataType)..High(TTiffDataType)]; MinElementCount: LongInt = 1;
       MaxElementCount: LongInt = MaxLongInt): Boolean;
     function TryLoadExifThumbnail(Dest: TStream): Boolean; overload;
-    function TryLoadExifThumbnail(Dest: TJPEGImage): Boolean; overload;
+    function TryLoadExifThumbnail(const Dest: IStreamPersist): Boolean; overload;
   public
     constructor Create(const AParser: ITiffParser; const AParent: ITiffDirectory;
       AIndex: Integer; const AOffset: Int64; const AInternalOffset: Int64 = 0); overload;
@@ -1049,9 +1075,6 @@ begin
     (FTags[Index].ElementCount <= MaxElementCount);
 end;
 
-type
-  TJPEGImageAccess = class(TJPEGImage);
-
 function TFoundTiffDirectory.TryLoadExifThumbnail(Dest: TStream): Boolean;
 var
   Index: Integer;
@@ -1062,22 +1085,13 @@ begin
     Dest.CopyFrom(FParser.Stream, GetJPEGDataSize(FParser.Stream));
 end;
 
-function TFoundTiffDirectory.TryLoadExifThumbnail(Dest: TJPEGImage): Boolean;
+function TFoundTiffDirectory.TryLoadExifThumbnail(const Dest: IStreamPersist): Boolean;
 var
   Index: Integer;
 begin
   Result := FindTag(ttThumbnailOffset, Index) and
     SeekToExifThumbnail(FParser, FTags[Index]);
-  if not Result then Exit;
-  { TJPEGImage reads and stores the rest of the stream by default - using the protected
-    ReadStream method prevents this. }
-  try
-    TJPEGImageAccess(Dest).ReadStream(GetJPEGDataSize(FParser.Stream), FParser.Stream);
-  except
-    on EInvalidGraphic do Result := False;
-    on EReadError do Result := False;
-    else raise;
-  end;
+  if Result then Result := TryLoadJpegImageFromStream(Dest, FParser.Stream);
 end;
 
 { TTiffParserEnumerator }
