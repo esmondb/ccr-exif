@@ -197,6 +197,9 @@ type
     function ReadFraction(Index: Integer; const Default: TExifFraction): TExifFraction;
     function ReadLongWord(Index: Integer; const Default: LongWord): LongWord;
     function ReadWord(Index: Integer; const Default: Word): Word;
+    {$IFDEF HasToString}
+    function ToString: string; override;
+    {$ENDIF}
     property AsString: string read GetAsString write SetAsString;
     property ElementAsString[Index: Integer]: string read GetElementAsString;
     property Data: Pointer read FData;
@@ -402,6 +405,9 @@ type
     constructor Create(AOwner: TCustomExifData);
     procedure Assign(Source: TPersistent); override;
     function MissingOrInvalid: Boolean;
+    {$IFDEF HasToString}
+    function ToString: string; override;
+    {$ENDIF}
     property AsString: string read GetAsString write SetAsString;
     property Owner: TCustomExifData read FOwner;
   published
@@ -483,6 +489,9 @@ type
     constructor Create(AOwner: TCustomExifData);
     procedure Assign(Source: TPersistent); override;
     function MissingOrInvalid: Boolean;
+    {$IFDEF HasToString}
+    function ToString: string; override;
+    {$ENDIF}
     property Section: TExifSection read FSection;
   published
     property X: TExifFraction read GetX write SetX stored False;
@@ -532,6 +541,9 @@ type
     constructor Create(AOwner: TCustomExifData);
     procedure Assign(Source: TPersistent); override;
     function MissingOrInvalid: Boolean;
+    {$IFDEF HasToString}
+    function ToString: string; override;
+    {$ENDIF}
     property Items[Index: Integer]: Word read GetItem write SetItem; default;
   published
     property AsString: string read GetAsString write SetAsString stored False;
@@ -572,6 +584,9 @@ type
     constructor Create(AOwner: TCustomExifData; ATagID: TExifTagID);
     procedure Assign(Source: TPersistent); overload; override;
     function MissingOrInvalid: Boolean;
+    {$IFDEF HasToString}
+    function ToString: string; override;
+    {$ENDIF}
     property Degrees: TExifFraction index 0 read GetValue;
     property Minutes: TExifFraction index 1 read GetValue;
     property Seconds: TExifFraction index 2 read GetValue;
@@ -1768,6 +1783,13 @@ begin
     end;
   FAsStringCache := Value;
 end;
+
+{$IFDEF HasToString}
+function TExifTag.ToString: string;
+begin
+  Result := AsString;
+end;
+{$ENDIF}
 
 function TExifTag.GetDataSize: Integer;
 begin
@@ -2978,6 +3000,13 @@ begin
   end;
 end;
 
+{$IFDEF HasToString}
+function TCustomExifVersion.ToString: string;
+begin
+  Result := AsString;
+end;
+{$ENDIF}
+
 function TCustomExifVersion.GetValue(Index: Integer): TExifVersionElement;
 var
   RawValue: Byte;
@@ -3133,7 +3162,7 @@ procedure TCustomExifResolution.SetUnit(const Value: TExifResolutionUnit);
 begin
   Section.SetWordValue(FUnitTagID, 0, Ord(Value));
   if FSchema <> xsUnknown then
-    if Value = trNone then 
+    if Value = trNone then
       FOwner.XMPPacket.RemoveProperty(FSchema, FUnitName)
     else
       FOwner.XMPPacket.UpdateProperty(FSchema, FUnitName, Integer(Value));
@@ -3152,6 +3181,18 @@ begin
   if FSchema <> xsUnknown then
     FOwner.XMPPacket.UpdateProperty(FSchema, FYName, Value.AsString);
 end;
+
+{$IFDEF HasToString}
+function TCustomExifResolution.ToString: string;
+begin
+  if MissingOrInvalid then Exit('');
+  case Units of
+    trInch: Result := '"';
+    trCentimetre: Result := 'cm';
+  end;
+  FmtStr(Result, '%g%s x %g%1:s', [X.Quotient, Y.Quotient, Result]);
+end;
+{$ENDIF}
 
 { TImageResolution }
 
@@ -3291,6 +3332,13 @@ begin
   FOwner.XMPPacket.UpdateProperty(XMPSchema, XMPName, XMPKind, Value);
 end;
 
+{$IFDEF HasToString}
+function TISOSpeedRatings.ToString: string;
+begin
+  Result := AsString;
+end;
+{$ENDIF}
+
 procedure TISOSpeedRatings.SetCount(const Value: Integer);
 var
   Tag: TExifTag;
@@ -3411,6 +3459,13 @@ begin
   else //if we do *exactly* what the XMP spec says, the value won't be round-trippable...
     FmtStr(Result, '%s,%s,%s%s', [Degrees.AsString, Minutes.AsString, Seconds.AsString, Direction]);
 end;
+
+{$IFDEF HasToString}
+function TGPSCoordinate.ToString: string;
+begin
+  Result := AsString;
+end;
+{$ENDIF}
 
 function TGPSCoordinate.GetDirectionChar: AnsiChar;
 var
@@ -6258,7 +6313,7 @@ var
   DestIntf: IStreamPersist;
   TempStream: TMemoryStream;
 begin
-  if (Dest is TInterfacedPersistent) and Supports(Dest, IStreamPersist, DestIntf) then
+  if Supports(Dest, IStreamPersist, DestIntf) then
   begin
     TempStream := TMemoryStream.Create;
     try
