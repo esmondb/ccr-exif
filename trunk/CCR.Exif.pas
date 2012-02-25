@@ -6256,15 +6256,17 @@ end;
 procedure TJPEGImage.AssignTo(Dest: TPersistent);
 var
   DestIntf: IStreamPersist;
+  TempStream: TMemoryStream;
 begin
   if (Dest is TInterfacedPersistent) and Supports(Dest, IStreamPersist, DestIntf) then
   begin
-    if FData.Size = 0 then
-      Dest.Assign(nil)
-    else
-    begin
-      FData.Position := 0;
-      DestIntf.LoadFromStream(FData);
+    TempStream := TMemoryStream.Create;
+    try
+      SaveToStream(TempStream);
+      TempStream.Position := 0;
+      DestIntf.LoadFromStream(TempStream);
+    finally
+      TempStream.Free;
     end;
     Exit;
   end;
