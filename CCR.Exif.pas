@@ -3190,7 +3190,7 @@ begin
     trInch: Result := '"';
     trCentimetre: Result := 'cm';
   end;
-  FmtStr(Result, '%g%s x %g%1:s', [X.Quotient, Y.Quotient, Result]);
+  FmtStr(Result, '%g%s x %g%1:s', [X.Quotient, Result, Y.Quotient]);
 end;
 {$ENDIF}
 
