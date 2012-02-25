@@ -11,6 +11,7 @@
 
 {$IF CompilerVersion >= 20}
   {$DEFINE DepCom}            //deprecated directive allows comments from D2009
+  {$DEFINE HasToString}
 {$IFEND}
 
 {$IF CompilerVersion >= 21}
