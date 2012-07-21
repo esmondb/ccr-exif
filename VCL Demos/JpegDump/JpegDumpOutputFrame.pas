@@ -172,6 +172,12 @@ begin
         ttSubjectDistanceRange      : Result := 'ttSubjectDistanceRange';
         ttImageUniqueID             : Result := 'ttImageUniqueID';
         ttOffsetSchema              : Result := 'ttOffsetSchema';
+        ttCameraOwnerName           : Result := 'ttCameraOwnerName';
+        ttBodySerialNumber          : Result := 'ttBodySerialNumber';
+        ttLensSpecification         : Result := 'ttLensSpecification';
+        ttLensMake                  : Result := 'ttLensMake';
+        ttLensModel                 : Result := 'ttLensModel';
+        ttLensSerialNumber          : Result := 'ttLensSerialNumber';
       end;
     esInterop:
       case Tag.ID of

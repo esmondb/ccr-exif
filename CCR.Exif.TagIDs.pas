@@ -116,6 +116,12 @@ const
   ttDeviceSettingDescription  = $A40B;
   ttSubjectDistanceRange      = $A40C;
   ttImageUniqueID             = $A420;
+  ttCameraOwnerName           = $A430;
+  ttBodySerialNumber          = $A431;
+  ttLensSpecification         = $A432;
+  ttLensMake                  = $A433;
+  ttLensModel                 = $A434;
+  ttLensSerialNumber          = $A435;
 
   { MakerNote tag data offset relative to where it originally was; tag defined by MS }
   ttOffsetSchema              = $EA1D;
