@@ -985,7 +985,9 @@ type
     property UserRating: TWindowsStarRating read GetUserRating write SetUserRating stored False;
     { sub dir tags }
     property ApertureValue: TExifFraction index ttApertureValue read GetDetailsFraction write SetDetailsFraction stored False;
+    property BodySerialNumber: string index ttBodySerialNumber read GetDetailsString write SetDetailsString stored False;
     property BrightnessValue: TExifSignedFraction index ttBrightnessValue read GetDetailsSFraction write SetDetailsSFraction stored False;
+    property CameraOwnerName: string index ttCameraOwnerName read GetDetailsString write SetDetailsString stored False;
     property ColorSpace: TExifColorSpace read GetColorSpace write SetColorSpace stored False;
     property Contrast: TExifContrast read GetContrast write SetContrast stored False;
     property CompressedBitsPerPixel: TExifFraction index ttCompressedBitsPerPixel read GetDetailsFraction write SetDetailsFraction stored False;
@@ -1010,6 +1012,9 @@ type
     property GainControl: TExifGainControl read GetGainControl write SetGainControl stored False;
     property ImageUniqueID: string index ttImageUniqueID read GetDetailsString write SetDetailsString stored False;
     property ISOSpeedRatings: TISOSpeedRatings read FISOSpeedRatings write SetISOSpeedRatings;
+    property LensMake: string index ttLensMake read GetDetailsString write SetDetailsString stored False;
+    property LensModel: string index ttLensModel read GetDetailsString write SetDetailsString stored False;
+    property LensSerialNumber: string index ttLensSerialNumber read GetDetailsString write SetDetailsString stored False;
     property LightSource: TExifLightSource read GetLightSource write SetLightSource stored False;
     property MaxApertureValue: TExifFraction index ttMaxApertureValue read GetDetailsFraction write SetDetailsFraction stored False;
     property MeteringMode: TExifMeteringMode read GetMeteringMode write SetMeteringMode stored False;

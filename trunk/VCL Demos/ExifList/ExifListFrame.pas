@@ -663,7 +663,9 @@ begin
   begin
     AddValue('Exif version', ExifData.ExifVersion.AsString);
     AddValue('Aperture value', ExifData.ApertureValue);
+    AddValue('Body serial number', ExifData.BodySerialNumber);
     AddValue('Brightness value', ExifData.BrightnessValue);
+    AddValue('Camera owner', ExifData.CameraOwnerName);
     AddValue('Colour space', ColorSpaceToStr(ExifData.ColorSpace));
     AddValue('Compressed bits per pixel', ExifData.CompressedBitsPerPixel);
     AddValue('Date/time original', ExifData.DateTimeOriginal);
@@ -693,6 +695,9 @@ begin
     AddValue('Image unique ID', ExifData.ImageUniqueID);
     if not ExifData.ISOSpeedRatings.MissingOrInvalid then
       AddValue('ISO speed rating(s)', ExifData.ISOSpeedRatings.AsString);
+    AddValue('Lens make', ExifData.LensMake);
+    AddValue('Lens model', ExifData.LensModel);
+    AddValue('Lens serial number', ExifData.LensSerialNumber);
     AddValue('Light source', LightSourceToStr(ExifData.LightSource));
     AddValue('MakerNote data offset', ExifData.OffsetSchema);
     AddValue('Max aperture value', ExifData.MaxApertureValue);
