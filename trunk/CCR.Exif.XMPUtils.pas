@@ -1128,7 +1128,12 @@ var
   Strings: TUnicodeStringList;
 begin
   case Kind of
-    xpSimple: FValue := NewValue;
+    xpSimple:
+      if NewValue <> FValue then
+      begin
+        FValue := NewValue;
+        Changed;
+      end;
     xpStructure: raise EInvalidXMPOperation.CreateRes(@SCannotWriteSingleValueToStructureProperty);
     xpAltArray: SubProperties[DefaultLangIdent].WriteValue(NewValue);
   else
