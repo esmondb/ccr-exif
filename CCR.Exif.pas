@@ -4655,13 +4655,25 @@ begin
 end;
 
 function TCustomExifData.GetUserRating: TWindowsStarRating;
+const
+  MinRating = Ord(Low(TWindowsStarRating));
+  MaxRating = Ord(High(TWindowsStarRating));
+var
+  I: Integer;
 begin
   if FSections[esGeneral].TryGetWordValue(ttWindowsRating, 0, Result) then
     if not EnsureEnumsInRange then
       Exit
     else
       case Ord(Result) of
-        Ord(Low(TWindowsStarRating))..Ord(High(TWindowsStarRating)): Exit;
+        MinRating..MaxRating: Exit;
+      end
+  else
+    if TryStrToInt(XMPPacket[xsXMPBasic].Properties['Rating'].ReadValue, I) then
+      if not EnsureEnumsInRange or InRange(I, MinRating, MaxRating) then
+      begin
+        Result := TWindowsStarRating(I);
+        Exit;
       end;
   Result := urUndefined;
 end;
