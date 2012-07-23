@@ -1715,6 +1715,8 @@ const
   DescNodeEnd: UTF8String =
     #9#9'</rdf:Description>'#10;
 var
+  DataPtr: PAnsiChar;
+  DataSize: Integer;
   Schema: TXMPSchema;
 begin
   if FRawXMLCache <> '' then
@@ -1725,13 +1727,18 @@ begin
     Exit;
   end;
   if FDataToLazyLoad <> nil then
-    with FDataToLazyLoad.Data do
+  begin
+    DataPtr := FDataToLazyLoad.Data.Memory;
+    DataSize := FDataToLazyLoad.Data.Size;
+    if (DataSize >= SizeOf(TJPEGSegment.XMPHeader)) and
+       CompareMem(DataPtr, @TJPEGSegment.XMPHeader, SizeOf(TJPEGSegment.XMPHeader)) then
     begin
-      Position := 0;
-      TryReadHeader(TJPEGSegment.XMPHeader, SizeOf(TJPEGSegment.XMPHeader));
-      Stream.WriteBuffer(Memory^, Size - Position);
-      Exit;
+      Inc(DataPtr, SizeOf(TJPEGSegment.XMPHeader));
+      Dec(DataSize, SizeOf(TJPEGSegment.XMPHeader));
     end;
+    Stream.WriteBuffer(DataPtr^, DataSize);
+    Exit;
+  end;
   Stream.WriteUTF8Chars(PacketStart);
   for Schema in Self do
   begin
