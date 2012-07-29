@@ -750,8 +750,8 @@ begin
   end;
   if DoSection(esThumbnail, 'Thumbnail IFD') then
   begin
-    AddValue('Thumbnail orientation', OrientationToStr(ExifData.Orientation));
-    AddValue('Thumbnail resolution', ExifData.Resolution);
+    AddValue('Thumbnail orientation', OrientationToStr(ExifData.ThumbnailOrientation));
+    AddValue('Thumbnail resolution', ExifData.ThumbnailResolution);
     if not ExifData.Thumbnail.Empty then imgThumbnail.Picture.Assign(ExifData.Thumbnail);
   end;
 end;
