@@ -9,12 +9,14 @@
 \pard\absw4514\pvpara\phmrg\posxr\posy0\qr\f1\fs22 {\field{\*\fldinst{PAGE \\* MERGEFORMAT}}{\fldrslt ?}}\par
 \pard\ri20\sa20\f0\fs2\pard\qc  }\titlepg\pard\s1\sa120\qc
 \kerning36\b\f1\fs32 Release History\kerning0\b0\f2\fs24\par
-\pard\s3\sb120\sa60\f0 \b\f1 1.5.1 beta\par
+\pard\s3\sb120\sa60\f0 \b\f1 1.5.1 (2012-08-05)\par
 \pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent0{\pntxtb\'B7}}\nowidctlpar\fi-360\li360\sa60\b0\f2 XE2 support for each of that version\rquote s three target platforms (Win32, Win64 and OS X). Note: the code remains as Delphi-specific as ever however, so XE2\rquote s iOS targeting (so much as it is) is \b not\b0  supported.\par
-{\pntext\f3\'B7\tab}As part of this, dependencies on VCL graphics classes have been removed from all the support units \emdash  where they was a TGraphic parameter, there is now an IStreamPersist one instead (both the VCL TGraphic and FireMonkey TBitmap classes implement that interface).\par
-\b{\pntext\f3\'B7\tab}When compiling under XE2\b0 , you will need to set a \b VCL\b0  conditional define to ensure the \lquote main\rquote  unit, CCR.Exif.pas, works just like before: by default, the unit will be neutral between FireMonkey and the VCL, defining for itself a dummy TJPEGImage class that will be assignable to a \lquote real\rquote  TJPEGImage but \b not\b0  a TPicture. Conversely, compiling with an \b FMX\b0  conditional define will cause TJPEGImage to be mapped to a simple descendant of the FireMonkey TBitmap class.\par
+{\pntext\f3\'B7\tab}Dependencies on VCL graphics classes have been removed from all the support units \emdash  where they was a TGraphic parameter, there is now an IStreamPersist one instead (both the VCL TGraphic and FireMonkey TBitmap classes implement that interface).\par
+\b{\pntext\f3\'B7\tab}When using CCR Exif in a FireMonkey application\b0 , you will need to set a \b FMX\b0  conditional define for the \lquote main\rquote  unit, CCR.Exif.pas, to work properly. When v1.5.1 was in beta, you conversely needed to have a VCL define set in an XE2 VCL application, but that is not necessary in the final version. 
+By tweaking CCR.Exif.inc, it is also possible for the library to be completely neutral between the two frameworks, however this is not useful in practice.\par
 {\pntext\f3\'B7\tab}The demo projects have been split off into D2006, D2007, D2009-10 and XE+ versions. If you open up the XE+ versions in XE, you may see some \lquote phantom\rquote  platform nodes in the Project Manager \emdash  just ignore them, as they are XE2 settings.\par
 {\pntext\f3\'B7\tab}Fixed XMP reading issues when using the ADOM backend, as will be the default when targeting OS X.\par
+{\pntext\f3\'B7\tab}Fixed issue of XMP changes not always being persisted.\par
 \pard\s3\sb120\sa60\f0 \b\f1 1.5.0\par
 \pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent0{\pntxtb\'B7}}\nowidctlpar\fi-360\li360\sa60\b0\f2 Two important things up front: the CCR.Exif.JPEGUtils unit has been renamed CCR.Exif.BaseUtils, and all LoadFromJPEG and SaveToJPEG methods have been deprecated in favour of LoadFromGraphic and SaveToGraphic ones instead. Also, the TIFF structure parsing routines have been moved from CCR.Exif to a new unit called CCR.Exif.TiffUtils.\par
 {\pntext\f3\'B7\tab}These changes have been made because I\rquote ve added read/write support for Photoshop (PSD) and TIFF images to each of TExifData, TIPTCData and TXMPPacket. \i Be warned that write support is semi-experimental at this point.\i0\par
