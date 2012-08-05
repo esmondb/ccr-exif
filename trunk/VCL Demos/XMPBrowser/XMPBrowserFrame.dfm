@@ -48,6 +48,7 @@ object OutputFrame: TOutputFrame
     BevelOuter = bvSpace
     BevelKind = bkTile
     BorderStyle = bsNone
+    ParentFont = False
     PopupMenu = mnuEdit
     ReadOnly = True
     ScrollBars = ssVertical

@@ -23,8 +23,8 @@ object frmTimeShiftDemo: TfrmTimeShiftDemo
     Top = 0
     Width = 738
     Height = 33
-    ButtonHeight = 30
-    ButtonWidth = 145
+    ButtonHeight = 19
+    ButtonWidth = 15
     DisabledImages = imlDisabled
     Images = imlColor
     List = True
@@ -64,12 +64,11 @@ object frmTimeShiftDemo: TfrmTimeShiftDemo
         Left = 4
         Top = 4
         Width = 85
-        Height = 22
+        Height = 13
         Align = alLeft
         Caption = '&Minutes to Shift:  '
         FocusControl = edtMins
         Layout = tlCenter
-        ExplicitHeight = 13
       end
       object updMins: TUpDown
         Left = 125

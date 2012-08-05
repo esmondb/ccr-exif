@@ -36,7 +36,6 @@ object frmJpegDump: TfrmJpegDump
       Anchors = [akTop, akRight]
       Caption = '&Open File'
       Default = True
-      TabOrder = 1
       Glyph.Data = {
         36030000424D3603000000000000360000002800000010000000100000000100
         18000000000000030000120B0000120B00000000000000000000FF00FF078DBE
@@ -64,6 +63,7 @@ object frmJpegDump: TfrmJpegDump
         FF00FFFF00FFFF00FFFF00FFFF00FF0C85180C85180C85180C8518FF00FFFF00
         FFFF00FFFF00FFFF00FFFF00FFFF00FFFF00FFFF00FFFF00FF0C85180C85180C
         85180C8518FF00FFFF00FFFF00FFFF00FFFF00FFFF00FFFF00FF}
+      TabOrder = 1
     end
     object btnExit: TBitBtn
       Left = 665
@@ -85,7 +85,6 @@ object frmJpegDump: TfrmJpegDump
       Anchors = [akTop, akRight]
       Cancel = True
       Caption = '&Reload'
-      TabOrder = 2
       Glyph.Data = {
         36030000424D3603000000000000360000002800000010000000100000000100
         18000000000000030000120B0000120B00000000000000000000FF00FFFF00FF
@@ -113,6 +112,7 @@ object frmJpegDump: TfrmJpegDump
         C2A6A4FFE6D0FFE6D0FFE6D0FFE6D0FFE6D0C9B9ACDFCEC7C2A6A4FF00FFFF00
         FFFF00FFFF00FFFF00FFFF00FFFF00FFC2A6A4C2A6A4C2A6A4C2A6A4C2A6A4C2
         A6A4C2A6A4C2A6A4FF00FFFF00FFFF00FFFF00FFFF00FFFF00FF}
+      TabOrder = 2
     end
     object chkStayOnTop: TCheckBox
       Left = 4
@@ -136,6 +136,10 @@ object frmJpegDump: TfrmJpegDump
     ExplicitHeight = 391
     object tabOriginal: TTabSheet
       Caption = 'Original'
+      ExplicitLeft = 0
+      ExplicitTop = 0
+      ExplicitWidth = 0
+      ExplicitHeight = 0
     end
     object tabResaved: TTabSheet
       Caption = 'Resaved'
