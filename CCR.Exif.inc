@@ -1,4 +1,4 @@
-{.$DEFINE FMX}                //*** remove the dot as desired ***
+{.$DEFINE FMX}                //*** remove the dot to assume FMX ***
 
 {$IF CompilerVersion < 23}    //no FMX before XE2
   {$UNDEFINE FMX}
@@ -7,7 +7,9 @@
 {$IFDEF FMX}
   {$UNDEFINE VCL}
 {$ELSE}
-  {$DEFINE VCL}               //if not FMX, assume VCL
+  {$IFDEF MSWINDOWS}
+    {$DEFINE VCL}             //if not FMX, assume VCL on Windows
+  {$ENDIF}
 {$ENDIF}
 
 {$IF CompilerVersion >= 18.5}

@@ -1,7 +1,7 @@
 {**************************************************************************************}
 {                                                                                      }
 { CCR Exif - Delphi class library for reading and writing image metadata               }
-{ Version 1.5.1 beta                                                                   }
+{ Version 1.5.1                                                                        }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -45,10 +45,8 @@ unit CCR.Exif;
     by setting the XMPWritePolicy property of TExifData.
   - Maker note rewriting is *not* supported in TExifData. While you can make changes to
     the loaded maker note tags, these changes won't ever be persisted.
-  - When compiling in XE2, you need to set a 'VCL' global define in order for this unit
-    to use the VCL TJpegImage class - setting a 'FMX' global define will have it use the
-    FireMonkey TBitmap, and setting nothing (the default) will have a dummy TJpegImage
-    used. The dummy class will be assignable to
+  - When compiling in XE2, you need to set a 'FMX' global define for this unit to work
+    properly in a FireMonkey application.
 }
 interface
 
