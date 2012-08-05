@@ -124,7 +124,6 @@ object frmScreenshotDemo: TfrmScreenshotDemo
     Width = 212
     Height = 21
     Style = csDropDownList
-    ItemHeight = 13
     ItemIndex = 0
     TabOrder = 5
     Text = '<undefined>'
