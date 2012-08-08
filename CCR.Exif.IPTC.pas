@@ -1,7 +1,7 @@
 {**************************************************************************************}
 {                                                                                      }
 { CCR Exif - Delphi class library for reading and writing image metadata               }
-{ Version 1.5.1                                                                        }
+{ Version 1.5.2 beta                                                                   }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -258,15 +258,6 @@ type
     property ObjectDataSection: TIPTCSection index 8 read GetSection;
     property SecondDescriptorSection: TIPTCSection index 9 read GetSection;
     property Sections[ID: TIPTCSectionID]: TIPTCSection read GetSectionByID; default;
-  {$IF Declared(TJPEGImage)}
-  public //deprecated methods - to be removed in a future release
-    procedure LoadFromJPEG(JPEGStream: TStream); overload; deprecated {$IFDEF DepCom}'Use LoadFromGraphic'{$ENDIF};
-    procedure LoadFromJPEG(JPEGImage: TJPEGImage); overload; inline; deprecated {$IFDEF DepCom}'Use LoadFromGraphic'{$ENDIF};
-    procedure LoadFromJPEG(const FileName: string); overload; deprecated {$IFDEF DepCom}'Use LoadFromGraphic'{$ENDIF};
-    procedure SaveToJPEG(const JPEGFileName: string;
-      Dummy: Boolean = True); overload; inline; deprecated {$IFDEF DepCom}'Use SaveToGraphic'{$ENDIF};
-    procedure SaveToJPEG(JPEGImage: TJPEGImage); overload; inline; deprecated {$IFDEF DepCom}'Use SaveToGraphic'{$ENDIF};
-  {$IFEND}
   published
     property AlwaysAssumeUTF8Encoding: Boolean read FAlwaysAssumeUTF8Encoding write FAlwaysAssumeUTF8Encoding default False;
     property Empty: Boolean read GetEmpty;
@@ -1628,38 +1619,5 @@ begin
         Tag.WriteString(Strings[SectID][I]);
     end;
 end;
-
-{$IF Declared(TJPEGImage)}
-procedure TIPTCData.LoadFromJPEG(JPEGStream: TStream);
-begin
-  if HasJPEGHeader(JPEGStream) then
-    LoadFromGraphic(JPEGStream)
-  else
-    raise EInvalidJPEGHeader.CreateRes(@SInvalidJPEGHeader);
-end;
-
-procedure TIPTCData.LoadFromJPEG(JPEGImage: TJPEGImage);
-begin
-  LoadFromGraphic(JPEGImage)
-end;
-
-procedure TIPTCData.LoadFromJPEG(const FileName: string);
-begin
-  if HasJPEGHeader(FileName) then
-    LoadFromGraphic(FileName)
-  else
-    raise EInvalidJPEGHeader.CreateRes(@SInvalidJPEGHeader);
-end;
-
-procedure TIPTCData.SaveToJPEG(const JPEGFileName: string; Dummy: Boolean);
-begin
-  SaveToGraphic(JPEGFileName);
-end;
-
-procedure TIPTCData.SaveToJPEG(JPEGImage: TJPEGImage);
-begin
-  SaveToGraphic(JPEGImage);
-end;
-{$IFEND}
 
 end.

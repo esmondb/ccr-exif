@@ -1,7 +1,7 @@
 {**************************************************************************************}
 {                                                                                      }
 { CCR Exif - Delphi class library for reading and writing image metadata               }
-{ Version 1.5.1                                                                        }
+{ Version 1.5.2 beta                                                                   }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -268,7 +268,6 @@ type
     function GetTotalSize: Integer;
     function GetLoadedCleanly: Boolean;
 
-    function HasIPTCData: Boolean; deprecated {$IFDEF DepCom}'Renamed IsIPTCBlock'{$ENDIF};
     procedure LoadFromStream(Stream: TStream);
     procedure SaveToStream(Stream: TStream);
     property LoadedCleanly: Boolean read GetLoadedCleanly;
@@ -277,8 +276,6 @@ type
     property Name: AnsiString read GetName write SetName;
     property TotalSize: Integer read GetTotalSize;
   end;
-
-  IAdobeBlock = IAdobeResBlock deprecated {$IFDEF DepCom}'Renamed IAdobeResBlock'{$ENDIF};
 
   IAdobeResBlockEnumerator = interface
     function GetCurrent: IAdobeResBlock;
@@ -486,10 +483,7 @@ type
   end;
 
 const
-  AllJPEGMarkers = TJPEGSegment.AllMarkers deprecated;
   AnyJPEGMarker = TJPEGSegment.AnyMarker;
-  StartOfFrameMarkers  = TJPEGSegment.StartOfFrameMarkers deprecated;
-  MarkersWithNoData = TJPEGSegment.MarkersWithNoData deprecated;
 {
 var
   Segment: IFoundJPEGSegment;

@@ -1,7 +1,7 @@
 ﻿{**************************************************************************************}
 {                                                                                      }
 { CCR Exif - Delphi class library for reading and writing image metadata               }
-{ Version 1.5.1                                                                        }
+{ Version 1.5.2 beta                                                                   }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -176,10 +176,6 @@ type
     property SubPropertyCount: Integer read GetSubPropertyCount write SetSubPropertyCount;
   end;
 
-  TXMPSchemaKind = TXMPNamespace deprecated {$IFDEF DepCom}'Renamed TXMPNamespace'{$ENDIF};
-  TXMPKnownSchemaKind = TXMPKnownNamespace deprecated {$IFDEF DepCom}'Renamed TXMPKnownNamespace'{$ENDIF};
-  TXMPKnownSchemaKinds = set of TXMPKnownNamespace deprecated {$IFDEF DepCom}'Use set of TXMPKnownNamespace'{$ENDIF};
-
   TXMPSchema = class(TInterfacedPersistent, IXMPPropertyCollection)
   strict private
     FLoadingProperty: Boolean;
@@ -195,10 +191,6 @@ type
     function GetOwner: TPersistent; override;
     function GetProperty(Index: Integer): TXMPProperty;
     function GetPropertyCount: Integer;
-  public //deprecated - to be removed in a later release
-    function Kind: TXMPNamespace; deprecated {$IFDEF DepCom}'Use NamespaceInfo.Kind'{$ENDIF};
-    function PreferredPrefix: UnicodeString; deprecated {$IFDEF DepCom}'Use NamespaceInfo.Prefix'{$ENDIF};
-    function URI: UnicodeString; deprecated {$IFDEF DepCom}'Use NamespaceInfo.URI'{$ENDIF};
   public
     constructor Create(AOwner: TXMPPacket; const AURI: UnicodeString);
     destructor Destroy; override;
@@ -1295,21 +1287,6 @@ begin
         Break;
       end;
   end;
-end;
-
-function TXMPSchema.Kind: TXMPNamespace;
-begin
-  Result := FNamespaceInfo.Kind;
-end;
-
-function TXMPSchema.PreferredPrefix: UnicodeString;
-begin
-  Result := FNamespaceInfo.Prefix;
-end;
-
-function TXMPSchema.URI: UnicodeString;
-begin
-  Result := FNamespaceInfo.URI;
 end;
 
 { TXMPPacket }

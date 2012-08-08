@@ -1,7 +1,7 @@
 {**************************************************************************************}
 {                                                                                      }
 { CCR Exif - Delphi class library for reading and writing image metadata               }
-{ Version 1.5.1                                                                        }
+{ Version 1.5.2 beta                                                                   }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -295,7 +295,7 @@ type
     procedure Remove(const IDs: array of TExifTagID); overload;
     function RemovePaddingTag: Boolean; //returns True if contained a padding tag
     function SetByteValue(TagID: TExifTagID; Index: Integer; Value: Byte): TExifTag;
-    procedure SetDateTimeValue(MainID, SubSecsID: TExifTagID; const Value: TDateTimeTagValue);
+    procedure SetDateTimeValue(MainID, SubSecsID: TExifTagID; const DateTime: TDateTimeTagValue);
     procedure SetFractionValue(TagID: TExifTagID; Index: Integer; const Value: TExifFraction);
     function SetLongWordValue(TagID: TExifTagID; Index: Integer; Value: LongWord): TExifTag;
     procedure SetSignedFractionValue(TagID: TExifTagID; Index: Integer;
@@ -513,7 +513,7 @@ type
 
   TThumbnailResolution = class(TCustomExifResolution)
   protected
-    procedure GetTagInfo(var Section: TExifSectionKind; 
+    procedure GetTagInfo(var Section: TExifSectionKind;
       var XTag, YTag, UnitTag: TExifTagID; var Schema: TXMPNamespace; 
       var XName, YName, UnitName: UnicodeString); override;
   end;
@@ -553,7 +553,7 @@ type
 
   TGPSLatitudeRef = (ltMissingOrInvalid, ltNorth, ltSouth);
   TGPSLongitudeRef = (lnMissingOrInvalid, lnWest, lnEast);
-  TGPSAltitudeRef = (alTagMissing, alAboveSeaLevel, alBelowSeaLevel);
+  TGPSAltitudeRef = (alTagMissing = -1, alAboveSeaLevel, alBelowSeaLevel); //!!!corrected v1.5.2
   TGPSStatus = (stMissingOrInvalid, stMeasurementActive, stMeasurementVoid);
   TGPSMeasureMode = (mmUnknown, mm2D, mm3D);
   TGPSSpeedRef = (srMissingOrInvalid, srKilometresPerHour, srMilesPerHour, srKnots); //Exif spec makes KM/h the default value
@@ -661,7 +661,7 @@ type
   end;
 
   THeaderlessMakerNote = class(TExifMakerNote) //special type tried as a last resort; also serves as a
-  protected                                    //nominal base class for two of the concrete implementations
+  protected                                    //nominal base class for a few of the concrete implementations
     class function FormatIsOK(SourceTag: TExifTag; out HeaderSize: Integer): Boolean; override;
   end;
 
@@ -670,6 +670,17 @@ type
     class function FormatIsOK(SourceTag: TExifTag; out HeaderSize: Integer): Boolean; override;
     procedure GetIFDInfo(SourceTag: TExifTag; var ProbableEndianness: TEndianness;
       var DataOffsetsType: TExifDataOffsetsType); override;
+  end;
+
+  TCasioMakerNote = class(THeaderlessMakerNote)
+  protected
+    class function FormatIsOK(SourceTag: TExifTag; out HeaderSize: Integer): Boolean; override;
+  end;
+
+  TCasio2MakerNote = class(TExifMakerNote)
+  protected
+    const Header: array[0..5] of AnsiChar = 'QVC';
+    class function FormatIsOK(SourceTag: TExifTag; out HeaderSize: Integer): Boolean; override;
   end;
 
   TKodakMakerNote = class(TExifMakerNote) //!!!work in very early progress
@@ -688,6 +699,11 @@ type
     procedure GetIFDInfo(SourceTag: TExifTag; var Endianness: TEndianness;
       var DataOffsetsType: TExifDataOffsetsType); override;
   end experimental;
+
+  TKonicaMinoltaMakerNote = class(THeaderlessMakerNote)
+  protected
+    class function FormatIsOK(SourceTag: TExifTag; out HeaderSize: Integer): Boolean; override;
+  end;
 
   TPanasonicMakerNote = class(TExifMakerNote)
   protected
@@ -1143,14 +1159,6 @@ type
     procedure SaveToGraphic(const Graphic: IStreamPersist); overload;
     procedure SaveToStream(Stream: TStream);
     property Sections[Section: TExifSectionKind]: TExtendableExifSection read GetSection; default;
-  {$IF DECLARED(TJPEGData)}
-  public //deprecated methods - to be removed in a future release
-    procedure LoadFromJPEG(JPEGStream: TStream); overload; deprecated {$IFDEF DepCom}'Use LoadFromGraphic'{$ENDIF};
-    procedure LoadFromJPEG(JPEGImage: TJPEGImage); overload; inline; deprecated {$IFDEF DepCom}'Use LoadFromGraphic'{$ENDIF};
-    procedure LoadFromJPEG(const FileName: string); overload; inline; deprecated {$IFDEF DepCom}'Use LoadFromGraphic'{$ENDIF};
-    procedure SaveToJPEG(const JPEGFileName: string; Dummy: Boolean = True); overload; inline; deprecated {$IFDEF DepCom}'Use SaveToGraphic'{$ENDIF};
-    procedure SaveToJPEG(JPEGImage: TJPEGImage); overload; inline; deprecated {$IFDEF DepCom}'Use SaveToGraphic'{$ENDIF};
-  {$IFEND}
   published
     property RemovePaddingTagsOnSave: Boolean read FRemovePaddingTagsOnSave write
       FRemovePaddingTagsOnSave default True;
@@ -1200,9 +1208,6 @@ function ContainsOnlyASCII(const S: RawByteString): Boolean; overload;
 
 function DateTimeToExifString(const DateTime: TDateTime): string;
 function TryExifStringToDateTime(const S: string; var DateTime: TDateTime): Boolean; overload;
-
-function HasExifHeader(Stream: TStream;
-  MovePosOnSuccess: Boolean = False): Boolean; deprecated; //use Segment.HasExifHeader
 
 function ProportionallyResizeExtents(const Width, Height: Integer;
   const MaxWidth, MaxHeight: Integer): TSize;
@@ -2451,7 +2456,7 @@ begin
 end;
 
 procedure TExifSection.SetDateTimeValue(MainID, SubSecsID: TExifTagID;
-  const Value: TDateTimeTagValue);
+  const DateTime: TDateTimeTagValue);
 var
   SubSecsTag: TExifTag;
 begin
@@ -2459,22 +2464,22 @@ begin
     SubSecsTag := nil
   else
     if not Owner[esDetails].Find(SubSecsID, SubSecsTag) then
-      if not Value.MissingOrInvalid and Owner.AlwaysWritePreciseTimes then
+      if not DateTime.MissingOrInvalid and Owner.AlwaysWritePreciseTimes then
         SubSecsTag := Owner[esDetails].Add(SubSecsID, tdAscii, 4)
       else
         SubSecsTag := nil;
-  if Value.MissingOrInvalid then
+  if DateTime.MissingOrInvalid then
   begin
     Remove(MainID);
     FreeAndNil(SubSecsTag);
   end
   else
   begin
-    if Value <> LastSetDateTimeValue then
+    if DateTime <> LastSetDateTimeValue then
     begin
-      LastSetDateTimeValue := Value;
-      LastSetDateTimeMainStr := DateTimeToExifString(Value);
-      LastSetDateTimeSubSecStr := GetExifSubSecsString(Value);
+      LastSetDateTimeValue := DateTime.Value;
+      LastSetDateTimeMainStr := DateTimeToExifString(DateTime.Value);
+      LastSetDateTimeSubSecStr := GetExifSubSecsString(DateTime.Value);
     end;
     SetStringValue(MainID, LastSetDateTimeMainStr);
     if SubSecsTag <> nil then
@@ -4275,6 +4280,13 @@ begin
   Result := FSections[esDetails].GetStringValue(TagID)
 end;
 
+{$IFNDEF CANINLINE}
+function GetQuotient(const Fraction: TExifFraction): Extended;
+begin
+  Result := Fraction.Quotient;
+end;
+{$ENDIF}
+
 function TCustomExifData.GetFocalLengthIn35mmFilm: TWordTagValue;
 var
   CCDWidth, CCDHeight, ResUnit, FinalValue: Extended;
@@ -4293,14 +4305,23 @@ begin
     trCentimetre: ResUnit := 10.0;
   else Exit;
   end;
+  {$IFDEF CANINLINE}
   CCDWidth := FocalPlaneResolution.X.Quotient;
   CCDHeight := FocalPlaneResolution.Y.Quotient;
+  {$ELSE} //crappy D2006 compiler!
+  CCDWidth := GetQuotient(FocalPlaneResolution.X);
+  CCDHeight := GetQuotient(FocalPlaneResolution.Y);
+  {$ENDIF}
   if (CCDWidth = 0) or (CCDHeight = 0) then Exit;
   CCDWidth := ExifWidth * ResUnit / CCDWidth;
   CCDHeight := ExifHeight * ResUnit / CCDHeight;
   if Diag35mm = 0 then
     Diag35mm := Sqrt(Sqr(24) + Sqr(36));
+  {$IFDEF CANINLINE}
   FinalValue := FocalLengthFrac.Quotient * Diag35mm / Sqrt(Sqr(CCDWidth) + Sqr(CCDHeight));
+  {$ELSE} //crappy D2006 compiler!
+  FinalValue := GetQuotient(FocalLengthFrac) * Diag35mm / Sqrt(Sqr(CCDWidth) + Sqr(CCDHeight));
+  {$ENDIF}
   if InRange(FinalValue, 0, High(Word)) then
     Result := Trunc(FinalValue);
 end;
@@ -4407,8 +4428,8 @@ begin
   end;
   if DatePart = 0 then
   begin
-    DatePart := DateTime;
-    if DatePart = 0 then DatePart := DateTimeOriginal;
+    DatePart := DateTime.Value;
+    if DatePart = 0 then DatePart := DateTimeOriginal.Value;
     DatePart := DateOf(DatePart);
   end;
   if DatePart >= 0 then
@@ -4691,9 +4712,11 @@ end;
 { TCustomExifData - tag setters }
 
 procedure TCustomExifData.SetAuthor(const Value: UnicodeString);
-var              //While it always writes both XMP properties, Windows Explorer always
-  Tag: TExifTag; //set its own unicode Exif tag and clears the 'standard' ASCII one;
-begin            //we'll be a bit more intelligent though.
+{ While Windows Explorer always writes both XMP properties, it always sets its own Unicode
+  Exif tag and clears the 'standard' ASCII one; we'll be a bit more intelligent though. }
+var
+  Tag: TExifTag;
+begin
   XMPPacket.UpdateSeqProperty(xsDublinCore, 'creator', Value);
   XMPPacket.UpdateProperty(xsTIFF, 'Artist', Value);
   if Length(Value) = 0 then
@@ -4703,16 +4726,22 @@ begin            //we'll be a bit more intelligent though.
     Exit;
   end;
   if not ContainsOnlyASCII(Value) then
-    FSections[esGeneral].Remove(ttArtist)
+    if EnforceASCII then
+      FSections[esGeneral].Remove(ttArtist)
+    else                                                   //This 'else' clause suggested by
+      FSections[esGeneral].SetStringValue(ttArtist, Value) //Thomas Mueller (*), and implemented in v1.5.2.
   else
     if FSections[esGeneral].Find(ttArtist, Tag) then
     begin
       Tag.UpdateData(tdAscii, Length(Value), TiffString(Value)[1]);
       if not FSections[esGeneral].Find(ttWindowsAuthor, Tag) then
         Exit;
-    end;
+    end
+    else                                                    //Ditto for this 'else' clause.
+      FSections[esGeneral].SetStringValue(ttArtist, Value);
   FSections[esGeneral].SetWindowsStringValue(ttWindowsAuthor, Value);
 end;
+//(*) http://delphihaven.wordpress.com/2012/01/16/xe2-update-for-my-image-metadata-readingwriting-library-ccr-exif/comment-page-1/#comment-4998
 
 procedure TCustomExifData.SetColorSpace(Value: TExifColorSpace);
 begin
@@ -5516,36 +5545,6 @@ begin
   end;
 end;
 
-{$IF DECLARED(TJPEGData)}
-procedure TExifData.LoadFromJPEG(JPEGStream: TStream);
-begin
-  if HasJPEGHeader(JPEGStream) then
-    LoadFromGraphic(JPEGStream)
-  else
-    raise EInvalidJPEGHeader.CreateRes(@SInvalidJPEGHeader);
-end;
-
-procedure TExifData.LoadFromJPEG(JPEGImage: TJPEGImage);
-begin
-  LoadFromGraphic(JPEGImage)
-end;
-
-procedure TExifData.LoadFromJPEG(const FileName: string);
-var
-  Stream: TFileStream;
-begin
-  Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
-  try
-    if HasJPEGHeader(Stream) then
-      inherited LoadFromGraphic(Stream)
-    else
-      raise EInvalidJPEGHeader.CreateRes(@SInvalidJPEGHeader);
-  finally
-    Stream.Free;
-  end;
-end;
-{$IFEND}
-
 procedure TExifData.LoadFromStream(Stream: TStream);
 begin
   Clear(False);
@@ -5654,18 +5653,6 @@ procedure TExifData.SaveToGraphic(const Graphic: IStreamPersist);
 begin
   DoSaveToGraphic(Graphic, GetGraphicSaveMethod);
 end;
-
-{$IF DECLARED(TJPEGData)}
-procedure TExifData.SaveToJPEG(const JPEGFileName: string; Dummy: Boolean = True);
-begin
-  SaveToGraphic(JPEGFileName);
-end;
-
-procedure TExifData.SaveToJPEG(JPEGImage: TJPEGImage);
-begin
-  SaveToGraphic(JPEGImage);
-end;
-{$IFEND}
 
 type
   TSectionSavingInfo = record
@@ -6146,6 +6133,24 @@ begin
   ProbableEndianness := SmallEndian;
 end;
 
+
+{ TCasioMakerNote }
+
+class function TCasioMakerNote.FormatIsOK(SourceTag: TExifTag; out HeaderSize: Integer): Boolean;
+begin
+  HeaderSize := 0;
+  Result := (SourceTag.Section.Owner.CameraMake = 'CASIO');
+end;
+
+{ TCasio2MakerNote }
+
+class function TCasio2MakerNote.FormatIsOK(SourceTag: TExifTag; out HeaderSize: Integer): Boolean;
+begin
+  HeaderSize := SizeOf(Header);
+  Result := (SourceTag.ElementCount > HeaderSize) and
+    CompareMem(SourceTag.Data, @Header, HeaderSize);
+end;
+
 { TKodakMakerNote }
 
 class function TKodakMakerNote.FormatIsOK(SourceTag: TExifTag;
@@ -6200,6 +6205,15 @@ begin
   TagSpecs[3] := TTagSpec.Create(tdWord); //width
   TagSpecs[4] := TTagSpec.Create(tdWord); //height
   TagSpecs[5] := TTagSpec.Create(tdWord); //year
+end;
+
+{ TKonicaMinoltaMakerNote }
+
+class function TKonicaMinoltaMakerNote.FormatIsOK(SourceTag: TExifTag;
+  out HeaderSize: Integer): Boolean;
+begin
+  HeaderSize := 0;
+  Result := (SourceTag.Section.Owner.CameraMake = 'KONICA MINOLTA');
 end;
 
 { TPanasonicMakerNote }
@@ -6408,6 +6422,8 @@ end;
 
 initialization
   TCustomExifData.FMakerNoteClasses := TList.Create;
+  TCustomExifData.FMakerNoteClasses.Add(TCasioMakerNote);
+  TCustomExifData.FMakerNoteClasses.Add(TKonicaMinoltaMakerNote);
   TCustomExifData.FMakerNoteClasses.Add(TNikonType2MakerNote);
   TCustomExifData.FMakerNoteClasses.Add(TCanonMakerNote);
   TCustomExifData.FMakerNoteClasses.Add(TPentaxMakerNote);
@@ -6416,6 +6432,7 @@ initialization
   TCustomExifData.FMakerNoteClasses.Add(TNikonType1MakerNote);
   TCustomExifData.FMakerNoteClasses.Add(TNikonType3MakerNote);
   TCustomExifData.FMakerNoteClasses.Add(TPanasonicMakerNote);
+  TCustomExifData.FMakerNoteClasses.Add(TCasio2MakerNote);
 finalization
   TCustomExifData.FMakerNoteClasses.Free;
 end.
