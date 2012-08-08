@@ -1,0 +1,64 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ProjectGuid>{76e84531-931b-40e0-ab21-042a6581a727}</ProjectGuid>
+  </PropertyGroup>
+  <ItemGroup />
+  <ItemGroup>
+    <Projects Include="Console Demos\CreateXMPSidecar\CreateXMPSidecar.dproj" />
+    <Projects Include="Console Demos\PanaMakerPatch\PanaMakerPatch.dproj" />
+    <Projects Include="Console Demos\StripJPEGMetadata\StripJPEGMetadata.dproj" />
+    <Projects Include="Console Demos\XMPResaveTest\XMPResaveTest.dproj" />
+  </ItemGroup>
+  <ProjectExtensions>
+    <Borland.Personality>Default.Personality</Borland.Personality>
+    <Borland.ProjectType />
+    <BorlandProject>
+  <BorlandProject xmlns=""> <Default.Personality> </Default.Personality> </BorlandProject></BorlandProject>
+  </ProjectExtensions>
+  <Target Name="CreateXMPSidecar">
+    <MSBuild Projects="Console Demos\CreateXMPSidecar\CreateXMPSidecar.dproj" Targets="" />
+  </Target>
+  <Target Name="CreateXMPSidecar:Clean">
+    <MSBuild Projects="Console Demos\CreateXMPSidecar\CreateXMPSidecar.dproj" Targets="Clean" />
+  </Target>
+  <Target Name="CreateXMPSidecar:Make">
+    <MSBuild Projects="Console Demos\CreateXMPSidecar\CreateXMPSidecar.dproj" Targets="Make" />
+  </Target>
+  <Target Name="PanaMakerPatch">
+    <MSBuild Projects="Console Demos\PanaMakerPatch\PanaMakerPatch.dproj" Targets="" />
+  </Target>
+  <Target Name="PanaMakerPatch:Clean">
+    <MSBuild Projects="Console Demos\PanaMakerPatch\PanaMakerPatch.dproj" Targets="Clean" />
+  </Target>
+  <Target Name="PanaMakerPatch:Make">
+    <MSBuild Projects="Console Demos\PanaMakerPatch\PanaMakerPatch.dproj" Targets="Make" />
+  </Target>
+  <Target Name="StripJPEGMetadata">
+    <MSBuild Projects="Console Demos\StripJPEGMetadata\StripJPEGMetadata.dproj" Targets="" />
+  </Target>
+  <Target Name="StripJPEGMetadata:Clean">
+    <MSBuild Projects="Console Demos\StripJPEGMetadata\StripJPEGMetadata.dproj" Targets="Clean" />
+  </Target>
+  <Target Name="StripJPEGMetadata:Make">
+    <MSBuild Projects="Console Demos\StripJPEGMetadata\StripJPEGMetadata.dproj" Targets="Make" />
+  </Target>
+  <Target Name="XMPResaveTest">
+    <MSBuild Projects="Console Demos\XMPResaveTest\XMPResaveTest.dproj" Targets="" />
+  </Target>
+  <Target Name="XMPResaveTest:Clean">
+    <MSBuild Projects="Console Demos\XMPResaveTest\XMPResaveTest.dproj" Targets="Clean" />
+  </Target>
+  <Target Name="XMPResaveTest:Make">
+    <MSBuild Projects="Console Demos\XMPResaveTest\XMPResaveTest.dproj" Targets="Make" />
+  </Target>
+  <Target Name="Build">
+    <CallTarget Targets="CreateXMPSidecar;PanaMakerPatch;StripJPEGMetadata;XMPResaveTest" />
+  </Target>
+  <Target Name="Clean">
+    <CallTarget Targets="CreateXMPSidecar:Clean;PanaMakerPatch:Clean;StripJPEGMetadata:Clean;XMPResaveTest:Clean" />
+  </Target>
+  <Target Name="Make">
+    <CallTarget Targets="CreateXMPSidecar:Make;PanaMakerPatch:Make;StripJPEGMetadata:Make;XMPResaveTest:Make" />
+  </Target>
+  <Import Condition="Exists('$(MSBuildBinPath)\Borland.Group.Targets')" Project="$(MSBuildBinPath)\Borland.Group.Targets" />
+</Project>

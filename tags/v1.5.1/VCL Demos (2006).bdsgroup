@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<BorlandProject>
+  <PersonalityInfo>
+    <Option>
+      <Option Name="Personality">Default.Personality</Option>
+      <Option Name="ProjectType"></Option>
+      <Option Name="Version">1.0</Option>
+      <Option Name="GUID">{163D28AF-5BD4-4171-9283-27F83CC5D23D}</Option>
+    </Option>
+  </PersonalityInfo>
+  <Default.Personality>
+    
+    <Projects>
+      <Projects Name="ExifList.exe">VCL Demos\ExifList\ExifList.bdsproj</Projects>
+      <Projects Name="IPTCEditor.exe">VCL Demos\IPTCEditor\IPTCEditor.bdsproj</Projects>
+      <Projects Name="JpegDump.exe">VCL Demos\JpegDump\JpegDump.bdsproj</Projects>
+      <Projects Name="Screenshooter.exe">VCL Demos\Screenshot\Screenshooter.bdsproj</Projects>
+      <Projects Name="ExifTimeShift.exe">VCL Demos\TimeShift\ExifTimeShift.bdsproj</Projects>
+      <Projects Name="XMPBrowser.exe">VCL Demos\XMPBrowser\XMPBrowser.bdsproj</Projects>
+      <Projects Name="Targets">ExifList.exe IPTCEditor.exe JpegDump.exe Screenshooter.exe ExifTimeShift.exe XMPBrowser.exe</Projects>
+    </Projects>
+    <Dependencies/>
+  </Default.Personality>
+</BorlandProject>

@@ -1,0 +1,108 @@
+﻿	<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+		<PropertyGroup>
+			<ProjectGuid>{5AF5F4B2-040E-48E0-B615-DA7712810AB5}</ProjectGuid>
+		</PropertyGroup>
+		<ItemGroup>
+			<Projects Include="VCL Demos\ExifList\ExifList2009.dproj">
+				<Dependencies/>
+			</Projects>
+			<Projects Include="VCL Demos\IPTCEditor\IPTCEditor2009.dproj">
+				<Dependencies/>
+			</Projects>
+			<Projects Include="VCL Demos\JpegDump\JpegDump2009.dproj">
+				<Dependencies/>
+			</Projects>
+			<Projects Include="VCL Demos\ResaveTest\ResavingTest2009.dproj">
+				<Dependencies/>
+			</Projects>
+			<Projects Include="VCL Demos\Screenshot\Screenshooter2009.dproj">
+				<Dependencies/>
+			</Projects>
+			<Projects Include="VCL Demos\TimeShift\ExifTimeShift2009.dproj">
+				<Dependencies/>
+			</Projects>
+			<Projects Include="VCL Demos\XMPBrowser\XMPBrowser2009.dproj">
+				<Dependencies/>
+			</Projects>
+		</ItemGroup>
+		<ProjectExtensions>
+			<Borland.Personality>Default.Personality.12</Borland.Personality>
+			<Borland.ProjectType/>
+			<BorlandProject>
+				<Default.Personality/>
+			</BorlandProject>
+		</ProjectExtensions>
+		<Target Name="ExifList2009">
+			<MSBuild Projects="VCL Demos\ExifList\ExifList2009.dproj"/>
+		</Target>
+		<Target Name="ExifList2009:Clean">
+			<MSBuild Targets="Clean" Projects="VCL Demos\ExifList\ExifList2009.dproj"/>
+		</Target>
+		<Target Name="ExifList2009:Make">
+			<MSBuild Targets="Make" Projects="VCL Demos\ExifList\ExifList2009.dproj"/>
+		</Target>
+		<Target Name="IPTCEditor2009">
+			<MSBuild Projects="VCL Demos\IPTCEditor\IPTCEditor2009.dproj"/>
+		</Target>
+		<Target Name="IPTCEditor2009:Clean">
+			<MSBuild Targets="Clean" Projects="VCL Demos\IPTCEditor\IPTCEditor2009.dproj"/>
+		</Target>
+		<Target Name="IPTCEditor2009:Make">
+			<MSBuild Targets="Make" Projects="VCL Demos\IPTCEditor\IPTCEditor2009.dproj"/>
+		</Target>
+		<Target Name="JpegDump2009">
+			<MSBuild Projects="VCL Demos\JpegDump\JpegDump2009.dproj"/>
+		</Target>
+		<Target Name="JpegDump2009:Clean">
+			<MSBuild Targets="Clean" Projects="VCL Demos\JpegDump\JpegDump2009.dproj"/>
+		</Target>
+		<Target Name="JpegDump2009:Make">
+			<MSBuild Targets="Make" Projects="VCL Demos\JpegDump\JpegDump2009.dproj"/>
+		</Target>
+		<Target Name="ResavingTest2009">
+			<MSBuild Projects="VCL Demos\ResaveTest\ResavingTest2009.dproj"/>
+		</Target>
+		<Target Name="ResavingTest2009:Clean">
+			<MSBuild Targets="Clean" Projects="VCL Demos\ResaveTest\ResavingTest2009.dproj"/>
+		</Target>
+		<Target Name="ResavingTest2009:Make">
+			<MSBuild Targets="Make" Projects="VCL Demos\ResaveTest\ResavingTest2009.dproj"/>
+		</Target>
+		<Target Name="Screenshooter2009">
+			<MSBuild Projects="VCL Demos\Screenshot\Screenshooter2009.dproj"/>
+		</Target>
+		<Target Name="Screenshooter2009:Clean">
+			<MSBuild Targets="Clean" Projects="VCL Demos\Screenshot\Screenshooter2009.dproj"/>
+		</Target>
+		<Target Name="Screenshooter2009:Make">
+			<MSBuild Targets="Make" Projects="VCL Demos\Screenshot\Screenshooter2009.dproj"/>
+		</Target>
+		<Target Name="ExifTimeShift2009">
+			<MSBuild Projects="VCL Demos\TimeShift\ExifTimeShift2009.dproj"/>
+		</Target>
+		<Target Name="ExifTimeShift2009:Clean">
+			<MSBuild Targets="Clean" Projects="VCL Demos\TimeShift\ExifTimeShift2009.dproj"/>
+		</Target>
+		<Target Name="ExifTimeShift2009:Make">
+			<MSBuild Targets="Make" Projects="VCL Demos\TimeShift\ExifTimeShift2009.dproj"/>
+		</Target>
+		<Target Name="XMPBrowser2009">
+			<MSBuild Projects="VCL Demos\XMPBrowser\XMPBrowser2009.dproj"/>
+		</Target>
+		<Target Name="XMPBrowser2009:Clean">
+			<MSBuild Targets="Clean" Projects="VCL Demos\XMPBrowser\XMPBrowser2009.dproj"/>
+		</Target>
+		<Target Name="XMPBrowser2009:Make">
+			<MSBuild Targets="Make" Projects="VCL Demos\XMPBrowser\XMPBrowser2009.dproj"/>
+		</Target>
+		<Target Name="Build">
+			<CallTarget Targets="ExifList2009;IPTCEditor2009;JpegDump2009;ResavingTest2009;Screenshooter2009;ExifTimeShift2009;XMPBrowser2009"/>
+		</Target>
+		<Target Name="Clean">
+			<CallTarget Targets="ExifList2009:Clean;IPTCEditor2009:Clean;JpegDump2009:Clean;ResavingTest2009:Clean;Screenshooter2009:Clean;ExifTimeShift2009:Clean;XMPBrowser2009:Clean"/>
+		</Target>
+		<Target Name="Make">
+			<CallTarget Targets="ExifList2009:Make;IPTCEditor2009:Make;JpegDump2009:Make;ResavingTest2009:Make;Screenshooter2009:Make;ExifTimeShift2009:Make;XMPBrowser2009:Make"/>
+		</Target>
+		<Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+	</Project>
