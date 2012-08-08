@@ -1,7 +1,7 @@
 {**************************************************************************************}
 {                                                                                      }
 { CCR Exif - Delphi class library for reading and writing image metadata               }
-{ Version 1.5.1                                                                        }
+{ Version 1.5.2 beta                                                                   }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -61,9 +61,6 @@ type
   end;
 
   TTiffTagInfoDynArray = array of TTiffTagInfo;
-
-  TTiffDirectoryLoadError = TMetadataLoadError deprecated;   //symbol only added in first trunk version of 1.5.0 beta anyhow
-  TTiffDirectoryLoadErrors = TMetadataLoadErrors deprecated; //ditto
 
   TiffString = type AnsiString;
 

@@ -1,7 +1,7 @@
 {**************************************************************************************}
 {                                                                                      }
 { CCR Exif - Delphi class library for reading and writing Exif metadata in JPEG files  }
-{ Version 1.5.1                                                                        }
+{ Version 1.5.2 beta                                                                   }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -34,7 +34,6 @@ resourcestring
   SInvalidTiffData = 'Invalid TIFF data';
   SInvalidOffsetTag = 'Tag does not specify an offset';
   SInvalidExifData = 'Malformed EXIF data';
-  SNoExifHeaderFound = 'No Exif header found' deprecated; //always forgiving about this since v1.5.0
   SAsciiValueCannotBeArray = 'An ASCII tag cannot be an array';
   SUndefinedValueMustBeBeArray = 'An undefined tag must be an array';
   SInvalidFraction = '''%s'' is not a valid fraction';
@@ -55,7 +54,6 @@ resourcestring
   SPreferredPrefixMustBeSet = 'The schema''s PreferredPrefix property must be set before a new item can be added';
 
   SInvalidAdobeSegment = 'Invalid Adobe metadata segment';
-  SInvalidIPTCRecordNumber = 'Invalid IPTC record number (%d)' deprecated; //parsing is just broken off now
   SInvalidIPTCTagSizeField = 'Invalid IPTC tag size field (%d)';
 
 implementation

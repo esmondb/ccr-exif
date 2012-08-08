@@ -1,7 +1,7 @@
 {**************************************************************************************}
 {                                                                                      }
 { CCR Exif - Delphi class library for reading and writing image metadata               }
-{ Version 1.5.1                                                                        }
+{ Version 1.5.2 beta                                                                   }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -173,11 +173,9 @@ const
   ttCompression               = $0103; //value should be 6 for JPEG (1 = uncompressed TIFF
   ttPhotometricInterp         = $0106; //1=b/w, 2 = RGB, 6 = YCbCr; shouldn't be used for a JPEG thumbnail
   ttStripOffsets              = $0111; //for when thumbnail is a TIFF
-  ttStripOffset = ttStripOffsets deprecated;
   ttSamplesPerPixel           = $0115; //shouldn't be used for a JPEG thumbnail
   ttRowsPerStrip              = $0116; //shouldn't be used for a JPEG thumbnail
   ttStripByteCounts           = $0117; //for when thumbnail is a TIFF
-  ttStripByteCount = ttStripByteCounts deprecated;
   ttPlanarConfiguration       = $011C; //shouldn't be used for a JPEG thumbnail
   ttTileOffsets               = $0144; //shouldn't be used for a JPEG thumbnail
   ttTileByteCounts            = $0145; //shouldn't be used for a JPEG thumbnail
