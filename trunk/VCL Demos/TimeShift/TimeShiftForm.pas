@@ -1,7 +1,7 @@
 {**************************************************************************************}
 {                                                                                      }
 { CCR Exif - Delphi class library for reading and writing Exif metadata in JPEG files  }
-{ Version 1.5.1                                                                        }
+{ Version 1.5.2 beta                                                                   }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -298,11 +298,11 @@ begin
     begin
       if NewValue = 0 then
       begin
-        NewValue := Data.DateTime;
+        NewValue := Data.DateTime.Value;
         if NewValue = 0 then
         begin
-          NewValue := Data.DateTimeDigitized;
-          if NewValue = 0 then NewValue := Data.DateTimeOriginal;
+          NewValue := Data.DateTimeDigitized.Value;
+          if NewValue = 0 then NewValue := Data.DateTimeOriginal.Value;
         end;
       end;
       if NewValue <> 0 then           
