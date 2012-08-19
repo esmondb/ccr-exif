@@ -54,7 +54,7 @@ var
 
 implementation
 
-uses ShellApi;
+uses Masks, ShellApi;
 
 {$R *.dfm}
 
@@ -85,11 +85,11 @@ procedure TfrmOpenFile.FormCreate(Sender: TObject);
     if FindFirst(Path + '*.exe', faArchive, SearchRec) = 0 then {$WARN SYMBOL_PLATFORM ON}
     begin
       repeat
-        if SameText(SearchRec.Name, 'ExifList.exe') then
+        if MatchesMask(SearchRec.Name, 'ExifList*.exe') then
           btnCompareInExifList.Hint := Path + SearchRec.Name
-        else if SameText(SearchRec.Name, 'JpegDump.exe') then
+        else if MatchesMask(SearchRec.Name, 'JpegDump*.exe') then
           btnCompareInJpegDump.Hint := Path + SearchRec.Name
-        else if SameText(SearchRec.Name, 'XMPBrowser.exe') then
+        else if MatchesMask(SearchRec.Name, 'XMPBrowser*.exe') then
           btnCompareInXMPBrowser.Hint := Path + SearchRec.Name
       until FindNext(SearchRec) <> 0;
       FindClose(SearchRec);
