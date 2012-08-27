@@ -323,7 +323,7 @@ function HasXMPSegmentHeader(Stream: TStream): Boolean; deprecated {$IFDEF DepCo
 implementation
 
 uses
-  {$IFNDEF HasTTimeZone}Windows,{$ENDIF} Math, RTLConsts, Contnrs, DateUtils, StrUtils,
+  {$IFDEF HasTTimeZone}TimeSpan{$ELSE}Windows{$ENDIF}, Math, RTLConsts, Contnrs, DateUtils, StrUtils,
   CCR.Exif.Consts, CCR.Exif.TagIDs, CCR.Exif.StreamHelper;
 
 const
