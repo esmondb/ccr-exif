@@ -1531,6 +1531,7 @@ begin
 end;
 
 procedure TJPEGImage.SaveToStream(Stream: TStream);
+{$IFDEF VER230}
 var
   Filter: TBitmapCodec;
 begin
@@ -1541,6 +1542,11 @@ begin
     Filter.Free;
   end;
 end;
+{$ELSE}
+begin
+  TBitmapCodecManager.SaveToStream(Stream, Self, 'jpeg');
+end;
+{$ENDIF}
 {$ENDIF}
 
 { segment header checking }
