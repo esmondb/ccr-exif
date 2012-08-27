@@ -69,7 +69,8 @@ type
 
 implementation
 
-uses ClipBrd, StrUtils, CCR.Exif.Consts, CCR.Exif.Demos;
+uses
+  {$IF CompilerVersion >= 23}System.UITypes,{$IFEND} ClipBrd, StrUtils, CCR.Exif.Consts, CCR.Exif.Demos;
 
 {$R *.dfm}
 
