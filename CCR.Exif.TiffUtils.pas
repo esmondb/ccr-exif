@@ -69,8 +69,8 @@ type
     constructor Create(const AQuotient: Currency); overload;
     constructor CreateFromString(const AString: string);
     function AsString: string;
-    function MissingOrInvalid: Boolean; {$IFDEF CanInline}inline;{$ENDIF}
-    function Quotient: Extended; {$IFDEF CanInline}inline;{$ENDIF}
+    function MissingOrInvalid: Boolean;
+    function Quotient: Extended;
     case Integer of
       0: (Numerator, Denominator: LongWord);
       1: (PackedValue: Int64);
@@ -81,8 +81,8 @@ type
     constructor Create(const AQuotient: Currency); overload;
     constructor CreateFromString(const AString: string);
     function AsString: string;
-    function MissingOrInvalid: Boolean; {$IFDEF CanInline}inline;{$ENDIF}
-    function Quotient: Extended; {$IFDEF CanInline}inline;{$ENDIF}
+    function MissingOrInvalid: Boolean;
+    function Quotient: Extended;
     case Integer of
       0: (Numerator, Denominator: LongInt);
       1: (PackedValue: Int64);
