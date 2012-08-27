@@ -69,7 +69,7 @@ var
 
 implementation
 
-uses StrUtils, CCR.Exif, CCR.Exif.Consts, ResaveCompleteDlg;
+uses StrUtils, CCR.Exif, CCR.Exif.Consts, CCR.Exif.XMPUtils, ResaveCompleteDlg;
 
 {$R *.dfm}
 

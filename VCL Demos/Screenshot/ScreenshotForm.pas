@@ -58,7 +58,7 @@ var
 
 implementation
 
-uses ShellApi, CCR.Exif, CCR.Exif.Consts;
+uses {$IF CompilerVersion >= 23}System.UITypes,{$IFEND} ShellApi, CCR.Exif, CCR.Exif.Consts;
 
 {$R *.dfm}
 

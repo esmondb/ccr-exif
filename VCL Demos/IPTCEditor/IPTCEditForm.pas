@@ -29,7 +29,8 @@ interface
 
 uses
   Windows, SysUtils, Classes, Graphics, Controls, Forms, Dialogs, ExtDlgs, Buttons,   
-  ActnList, StdActns, ComCtrls, StdCtrls, ExtCtrls, Grids, ValEdit, CCR.Exif.Demos;
+  ActnList, StdActns, ComCtrls, StdCtrls, ExtCtrls, Grids, ValEdit, CCR.Exif.Demos,
+  System.Actions;
 
 type
   TValueListEditor = class(ValEdit.TValueListEditor)
@@ -180,7 +181,9 @@ var
 
 implementation
 
-uses Math, CCR.Exif.BaseUtils, CCR.Exif.IPTC, CCR.SizeGripCtrl;
+uses
+  {$IF CompilerVersion >= 23}System.UITypes,{$IFEND} Math,
+  CCR.Exif.BaseUtils, CCR.Exif.IPTC, CCR.SizeGripCtrl;
 
 {$R *.dfm}
 

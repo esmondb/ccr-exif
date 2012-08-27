@@ -27,7 +27,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, ExtCtrls, ToolWin, ComCtrls, Menus, ActnList, ImgList, ExtDlgs,
-  CCR.Exif.Demos, FileTimeOptsForm;
+  CCR.Exif.Demos, FileTimeOptsForm, System.Actions;
 
 type
   TListView = class(ComCtrls.TListView) //OK, using an interposer class is a bit lazy,
@@ -76,7 +76,8 @@ var
 
 implementation
 
-uses ShellApi, DateUtils, StrUtils, Registry, CCR.Exif;
+uses
+  {$IF CompilerVersion >= 23}System.UITypes,{$IFEND} ShellApi, DateUtils, StrUtils, Registry, CCR.Exif;
 
 {$R *.dfm}
 
