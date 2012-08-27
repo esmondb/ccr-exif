@@ -88,6 +88,7 @@ type
   public
     constructor Create; reintroduce;
     procedure SaveToStream(Stream: TStream);
+    property Empty: Boolean read IsEmpty;
   end;
 {$ENDIF}
 {$IF NOT Declared(TJPEGImage)}
