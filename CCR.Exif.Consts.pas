@@ -23,7 +23,7 @@ unit CCR.Exif.Consts;
 interface
 
 const
-  CCRExifVersion = '1.5.1';
+  CCRExifVersion = '1.5.2 beta';
 
 resourcestring
   SStreamIsReadOnly = 'Stream is read-only';
