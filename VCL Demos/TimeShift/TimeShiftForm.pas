@@ -77,7 +77,8 @@ var
 implementation
 
 uses
-  {$IF CompilerVersion >= 23}System.UITypes,{$IFEND} ShellApi, DateUtils, StrUtils, Registry, CCR.Exif;
+  {$IF CompilerVersion >= 23}System.UITypes,{$IFEND} ShellApi, DateUtils, StrUtils, Registry,
+  CCR.Exif.BaseUtils, CCR.Exif;
 
 {$R *.dfm}
 
@@ -152,14 +153,15 @@ begin
     FileSetReadOnly(FileName, True);
 end;
 
+function DateTimeToText(const DateTime: TDateTimeTagValue): string;
+begin
+  if DateTime.MissingOrInvalid then
+    Result := '<missing>'
+  else
+    Result := SysUtils.DateTimeToStr(DateTime);
+end;
+
 procedure TfrmTimeShiftDemo.DoOpen;
-  function DateTimeToStr(const DateTime: TDateTime): string;
-  begin
-    if DateTime = 0 then
-      Result := '<missing>'
-    else
-      Result := SysUtils.DateTimeToStr(DateTime);
-  end;
 var
   S: string;
   Data: TExifDataPatcher;
@@ -206,10 +208,10 @@ begin
     Item := ListView.Items.Add;
     Item.Data := Data;
     Item.Caption := ExtractFileName(S);
-    Item.SubItems.AddObject(DateTimeToStr(Data.FileDateTime), TObject(ReadOnly));
-    Item.SubItems.Add(DateTimeToStr(Data.DateTime));
-    Item.SubItems.Add(DateTimeToStr(Data.DateTimeOriginal));
-    Item.SubItems.Add(DateTimeToStr(Data.DateTimeDigitized));
+    Item.SubItems.AddObject(DateTimeToText(Data.FileDateTime), TObject(ReadOnly));
+    Item.SubItems.Add(DateTimeToText(Data.DateTime));
+    Item.SubItems.Add(DateTimeToText(Data.DateTimeOriginal));
+    Item.SubItems.Add(DateTimeToText(Data.DateTimeDigitized));
   end;
 end;
 
@@ -274,9 +276,9 @@ procedure TfrmTimeShiftDemo.actProcessExecute(Sender: TObject);
 var
   NewValue: TDateTime;
 
-  function DoShiftTime(const DateTime: TDateTime): Boolean;
+  function DoShiftTime(const DateTime: TDateTimeTagValue): Boolean;
   begin
-    Result := (DateTime <> 0);
+    Result := not DateTime.MissingOrInvalid;
     if Result then NewValue := IncMinute(DateTime, updMins.Position);
   end;
 var
