@@ -229,6 +229,8 @@ type
   TGraphicSaveMethod = procedure (InStream, OutStream: TStream) of object;
   TGetGraphicSaveMethod = procedure (InStream: TStream; var AMethod: TGraphicSaveMethod) of object;
 
+procedure DoSaveToGraphic(GraphicStream: TStream;
+  const DetectTypeFunc: TGetGraphicSaveMethod); overload;
 procedure DoSaveToGraphic(const FileName: string;
   const DetectTypeFunc: TGetGraphicSaveMethod); overload;
 procedure DoSaveToGraphic(const Graphic: IStreamPersist; //!!!changed from TGraphic

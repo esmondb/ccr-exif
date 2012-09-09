@@ -1111,8 +1111,8 @@ type
     { the following two methods originally had params typed to TJpegImage; these
       have been made more weakly typed for FMX compatibility }
     {$IF CompilerVersion >= 22}
-    procedure GetImage<T: TPersistent, IStreamPersist>(Dest: T);
-    procedure GetThumbnail<T: TPersistent, IStreamPersist>(Dest: T);
+    procedure GetImage<T: TPersistent, IStreamPersist>(const Dest: T);
+    procedure GetThumbnail<T: TPersistent, IStreamPersist>(const Dest: T);
     {$ELSE}
     procedure GetImage(const Dest: IStreamPersist);
     procedure GetThumbnail(Dest: TPersistent);
@@ -1158,6 +1158,7 @@ type
     procedure RemovePaddingTags;
     procedure SaveToGraphic(const FileName: string); overload;
     procedure SaveToGraphic(const Graphic: IStreamPersist); overload;
+    procedure SaveToGraphic(const InMemoryGraphic: TCustomMemoryStream); overload;
     procedure SaveToStream(Stream: TStream);
     property Sections[Section: TExifSectionKind]: TExtendableExifSection read GetSection; default;
   published
@@ -5321,7 +5322,7 @@ begin
 end;
 
 {$IF CompilerVersion >= 22}
-procedure TExifDataPatcher.GetImage<T>(Dest: T);
+procedure TExifDataPatcher.GetImage<T>(const Dest: T);
 {$ELSE}
 procedure TExifDataPatcher.GetImage(const Dest: IStreamPersist);
 {$IFEND}
@@ -5332,7 +5333,7 @@ begin
 end;
 
 {$IF CompilerVersion >= 22}
-procedure TExifDataPatcher.GetThumbnail<T>(Dest: T);
+procedure TExifDataPatcher.GetThumbnail<T>(const Dest: T);
 {$ELSE}
 procedure TExifDataPatcher.GetThumbnail(Dest: TPersistent);
 {$IFEND}
@@ -5347,7 +5348,7 @@ begin
 {$IFDEF MSWINDOWS}                                        {$WARN SYMBOL_PLATFORM OFF}
   FileSetDate(FStream.Handle, DateTimeToFileDate(Value)); {$WARN SYMBOL_PLATFORM ON}
 {$ELSE}
-  FileSetDate(FStream.FileName, DateTimeToFileDate(Value)); //!!!does this actually work?
+  FileSetDate(FStream.FileName, DateTimeToFileDate(Value)); //does actually work on OS X at least
 {$ENDIF}
 end;
 
@@ -5355,7 +5356,7 @@ procedure TExifDataPatcher.OpenFile(const JPEGFileName: string);
 begin
   CloseFile;
   if JPEGFileName = '' then Exit;
-  FStream := TFileStream.Create(JPEGFileName, fmOpenReadWrite);
+  FStream := TFileStream.Create(JPEGFileName, fmOpenReadWrite or fmShareDenyWrite);
   if not HasJPEGHeader(FStream) then
   begin
     FreeAndNil(FStream);
@@ -5659,6 +5660,12 @@ end;
 procedure TExifData.SaveToGraphic(const Graphic: IStreamPersist);
 begin
   DoSaveToGraphic(Graphic, GetGraphicSaveMethod);
+end;
+
+procedure TExifData.SaveToGraphic(const InMemoryGraphic: TCustomMemoryStream);
+begin
+  InMemoryGraphic.Position := 0;
+  DoSaveToGraphic(InMemoryGraphic, GetGraphicSaveMethod);
 end;
 
 type
