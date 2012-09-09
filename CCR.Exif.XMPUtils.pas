@@ -303,8 +303,6 @@ type
     property Schemas[Kind: TXMPKnownNamespace]: TXMPSchema read FindOrAddSchema; default;
     property Schemas[Index: Integer]: TXMPSchema read GetSchema; default;
     property Schemas[const URI: UnicodeString]: TXMPSchema read FindOrAddSchema; default;
-  public //deprecated methods - to be removed in a future release
-    function LoadFromJPEG(const JPEGFileName: string): Boolean; inline; deprecated {$IFDEF DepCom}'Use LoadFromGraphic'{$ENDIF};
   published
     property Empty: Boolean read GetEmpty;
     property RawXML: UTF8String read GetRawXML write SetRawXML;
@@ -318,7 +316,6 @@ const
 
 function DateTimeToXMPString(const Value: TDateTime; ApplyLocalBias: Boolean = True): UnicodeString;
 function EscapeXML(const Source: UnicodeString): UnicodeString;
-function HasXMPSegmentHeader(Stream: TStream): Boolean; deprecated {$IFDEF DepCom}'Use Segment.HasXMPHeader'{$ENDIF};
 
 implementation
 
@@ -1572,11 +1569,6 @@ begin
   finally
     Stream.Free;
   end;
-end;
-
-function TXMPPacket.LoadFromJPEG(const JPEGFileName: string): Boolean;
-begin
-  Result := LoadFromGraphic(JPEGFileName);
 end;
 
 procedure TXMPPacket.LoadFromStream(Stream: TStream);
