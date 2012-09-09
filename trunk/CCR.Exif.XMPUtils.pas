@@ -833,7 +833,16 @@ begin
       xpBagArray, xpSeqArray: FName := '';
       xpAltArray:
         if SourceAsElem <> nil then
-          FName := SourceAsElem.getAttribute(XMLLangAttrName)
+        begin
+          FName := SourceAsElem.getAttribute(XMLLangAttrName);
+          if FName = '' then //fix for ADOM
+            for I := SourceAsElem.attributes.length - 1 downto 0 do
+              if SourceAsElem.attributes[I].nodeName = XMLLangAttrName then
+              begin
+                FName := SourceAsElem.attributes[I].nodeValue;
+                Break;
+              end;
+        end
         else
           FName := '';
     else UseSourceNodeNameAndNamespace;
@@ -862,8 +871,15 @@ begin
       if FKind = xpStructure then
         DoAdd := True
       else if ChildNode.nodeName = RDF.ListNodeName then
-        DoAdd := (FKind <> xpAltArray) or
-          (ChildNode.attributes.getNamedItem(XMLLangAttrName) <> nil);
+        if (FKind <> xpAltArray) or (ChildNode.attributes.getNamedItem(XMLLangAttrName) <> nil) then
+          DoAdd := True
+        else //fix for ADOM added v1.5.2
+          for I := ChildNode.attributes.length - 1 downto 0 do
+            if ChildNode.attributes[I].nodeName = XMLLangAttrName then
+            begin
+              DoAdd := True;
+              Break;
+            end;
     end;
     if DoAdd then
       FSubProperties.Add(TXMPProperty.Create(Schema, Self, ChildNode));
