@@ -1225,6 +1225,7 @@ function RemoveMetadataFromJPEG(JPEGImage: TJPEGImage;
 implementation
 
 uses
+  {$IFDEF BrokenFMXJpegExport}System.Diagnostics, System.IOUtils,{$ENDIF}
   SysConst, RTLConsts, Math, DateUtils, StrUtils, CCR.Exif.Consts;
 
 type
@@ -1295,8 +1296,10 @@ begin
   {$IFDEF VCL}
   ADest.StretchDraw(ARect, AGraphic);
   {$ELSE}
+  ADest.BeginScene;
   ADest.DrawBitmap(AGraphic, RectF(0, 0, AGraphic.Width, AGraphic.Height),
     RectF(ARect.Left, ARect.Top, ARect.Right, ARect.Bottom), 1);
+  ADest.EndScene;
   {$ENDIF}
 end;
 {$ELSE}
@@ -1533,22 +1536,38 @@ begin
 end;
 
 procedure TJPEGImage.SaveToStream(Stream: TStream);
-{$IFDEF VER230}
+{$IF DEFINED(VER230)}
 var
-  Filter: TBitmapCodec;
+  Codec: TBitmapCodec;
 begin
-  Filter := DefaultBitmapCodecClass.Create;
+  Codec := DefaultBitmapCodecClass.Create;
   try
-    Filter.SaveToStream(Stream, TBitmap(Self), 'jpeg');
+    Codec.SaveToStream(Stream, TBitmap(Self), 'jpeg');
   finally
-    Filter.Free;
+    Codec.Free;
+  end;
+end;
+{$ELSEIF DEFINED(BrokenFMXJpegExport)} //QC108621
+var
+  FileStream: TFileStream;
+  TempFN: string;
+begin
+  FileStream := nil;
+  TempFN := IncludeTrailingPathDelimiter(TPath.GetTempPath) + IntToStr(TStopwatch.GetTimeStamp) + '.jpg';
+  try
+    TBitmapCodecManager.SaveToFile(TempFN, Self);
+    FileStream := TFileStream.Create(TempFN, fmOpenRead or fmShareDenyWrite);
+    Stream.CopyFrom(FileStream, 0);
+  finally
+    FileStream.Free;
+    DeleteFile(TempFN);
   end;
 end;
 {$ELSE}
 begin
-  TBitmapCodecManager.SaveToStream(Stream, Self, 'jpeg');
+  TBitmapCodecManager.SaveToStream(Stream, Self, 'jpg');
 end;
-{$ENDIF}
+{$IFEND}
 {$ENDIF}
 
 { segment header checking }
@@ -5378,7 +5397,7 @@ end;
 procedure TExifDataPatcher.UpdateFile;
 var
   DataOffsetFix: Int64;
-  OldDate: Integer;
+  OldDate, WrittenLen: Integer;
   Section: TExifSection;
   SectionEndianness: TEndianness;
   Tag: TExifTag;
@@ -5418,12 +5437,13 @@ begin
     try
       XMPStream.WriteBuffer(TJPEGSegment.XMPHeader, SizeOf(TJPEGSegment.XMPHeader));
       XMPPacket.SaveToStream(XMPStream);
-      if XMPStream.Size <= FXMPPacketSizeInSource then
+      WrittenLen := XMPStream.Size;
+      if WrittenLen <= FXMPPacketSizeInSource then
       begin
         Assert(mkXMP in MetadataInSource);
         XMPStream.Size := FXMPPacketSizeInSource;
-        FillChar(PAnsiChar(XMPStream.Memory)[XMPStream.Size],
-          FXMPPacketSizeInSource - XMPStream.Size, $20);
+        FillChar(PAnsiChar(XMPStream.Memory)[WrittenLen], //!!!was a no-op until fixed v1.5.2
+          FXMPPacketSizeInSource - WrittenLen, $20);
       end
       else
       begin
@@ -5437,7 +5457,7 @@ begin
           FXMPSegmentPosition := Stream.Position;
           Include(FMetadataInSource, mkXMP);
         end;
-        FXMPPacketSizeInSource := XMPStream.Size;
+        FXMPPacketSizeInSource := WrittenLen;
         SetLength(BytesToRewrite, Stream.Size - Stream.Position);
         Stream.ReadBuffer(BytesToRewrite[0], Length(BytesToRewrite));
       end;
