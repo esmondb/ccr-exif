@@ -45,7 +45,7 @@ unit CCR.Exif;
     by setting the XMPWritePolicy property of TExifData.
   - Maker note rewriting is *not* supported in TExifData. While you can make changes to
     the loaded maker note tags, these changes won't ever be persisted.
-  - When compiling in XE2, you need to set a 'FMX' global define for this unit to work
+  - When compiling in XE2+, you need to set a 'FMX' global define for this unit to work
     properly in a FireMonkey application.
 }
 interface
