@@ -351,7 +351,7 @@ procedure TfrmIPTC.DoFileOpen(const FileName: string; const FileToCompare: strin
     Control.ItemIndex := Ord(Value);
   end;
 
-  procedure DoRepeatable(Control: TMemo; const Value: TStringDynArray);
+  procedure DoRepeatable(Control: TMemo; const Value: TIPTCStringArray);
   var
     S: string;
   begin
@@ -499,7 +499,7 @@ procedure TfrmIPTC.actSaveOrReloadExecute(Sender: TObject);
     Result := TIPTCPriority(Combo.ItemIndex);
   end;
 
-  function GetRepeatableValue(Control: TMemo): TStringDynArray;
+  function GetRepeatableValue(Control: TMemo): TIPTCStringArray;
   var
     I: Integer;
   begin
