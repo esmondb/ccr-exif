@@ -41,7 +41,7 @@ uses
 type
   EInvalidIPTCData = class(ECCRExifException);
 
-  TStringDynArray = Types.TStringDynArray;
+  TIPTCStringArray = {$IF CompilerVersion >= 24}TArray<string>{$ELSE}Types.TStringDynArray{$ENDIF};
 
   TIPTCData = class;
   TIPTCSection = class;
@@ -143,7 +143,7 @@ type
     {$ENDIF}
     function GetPriorityValue(TagID: TIPTCTagID): TIPTCPriority;
     procedure SetPriorityValue(TagID: TIPTCTagID; Value: TIPTCPriority);
-    function GetRepeatableValue(TagID: TIPTCTagID): TStringDynArray; overload;
+    function GetRepeatableValue(TagID: TIPTCTagID): TIPTCStringArray; overload;
     procedure GetRepeatableValue(TagID: TIPTCTagID; Dest: TStrings; ClearDestFirst: Boolean = True); overload;
     procedure SetRepeatableValue(TagID: TIPTCTagID; const Value: array of string); overload;
     procedure SetRepeatableValue(TagID: TIPTCTagID; Value: TStrings); overload;
@@ -196,8 +196,8 @@ type
     procedure SetApplicationWord(TagID: Integer; const Value: TWordTagValue);
     function GetApplicationString(TagID: Integer): string;
     procedure SetApplicationString(TagID: Integer; const Value: string);
-    function GetApplicationStrings(TagID: Integer): TStringDynArray;
-    procedure SetApplicationStrings(TagID: Integer; const Value: TStringDynArray);
+    function GetApplicationStrings(TagID: Integer): TIPTCStringArray;
+    procedure SetApplicationStrings(TagID: Integer; const Value: TIPTCStringArray);
     function GetUrgency: TIPTCPriority;
     procedure SetUrgency(Value: TIPTCPriority);
     function GetEnvelopePriority: TIPTCPriority;
@@ -284,15 +284,15 @@ type
     property ObjectName: string index itObjectName read GetApplicationString write SetApplicationString stored False;
     property EditStatus: string index itEditStatus read GetApplicationString write SetApplicationString stored False;
     property Urgency: TIPTCPriority read GetUrgency write SetUrgency stored False;
-    property SubjectRefs: TStringDynArray index itSubjectRef read GetApplicationStrings write SetApplicationStrings stored False;
+    property SubjectRefs: TIPTCStringArray index itSubjectRef read GetApplicationStrings write SetApplicationStrings stored False;
     property CategoryCode: string index itCategory read GetApplicationString write SetApplicationString stored False; //should be a 3 character code
-    property SupplementaryCategories: TStringDynArray index itSupplementaryCategory read GetApplicationStrings write SetApplicationStrings stored False;
+    property SupplementaryCategories: TIPTCStringArray index itSupplementaryCategory read GetApplicationStrings write SetApplicationStrings stored False;
     property FixtureIdentifier: string index itFixtureIdentifier read GetApplicationString write SetApplicationString stored False;
-    property Keywords: TStringDynArray index itKeyword read GetApplicationStrings write SetApplicationStrings stored False;
+    property Keywords: TIPTCStringArray index itKeyword read GetApplicationStrings write SetApplicationStrings stored False;
     procedure GetKeywords(Dest: TStrings); overload;
     procedure SetKeywords(NewWords: TStrings); overload;
-    property ContentLocationCodes: TStringDynArray index itContentLocationCode read GetApplicationStrings write SetApplicationStrings stored False;
-    property ContentLocationNames: TStringDynArray index itContentLocationName read GetApplicationStrings write SetApplicationStrings stored False;
+    property ContentLocationCodes: TIPTCStringArray index itContentLocationCode read GetApplicationStrings write SetApplicationStrings stored False;
+    property ContentLocationNames: TIPTCStringArray index itContentLocationName read GetApplicationStrings write SetApplicationStrings stored False;
     procedure GetContentLocationValues(Strings: TStrings); //Code=Name
     procedure SetContentLocationValues(Strings: TStrings);
     property ReleaseDate: TDateTimeTagValue index isApplication or itReleaseDate shl 8 read GetDate write SetDate stored False;
@@ -305,8 +305,8 @@ type
     property OriginatingProgram: string index itOriginatingProgram read GetApplicationString write SetApplicationString stored False;
     property ProgramVersion: string index itProgramVersion read GetApplicationString write SetApplicationString stored False;
     property ObjectCycleCode: string index itObjectCycle read GetApplicationString write SetApplicationString stored False; //!!!enum
-    property Bylines: TStringDynArray index itByline read GetApplicationStrings write SetApplicationStrings stored False;
-    property BylineTitles: TStringDynArray index itBylineTitle read GetApplicationStrings write SetApplicationStrings stored False;
+    property Bylines: TIPTCStringArray index itByline read GetApplicationStrings write SetApplicationStrings stored False;
+    property BylineTitles: TIPTCStringArray index itBylineTitle read GetApplicationStrings write SetApplicationStrings stored False;
     procedure GetBylineValues(Strings: TStrings); //Name=Title
     procedure SetBylineValues(Strings: TStrings);
     property City: string index itCity read GetApplicationString write SetApplicationString stored False; //!!!enum
@@ -319,9 +319,9 @@ type
     property Credit: string index itCredit read GetApplicationString write SetApplicationString stored False;
     property Source: string index itSource read GetApplicationString write SetApplicationString stored False;
     property CopyrightNotice: string index itCopyrightNotice read GetApplicationString write SetApplicationString stored False;
-    property Contacts: TStringDynArray index itContact read GetApplicationStrings write SetApplicationStrings stored False;
+    property Contacts: TIPTCStringArray index itContact read GetApplicationStrings write SetApplicationStrings stored False;
     property CaptionOrAbstract: string index itCaptionOrAbstract read GetApplicationString write SetApplicationString stored False;
-    property WritersOrEditors: TStringDynArray index itWriterOrEditor read GetApplicationStrings write SetApplicationStrings stored False;
+    property WritersOrEditors: TIPTCStringArray index itWriterOrEditor read GetApplicationStrings write SetApplicationStrings stored False;
     property ImageTypeCode: string index itImageType read GetApplicationString write SetApplicationString stored False;
     property ImageOrientation: TIPTCImageOrientation read GetImageOrientation write SetImageOrientation stored False;
     property LanguageIdentifier: string index itLanguageIdentifier read GetApplicationString write SetApplicationString stored False;
@@ -767,7 +767,7 @@ begin
   Result := ipTagMissing;
 end;
 
-function TIPTCSection.GetRepeatableValue(TagID: TIPTCTagID): TStringDynArray;
+function TIPTCSection.GetRepeatableValue(TagID: TIPTCTagID): TIPTCStringArray;
 var
   Count: Integer;
   Tag: TIPTCTag;
@@ -802,7 +802,7 @@ end;
 procedure TIPTCSection.GetRepeatablePairs(KeyID, ValueID: TIPTCTagID; Dest: TStrings;
   ClearDestFirst: Boolean = True);
 var
-  Keys, Values: TStringDynArray;
+  Keys, Values: TIPTCStringArray;
   I: Integer;
 begin
   Dest.BeginUpdate;
@@ -853,7 +853,7 @@ end;
 
 procedure TIPTCSection.SetRepeatableValue(TagID: TIPTCTagID; Value: TStrings);
 var
-  DynArray: TStringDynArray;
+  DynArray: TIPTCStringArray;
   I: Integer;
 begin
   SetLength(DynArray, Value.Count);
@@ -1270,7 +1270,7 @@ begin
   Result := ApplicationSection.GetStringValue(TagID)
 end;
 
-function TIPTCData.GetApplicationStrings(TagID: Integer): TStringDynArray;
+function TIPTCData.GetApplicationStrings(TagID: Integer): TIPTCStringArray;
 begin
   Result := ApplicationSection.GetRepeatableValue(TagID);
 end;
@@ -1553,7 +1553,7 @@ begin
   ApplicationSection.SetStringValue(TagID, Value);
 end;
 
-procedure TIPTCData.SetApplicationStrings(TagID: Integer; const Value: TStringDynArray);
+procedure TIPTCData.SetApplicationStrings(TagID: Integer; const Value: TIPTCStringArray);
 begin
   ApplicationSection.SetRepeatableValue(TagID, Value);
 end;
@@ -1597,7 +1597,7 @@ var
   I: Integer;
   SectID: TIPTCSectionID;
   Tag: TIPTCTag;
-  Strings: array[TIPTCSectionID] of TStringDynArray;
+  Strings: array[TIPTCSectionID] of TIPTCStringArray;
 begin
   if Value = UTF8Encoded then Exit;
   for SectID := Low(SectID) to High(SectID) do
