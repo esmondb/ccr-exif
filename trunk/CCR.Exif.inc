@@ -28,6 +28,11 @@
 
 {$IF CompilerVersion >= 22}
   {$DEFINE HasTTimeZone}
+  {$DEFINE HasGenerics}
+{$IFEND}
+
+{$IF CompilerVersion >= 24}
+  {$DEFINE XE3+}
 {$IFEND}
 
 {$IF DEFINED(VER240) AND DEFINED(MACOS)}

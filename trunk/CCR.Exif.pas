@@ -1225,6 +1225,7 @@ function RemoveMetadataFromJPEG(JPEGImage: TJPEGImage;
 implementation
 
 uses
+  {$IFDEF POSIX}Posix.Unistd,{$ENDIF} //to quell braindead H2443 compiler hint (to make it worse, the XE3 impl involves upteen function calls - one more isn't going to make a significant difference!)
   {$IFDEF BrokenFMXJpegExport}System.Diagnostics, System.IOUtils,{$ENDIF}
   SysConst, RTLConsts, Math, DateUtils, StrUtils, CCR.Exif.Consts;
 
