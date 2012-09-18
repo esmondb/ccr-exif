@@ -1,0 +1,72 @@
+object frmOptions: TfrmOptions
+  Left = 0
+  Top = 0
+  BorderIcons = [biSystemMenu]
+  BorderStyle = bsToolWindow
+  Caption = 'Options'
+  ClientHeight = 143
+  ClientWidth = 498
+  Position = poDesigned
+  FormFactor.Width = 1600
+  FormFactor.Height = 744
+  FormFactor.Devices = [dkDesktop]
+  OnCreate = FormCreate
+  object grpOptions: TGroupBox
+    Height = 99.000000000000000000
+    Position.X = 8.000000000000000000
+    Position.Y = 8.000000000000000000
+    Text = 'File date/times'
+    Width = 483.000000000000000000
+    object rdoPreserve: TRadioButton
+      DisableFocusEffect = False
+      Height = 19.000000000000000000
+      Position.X = 12.000000000000000000
+      Position.Y = 22.000000000000000000
+      Text = 'Preserve '#39'last modified'#39' value when updating a file'#39's Exif tags'
+      Width = 337.000000000000000000
+      OnChange = RadioButtonChange
+    end
+    object rdoMatchExif: TRadioButton
+      Tag = 1
+      DisableFocusEffect = False
+      Height = 19.000000000000000000
+      Position.X = 12.000000000000000000
+      Position.Y = 46.000000000000000000
+      Text = 'Update to match new Exif date/time value'
+      Width = 241.000000000000000000
+      OnChange = RadioButtonChange
+    end
+    object rdoSetToNow: TRadioButton
+      Tag = 2
+      DisableFocusEffect = False
+      Height = 19.000000000000000000
+      Position.X = 12.000000000000000000
+      Position.Y = 70.000000000000000000
+      Text = 
+        'Update to match current date/time - i.e., don'#39't fake patched fil' +
+        'es'#39' '#39'last modified'#39' values'
+      Width = 465.000000000000000000
+      OnChange = RadioButtonChange
+    end
+  end
+  object btnOK: TButton
+    Default = True
+    DisableFocusEffect = False
+    Height = 22.000000000000000000
+    Position.X = 320.000000000000000000
+    Position.Y = 114.000000000000000000
+    Text = 'OK'
+    Width = 80.000000000000000000
+    OnClick = btnOKClick
+  end
+  object btnCancel: TButton
+    Cancel = True
+    DisableFocusEffect = False
+    Height = 22.000000000000000000
+    ModalResult = 2
+    Position.X = 408.000000000000000000
+    Position.Y = 114.000000000000000000
+    Text = 'Cancel'
+    Width = 80.000000000000000000
+  end
+end

@@ -1,0 +1,132 @@
+object frmXMPBrowser: TfrmXMPBrowser
+  Left = 0
+  Top = 0
+  Caption = 'XMP Browser'
+  ClientHeight = 394
+  ClientWidth = 518
+  FormFactor.Width = 1600
+  FormFactor.Height = 744
+  FormFactor.Devices = [dkDesktop]
+  OnCreate = FormCreate
+  OnClose = FormClose
+  OnShow = FormShow
+  object TabControl: TTabControl
+    Align = alClient
+    Height = 329.000000000000000000
+    Margins.Left = 6.000000000000000000
+    Margins.Top = 6.000000000000000000
+    Margins.Right = 6.000000000000000000
+    Margins.Bottom = 6.000000000000000000
+    Padding.Left = 6.000000000000000000
+    Padding.Top = 6.000000000000000000
+    Padding.Right = 6.000000000000000000
+    Padding.Bottom = 6.000000000000000000
+    Position.X = 6.000000000000000000
+    Position.Y = 6.000000000000000000
+    TabIndex = 0
+    Width = 506.000000000000000000
+    OnChange = TabControlChange
+    object tabProps: TTabItem
+      WordWrap = False
+      Height = 24.000000000000000000
+      IsSelected = True
+      Position.X = 1.000000000000000000
+      Text = 'Properties'
+      Width = 72.000000000000000000
+      object trvProps: TTreeView
+        Touch.InteractiveGestures = [igPan]
+        Align = alLeft
+        Height = 293.000000000000000000
+        Width = 249.000000000000000000
+        OnDblClick = trvPropsDblClick
+        OnChange = trvPropsChange
+      end
+      object Splitter1: TSplitter
+        Align = alLeft
+        Cursor = crHSplit
+        Height = 293.000000000000000000
+        MinSize = 20.000000000000000000
+        Position.X = 249.000000000000000000
+        Width = 5.000000000000000000
+      end
+      object memValue: TMemo
+        Touch.InteractiveGestures = [igPan]
+        Align = alClient
+        Height = 293.000000000000000000
+        Position.X = 254.000000000000000000
+        Width = 240.000000000000000000
+        DisableFocusEffect = False
+        KeyboardType = vktDefault
+      end
+    end
+    object tabRawXML: TTabItem
+      WordWrap = False
+      Height = 24.000000000000000000
+      IsSelected = False
+      Position.X = 73.000000000000000000
+      Text = 'Raw XML'
+      Width = 66.000000000000000000
+      object memRawXML: TMemo
+        Touch.InteractiveGestures = [igPan]
+        Align = alClient
+        Height = 50.000000000000000000
+        Width = 50.000000000000000000
+        DisableFocusEffect = False
+        KeyboardType = vktDefault
+      end
+    end
+    object tabImage: TTabItem
+      WordWrap = False
+      Height = 24.000000000000000000
+      IsSelected = False
+      Position.X = 139.000000000000000000
+      Text = 'Image'
+      Width = 52.000000000000000000
+      object imgImage: TImageControl
+        Align = alClient
+        DisableFocusEffect = False
+        EnableOpenDialog = False
+        Height = 50.000000000000000000
+        Width = 50.000000000000000000
+      end
+    end
+  end
+  object lyoButtonBar: TLayout
+    Align = alBottom
+    Height = 31.000000000000000000
+    Position.Y = 363.000000000000000000
+    Width = 518.000000000000000000
+    object btnOpenFile: TButton
+      Anchors = [akTop, akRight]
+      DisableFocusEffect = False
+      Height = 22.000000000000000000
+      Position.X = 344.000000000000000000
+      Position.Y = 1.000000000000000000
+      Text = '&Open...'
+      Width = 80.000000000000000000
+    end
+    object btnClose: TButton
+      Anchors = [akTop, akRight]
+      DisableFocusEffect = False
+      Height = 22.000000000000000000
+      Position.X = 432.000000000000000000
+      Position.Y = 1.000000000000000000
+      Text = 'Close'
+      Width = 80.000000000000000000
+    end
+    object lblURI: TLabel
+      Anchors = [akLeft, akTop, akRight]
+      Height = 15.000000000000000000
+      Padding.Left = 6.000000000000000000
+      Position.X = 6.000000000000000000
+      Position.Y = 4.000000000000000000
+      Width = 336.000000000000000000
+    end
+  end
+  object StatusBar: TStatusBar
+    Height = 22.000000000000000000
+    Position.Y = 341.000000000000000000
+    ShowSizeGrip = False
+    Width = 518.000000000000000000
+  end
+end

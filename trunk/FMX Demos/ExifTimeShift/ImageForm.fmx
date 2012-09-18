@@ -1,0 +1,16 @@
+object frmImage: TfrmImage
+  Left = 0
+  Top = 0
+  Caption = 'Image'
+  ClientHeight = 480
+  ClientWidth = 640
+  FormFactor.Width = 1600
+  FormFactor.Height = 744
+  FormFactor.Devices = [dkDesktop]
+  OnKeyDown = FormKeyDown
+  object Image: TImage
+    Align = alClient
+    Height = 480.000000000000000000
+    Width = 640.000000000000000000
+  end
+end

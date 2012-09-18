@@ -1,0 +1,108 @@
+object frmJpegDump: TfrmJpegDump
+  Left = 0
+  Top = 0
+  Caption = 'JPEG Dump'
+  ClientHeight = 394
+  ClientWidth = 518
+  FormFactor.Width = 1600
+  FormFactor.Height = 744
+  FormFactor.Devices = [dkDesktop]
+  OnCreate = FormCreate
+  OnClose = FormClose
+  OnShow = FormShow
+  object TabControl: TTabControl
+    Align = alClient
+    Height = 351.000000000000000000
+    Margins.Left = 6.000000000000000000
+    Margins.Top = 6.000000000000000000
+    Margins.Right = 6.000000000000000000
+    Margins.Bottom = 6.000000000000000000
+    Padding.Left = 6.000000000000000000
+    Padding.Top = 6.000000000000000000
+    Padding.Right = 6.000000000000000000
+    Padding.Bottom = 6.000000000000000000
+    Position.X = 6.000000000000000000
+    Position.Y = 6.000000000000000000
+    TabIndex = 0
+    Width = 506.000000000000000000
+    OnChange = TabControlChange
+    object tabDetails: TTabItem
+      WordWrap = False
+      Height = 24.000000000000000000
+      IsSelected = True
+      Position.X = 1.000000000000000000
+      Text = 'Details'
+      Width = 55.000000000000000000
+      object memDetails: TMemo
+        Touch.InteractiveGestures = [igPan]
+        Align = alClient
+        Height = 315.000000000000000000
+        Width = 494.000000000000000000
+        DisableFocusEffect = False
+        KeyboardType = vktDefault
+      end
+    end
+    object tabThumbnail: TTabItem
+      WordWrap = False
+      Height = 24.000000000000000000
+      IsSelected = False
+      Position.X = 56.000000000000000000
+      Text = 'Thumbnail'
+      Width = 72.000000000000000000
+      object imgThumbnail: TImageControl
+        Align = alClient
+        DisableFocusEffect = False
+        EnableOpenDialog = False
+        Height = 50.000000000000000000
+        Width = 50.000000000000000000
+      end
+      object lblNoExifThumbnail: TLabel
+        Align = alClient
+        Height = 316.000000000000000000
+        Text = '(No Exif thumbnail found)'
+        TextAlign = taCenter
+        Visible = False
+        Width = 494.000000000000000000
+      end
+    end
+    object tabImage: TTabItem
+      WordWrap = False
+      Height = 24.000000000000000000
+      IsSelected = False
+      Position.X = 128.000000000000000000
+      Text = 'Image'
+      Width = 52.000000000000000000
+      object imgImage: TImageControl
+        Align = alClient
+        DisableFocusEffect = False
+        EnableOpenDialog = False
+        Height = 50.000000000000000000
+        Width = 50.000000000000000000
+      end
+    end
+  end
+  object lyoButtonBar: TLayout
+    Align = alBottom
+    Height = 31.000000000000000000
+    Position.Y = 363.000000000000000000
+    Width = 518.000000000000000000
+    object btnOpenFile: TButton
+      Anchors = [akTop, akRight]
+      DisableFocusEffect = False
+      Height = 22.000000000000000000
+      Position.X = 344.000000000000000000
+      Position.Y = 1.000000000000000000
+      Text = '&Open...'
+      Width = 80.000000000000000000
+    end
+    object btnClose: TButton
+      Anchors = [akTop, akRight]
+      DisableFocusEffect = False
+      Height = 22.000000000000000000
+      Position.X = 432.000000000000000000
+      Position.Y = 1.000000000000000000
+      Text = 'Close'
+      Width = 80.000000000000000000
+    end
+  end
+end

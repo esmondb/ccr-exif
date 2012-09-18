@@ -1,0 +1,43 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleName</key>
+	<string>ExifList</string>
+	<key>CFBundleDisplayName</key>
+	<string>ExifList</string>
+	<key>CFBundleIdentifier</key>
+	<string>ExifList</string>
+	<key>CFBundleVersion</key>
+	<string>1.0.0</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
+	<key>CFBundleAllowMixedLocalizations</key>
+	<string>YES</string>
+	<key>CFBundleExecutable</key>
+	<string>ExifList</string>
+	<key>NSHighResolutionCapable</key>
+	<string>true</string>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.utilities</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0.0</string>
+	<key>CFBundleIconFile</key>
+	<string>ExifList.icns</string>
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.jpeg</string>
+				<string>public.tiff</string>
+				<string>com.adobe.photoshop-image</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

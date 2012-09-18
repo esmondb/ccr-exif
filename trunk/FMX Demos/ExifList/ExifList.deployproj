@@ -1,0 +1,98 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <Import Condition="Exists('$(BDS)\bin\CodeGear.Deployment.targets')" Project="$(BDS)\bin\CodeGear.Deployment.targets"/>
+    <ProjectExtensions>
+        <ProjectFileVersion>12</ProjectFileVersion>
+    </ProjectExtensions>
+    <ItemGroup Condition="'$(Platform)'=='Win64'">
+        <DeployFile Include="Custom.plist">
+            <RemoteDir>ExifList\</RemoteDir>
+            <RemoteName>Custom.plist</RemoteName>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+        </DeployFile>
+    </ItemGroup>
+    <ItemGroup Condition="'$(Platform)'=='OSX32'">
+        <DeployFile Include="Custom.plist">
+            <RemoteDir>ExifList.app\Contents\</RemoteDir>
+            <RemoteName>Info.plist</RemoteName>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+        </DeployFile>
+        <DeployFile Include="OSX32\Release\ExifList.entitlements" Condition="'$(Config)'=='Release'">
+            <RemoteDir>ExifList.app\Contents\</RemoteDir>
+            <RemoteName>Entitlements.plist</RemoteName>
+            <Operation>1</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+        </DeployFile>
+        <DeployFile Include="OSX32\Debug\ExifList.entitlements" Condition="'$(Config)'=='Debug'">
+            <RemoteDir>ExifList.app\Contents\</RemoteDir>
+            <RemoteName>Entitlements.plist</RemoteName>
+            <Operation>1</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+        </DeployFile>
+        <DeployFile Include="OSX32\Debug\ExifList.icns" Condition="'$(Config)'=='Debug'">
+            <RemoteDir>ExifList.app\Contents\Resources\</RemoteDir>
+            <RemoteName>ExifList.icns</RemoteName>
+            <Operation>1</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+        </DeployFile>
+        <DeployFile Include="OSX32\Release\ExifList" Condition="'$(Config)'=='Release'">
+            <RemoteDir>ExifList.app\Contents\MacOS\</RemoteDir>
+            <RemoteName>ExifList</RemoteName>
+            <Operation>1</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Required>True</Required>
+        </DeployFile>
+        <DeployFile Include="OSX32\Release\ExifList.rsm" Condition="'$(Config)'=='Release'">
+            <RemoteDir>ExifList.app\Contents\MacOS\</RemoteDir>
+            <RemoteName>ExifList.rsm</RemoteName>
+            <Operation>1</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+        </DeployFile>
+        <DeployFile Include="OSX32\Debug\ExifList" Condition="'$(Config)'=='Debug'">
+            <RemoteDir>ExifList.app\Contents\MacOS\</RemoteDir>
+            <RemoteName>ExifList</RemoteName>
+            <Operation>1</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Required>True</Required>
+        </DeployFile>
+        <DeployFile Include="OSX32\Debug\ExifList.rsm" Condition="'$(Config)'=='Debug'">
+            <RemoteDir>ExifList.app\Contents\MacOS\</RemoteDir>
+            <RemoteName>ExifList.rsm</RemoteName>
+            <Operation>1</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+        </DeployFile>
+        <DeployFile Include="$(BDS)\Redist\osx32\libcgunwind.1.0.dylib">
+            <RemoteDir>ExifList.app\Contents\MacOS\</RemoteDir>
+            <RemoteName>libcgunwind.1.0.dylib</RemoteName>
+            <Operation>1</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+        </DeployFile>
+        <DeployFile Include="OSX32\Release\ExifList.icns" Condition="'$(Config)'=='Release'">
+            <RemoteDir>ExifList.app\Contents\Resources\</RemoteDir>
+            <RemoteName>ExifList.icns</RemoteName>
+            <Operation>1</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+        </DeployFile>
+    </ItemGroup>
+    <ItemGroup Condition="'$(Platform)'=='Win32'">
+        <DeployFile Include="Custom.plist">
+            <RemoteDir>ExifList\</RemoteDir>
+            <RemoteName>Custom.plist</RemoteName>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+        </DeployFile>
+    </ItemGroup>
+</Project>
