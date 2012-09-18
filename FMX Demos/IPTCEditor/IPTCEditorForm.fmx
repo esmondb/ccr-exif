@@ -1,0 +1,1222 @@
+object frmIPTCEditor: TfrmIPTCEditor
+  Left = 0
+  Top = 0
+  Caption = 'IPTC Tag Editor'
+  ClientHeight = 513
+  ClientWidth = 488
+  FormFactor.Width = 1600
+  FormFactor.Height = 744
+  FormFactor.Devices = [dkDesktop]
+  OnCreate = FormCreate
+  OnClose = FormClose
+  OnCloseQuery = FormCloseQuery
+  OnShow = FormShow
+  object TabControl: TTabControl
+    Align = alClient
+    Height = 455.000000000000000000
+    Padding.Left = 4.000000000000000000
+    Padding.Top = 4.000000000000000000
+    Padding.Right = 4.000000000000000000
+    Position.X = 4.000000000000000000
+    Position.Y = 32.000000000000000000
+    StyleLookup = 'PlainTabControlStyle'
+    TabIndex = 0
+    TabPosition = tpNone
+    Visible = False
+    Width = 479.000000000000000000
+    OnChange = TabControlChange
+    object tabEnvelopeRec: TTabItem
+      WordWrap = False
+      Height = 50.000000000000000000
+      IsSelected = True
+      Position.Y = 65535.000000000000000000
+      Text = 'Envelope Record'
+      Width = 104.000000000000000000
+      object vsbEnvelopeRec: TVertScrollBox
+        Touch.InteractiveGestures = [igPan]
+        Align = alClient
+        Height = 453.000000000000000000
+        Padding.Left = 1.000000000000000000
+        Padding.Top = 1.000000000000000000
+        Padding.Right = 1.000000000000000000
+        Padding.Bottom = 1.000000000000000000
+        Position.X = 1.000000000000000000
+        Position.Y = 1.000000000000000000
+        StyleLookup = 'scrollboxstyle'
+        Width = 477.000000000000000000
+        object edtModelVersion: TEdit
+          DisableFocusEffect = False
+          KeyboardType = vktDefault
+          Password = False
+          Position.X = 150.000000000000000000
+          Position.Y = 8.000000000000000000
+          Width = 115.000000000000000000
+          Height = 22.000000000000000000
+          OnChange = ControlChanged
+          OnKeyDown = NumberEditKeyDown
+          object Label1: TLabel
+            Height = 15.000000000000000000
+            Position.X = -144.000000000000000000
+            Position.Y = 4.000000000000000000
+            Text = 'Model version'
+            Width = 124.000000000000000000
+          end
+        end
+        object edtDestination: TEdit
+          DisableFocusEffect = False
+          KeyboardType = vktDefault
+          Password = False
+          Position.X = 150.000000000000000000
+          Position.Y = 36.000000000000000000
+          Width = 320.000000000000000000
+          Height = 22.000000000000000000
+          OnChange = ControlChanged
+          object Label2: TLabel
+            Height = 15.000000000000000000
+            Position.X = -144.000000000000000000
+            Position.Y = 4.000000000000000000
+            Text = 'Destination'
+            Width = 124.000000000000000000
+          end
+        end
+        object edtFileFormat: TEdit
+          DisableFocusEffect = False
+          KeyboardType = vktDefault
+          Password = False
+          Position.X = 150.000000000000000000
+          Position.Y = 65.000000000000000000
+          Width = 115.000000000000000000
+          Height = 22.000000000000000000
+          OnChange = ControlChanged
+          OnKeyDown = NumberEditKeyDown
+          object Label3: TLabel
+            Height = 15.000000000000000000
+            Position.X = -144.000000000000000000
+            Position.Y = 4.000000000000000000
+            Text = 'File format ID'
+            Width = 124.000000000000000000
+          end
+        end
+        object edtFileFormatVersion: TEdit
+          DisableFocusEffect = False
+          KeyboardType = vktDefault
+          Password = False
+          Position.X = 150.000000000000000000
+          Position.Y = 94.000000000000000000
+          Width = 115.000000000000000000
+          Height = 22.000000000000000000
+          OnChange = ControlChanged
+          OnKeyDown = NumberEditKeyDown
+          object Label4: TLabel
+            Height = 15.000000000000000000
+            Position.X = -144.000000000000000000
+            Position.Y = 4.000000000000000000
+            Text = 'File format version'
+            Width = 124.000000000000000000
+          end
+        end
+        object edtServiceIdentifier: TEdit
+          DisableFocusEffect = False
+          KeyboardType = vktDefault
+          Password = False
+          Position.X = 150.000000000000000000
+          Position.Y = 123.000000000000000000
+          Width = 320.000000000000000000
+          Height = 22.000000000000000000
+          OnChange = ControlChanged
+          object Label5: TLabel
+            Height = 15.000000000000000000
+            Position.X = -144.000000000000000000
+            Position.Y = 4.000000000000000000
+            Text = 'Service identifier'
+            Width = 124.000000000000000000
+          end
+        end
+        object edtEnvelopeNumber: TEdit
+          DisableFocusEffect = False
+          KeyboardType = vktDefault
+          Password = False
+          Position.X = 150.000000000000000000
+          Position.Y = 151.000000000000000000
+          Width = 320.000000000000000000
+          Height = 22.000000000000000000
+          OnChange = ControlChanged
+          object Label6: TLabel
+            Height = 15.000000000000000000
+            Position.X = -144.000000000000000000
+            Position.Y = 4.000000000000000000
+            Text = 'Envelope number'
+            Width = 124.000000000000000000
+          end
+        end
+        object edtProductID: TEdit
+          DisableFocusEffect = False
+          KeyboardType = vktDefault
+          Password = False
+          Position.X = 150.000000000000000000
+          Position.Y = 180.000000000000000000
+          Width = 320.000000000000000000
+          Height = 22.000000000000000000
+          OnChange = ControlChanged
+          object Label7: TLabel
+            Height = 15.000000000000000000
+            Position.X = -144.000000000000000000
+            Position.Y = 4.000000000000000000
+            Text = 'Product ID'
+            Width = 124.000000000000000000
+          end
+        end
+        object cboEnvelopePriority: TComboBox
+          DisableFocusEffect = False
+          Height = 22.000000000000000000
+          ItemIndex = -1
+          ListBoxResource = 'transparentlistboxstyle'
+          Position.X = 150.000000000000000000
+          Position.Y = 209.000000000000000000
+          Width = 115.000000000000000000
+          OnChange = ControlChanged
+          object Label8: TLabel
+            Height = 15.000000000000000000
+            Position.X = -144.000000000000000000
+            Position.Y = 4.000000000000000000
+            Text = 'Envelope priority'
+            Width = 124.000000000000000000
+          end
+        end
+        object edtDateSent: TCalendarEdit
+          Cursor = crIBeam
+          Date = 41166.000000000000000000
+          DisableFocusEffect = False
+          Height = 22.000000000000000000
+          KeyboardType = vktDefault
+          Position.X = 150.000000000000000000
+          Position.Y = 238.000000000000000000
+          Width = 89.000000000000000000
+          OnChange = ControlChanged
+          object btnClearDateSent: TButton
+            DisableFocusEffect = False
+            Font.Style = [fsBold]
+            Height = 22.000000000000000000
+            Position.X = 92.000000000000000000
+            Text = 'X'
+            Width = 22.000000000000000000
+            OnClick = btnClearDateClick
+          end
+          object Label9: TLabel
+            Height = 15.000000000000000000
+            Position.X = -144.000000000000000000
+            Position.Y = 4.000000000000000000
+            Text = 'Date sent'
+            Width = 81.000000000000000000
+          end
+        end
+        object edtUNOCode: TEdit
+          DisableFocusEffect = False
+          KeyboardType = vktDefault
+          Password = False
+          Position.X = 150.000000000000000000
+          Position.Y = 266.000000000000000000
+          Width = 320.000000000000000000
+          Height = 22.000000000000000000
+          OnChange = ControlChanged
+          object Label10: TLabel
+            Height = 15.000000000000000000
+            Position.X = -144.000000000000000000
+            Position.Y = 4.000000000000000000
+            Text = 'UNO code'
+            Width = 124.000000000000000000
+          end
+        end
+        object edtARMIdentifier: TEdit
+          DisableFocusEffect = False
+          KeyboardType = vktDefault
+          Password = False
+          Position.X = 150.000000000000000000
+          Position.Y = 294.000000000000000000
+          Width = 115.000000000000000000
+          Height = 22.000000000000000000
+          OnChange = ControlChanged
+          OnKeyDown = NumberEditKeyDown
+          object Label11: TLabel
+            Height = 15.000000000000000000
+            Position.X = -144.000000000000000000
+            Position.Y = 4.000000000000000000
+            Text = 'ARM identifier'
+            Width = 124.000000000000000000
+          end
+        end
+        object edtARMVersion: TEdit
+          DisableFocusEffect = False
+          KeyboardType = vktDefault
+          Password = False
+          Position.X = 150.000000000000000000
+          Position.Y = 322.000000000000000000
+          Width = 115.000000000000000000
+          Height = 22.000000000000000000
+          OnChange = ControlChanged
+          OnKeyDown = NumberEditKeyDown
+          object Label12: TLabel
+            Height = 15.000000000000000000
+            Position.X = -144.000000000000000000
+            Position.Y = 4.000000000000000000
+            Text = 'ARM version'
+            Width = 124.000000000000000000
+          end
+        end
+      end
+    end
+    object tabApplicationRec: TTabItem
+      WordWrap = False
+      Height = 50.000000000000000000
+      IsSelected = False
+      Position.X = 104.000000000000000000
+      Position.Y = 65535.000000000000000000
+      Text = 'Application Record'
+      Width = 116.000000000000000000
+      object vsbApplicationRec: TVertScrollBox
+        Touch.InteractiveGestures = [igPan]
+        Align = alClient
+        Height = 48.000000000000000000
+        Padding.Left = 1.000000000000000000
+        Padding.Top = 1.000000000000000000
+        Padding.Right = 1.000000000000000000
+        Padding.Bottom = 1.000000000000000000
+        Position.X = 1.000000000000000000
+        Position.Y = 1.000000000000000000
+        ShowScrollBars = False
+        StyleLookup = 'scrollboxstyle'
+        Width = 48.000000000000000000
+        object edtRecordVersion: TEdit
+          DisableFocusEffect = False
+          KeyboardType = vktDefault
+          Password = False
+          Position.X = 150.000000000000000000
+          Position.Y = 8.000000000000000000
+          Width = 115.000000000000000000
+          Height = 22.000000000000000000
+          OnChange = ControlChanged
+          OnKeyDown = NumberEditKeyDown
+          object Label13: TLabel
+            Height = 15.000000000000000000
+            Position.X = -144.000000000000000000
+            Position.Y = 4.000000000000000000
+            Text = 'Record version'
+            Width = 124.000000000000000000
+          end
+        end
+        object edtObjectTypeRef: TEdit
+          DisableFocusEffect = False
+          KeyboardType = vktDefault
+          Password = False
+          Position.X = 150.000000000000000000
+          Position.Y = 36.000000000000000000
+          Width = 320.000000000000000000
+          Height = 22.000000000000000000
+          OnChange = ControlChanged
+          object Label14: TLabel
+            Height = 15.000000000000000000
+            Position.X = -144.000000000000000000
+            Position.Y = 4.000000000000000000
+            Text = 'Object type reference'
+            Width = 124.000000000000000000
+          end
+        end
+        object edtObjectAttributeRef: TEdit
+          DisableFocusEffect = False
+          KeyboardType = vktDefault
+          Password = False
+          Position.X = 150.000000000000000000
+          Position.Y = 65.000000000000000000
+          Width = 320.000000000000000000
+          Height = 22.000000000000000000
+          OnChange = ControlChanged
+          object Label15: TLabel
+            Height = 15.000000000000000000
+            Position.X = -144.000000000000000000
+            Position.Y = 4.000000000000000000
+            Text = 'Object attribute reference'
+            Width = 137.000000000000000000
+          end
+        end
+        object edtObjectName: TEdit
+          DisableFocusEffect = False
+          KeyboardType = vktDefault
+          Password = False
+          Position.X = 150.000000000000000000
+          Position.Y = 93.000000000000000000
+          Width = 320.000000000000000000
+          Height = 22.000000000000000000
+          OnChange = ControlChanged
+          object Label16: TLabel
+            Height = 15.000000000000000000
+            Position.X = -144.000000000000000000
+            Position.Y = 4.000000000000000000
+            Text = 'Object name'
+            Width = 124.000000000000000000
+          end
+        end
+        object edtEditStatus: TEdit
+          DisableFocusEffect = False
+          KeyboardType = vktDefault
+          Password = False
+          Position.X = 150.000000000000000000
+          Position.Y = 121.000000000000000000
+          Width = 320.000000000000000000
+          Height = 22.000000000000000000
+          OnChange = ControlChanged
+          object Label17: TLabel
+            Height = 15.000000000000000000
+            Position.X = -144.000000000000000000
+            Position.Y = 4.000000000000000000
+            Text = 'Edit status'
+            Width = 124.000000000000000000
+          end
+        end
+        object cboUrgency: TComboBox
+          DisableFocusEffect = False
+          Height = 22.000000000000000000
+          ItemIndex = -1
+          ListBoxResource = 'transparentlistboxstyle'
+          Position.X = 150.000000000000000000
+          Position.Y = 150.000000000000000000
+          Width = 115.000000000000000000
+          OnChange = ControlChanged
+          object Label18: TLabel
+            Height = 15.000000000000000000
+            Position.X = -144.000000000000000000
+            Position.Y = 4.000000000000000000
+            Text = 'Urgency'
+            Width = 124.000000000000000000
+          end
+        end
+        object memSubjectRefs: TMemo
+          Touch.InteractiveGestures = [igPan]
+          Height = 67.000000000000000000
+          Position.X = 150.000000000000000000
+          Position.Y = 179.000000000000000000
+          UseSmallScrollBars = True
+          Width = 320.000000000000000000
+          DisableFocusEffect = False
+          KeyboardType = vktDefault
+          OnChange = ControlChanged
+        end
+        object Label19: TLabel
+          Height = 37.000000000000000000
+          Position.X = 6.000000000000000000
+          Position.Y = 185.000000000000000000
+          Text = 'Subject references (one per line)'
+          VertTextAlign = taLeading
+          Width = 124.000000000000000000
+        end
+        object edtCategoryCode: TEdit
+          DisableFocusEffect = False
+          KeyboardType = vktDefault
+          Password = False
+          Position.X = 150.000000000000000000
+          Position.Y = 252.000000000000000000
+          Width = 320.000000000000000000
+          Height = 22.000000000000000000
+          OnChange = ControlChanged
+          object Label20: TLabel
+            Height = 15.000000000000000000
+            Position.X = -144.000000000000000000
+            Position.Y = 4.000000000000000000
+            Text = 'Category code'
+            Width = 124.000000000000000000
+          end
+        end
+        object memSupplementaryCategories: TMemo
+          Touch.InteractiveGestures = [igPan]
+          Height = 67.000000000000000000
+          Position.X = 150.000000000000000000
+          Position.Y = 280.000000000000000000
+          UseSmallScrollBars = True
+          Width = 320.000000000000000000
+          DisableFocusEffect = False
+          KeyboardType = vktDefault
+          OnChange = ControlChanged
+        end
+        object Label21: TLabel
+          Height = 45.000000000000000000
+          Position.X = 6.000000000000000000
+          Position.Y = 286.000000000000000000
+          Text = 'Supplementary categories (one per line)'
+          VertTextAlign = taLeading
+          Width = 137.000000000000000000
+        end
+        object edtFixtureIdentifier: TEdit
+          DisableFocusEffect = False
+          KeyboardType = vktDefault
+          Password = False
+          Position.X = 150.000000000000000000
+          Position.Y = 353.000000000000000000
+          Width = 320.000000000000000000
+          Height = 22.000000000000000000
+          OnChange = ControlChanged
+          object Label22: TLabel
+            Height = 15.000000000000000000
+            Position.X = -144.000000000000000000
+            Position.Y = 4.000000000000000000
+            Text = 'Fixture identifier'
+            Width = 124.000000000000000000
+          end
+        end
+        object memKeywords: TMemo
+          Touch.InteractiveGestures = [igPan]
+          Height = 67.000000000000000000
+          Position.X = 150.000000000000000000
+          Position.Y = 381.000000000000000000
+          UseSmallScrollBars = True
+          Width = 320.000000000000000000
+          DisableFocusEffect = False
+          KeyboardType = vktDefault
+          OnChange = ControlChanged
+        end
+        object lblKeywords: TLabel
+          Height = 45.000000000000000000
+          Position.X = 6.000000000000000000
+          Position.Y = 387.000000000000000000
+          Text = 'Keywords (one per line)'
+          VertTextAlign = taLeading
+          Width = 137.000000000000000000
+        end
+        object Label24: TLabel
+          Height = 45.000000000000000000
+          Position.X = 6.000000000000000000
+          Position.Y = 460.000000000000000000
+          Text = 'Content locations'
+          VertTextAlign = taLeading
+          Width = 137.000000000000000000
+        end
+        object stgContentLocations: TGrid
+          Touch.InteractiveGestures = [igPan]
+          Height = 67.000000000000000000
+          Position.X = 150.000000000000000000
+          Position.Y = 454.000000000000000000
+          UseSmallScrollBars = True
+          Width = 320.000000000000000000
+          DisableFocusEffect = False
+          RowCount = 0
+          RowHeight = 21.000000000000000000
+          OnEditingDone = GridEditingDone
+          object colCode: TStringColumn
+            Header = 'Code'
+            Height = 42.000000000000000000
+            Width = 100.000000000000000000
+          end
+          object colName: TStringColumn
+            Header = 'Name'
+            Height = 42.000000000000000000
+            Position.X = 100.000000000000000000
+            Width = 181.000000000000000000
+          end
+        end
+        object edtReleaseDate: TCalendarEdit
+          Cursor = crIBeam
+          Date = 41166.000000000000000000
+          DisableFocusEffect = False
+          Height = 22.000000000000000000
+          KeyboardType = vktDefault
+          Position.X = 150.000000000000000000
+          Position.Y = 527.000000000000000000
+          Width = 89.000000000000000000
+          OnChange = ControlChanged
+          object Button1: TButton
+            DisableFocusEffect = False
+            Font.Style = [fsBold]
+            Height = 22.000000000000000000
+            Position.X = 92.000000000000000000
+            Text = 'X'
+            Width = 22.000000000000000000
+            OnClick = btnClearDateClick
+          end
+          object Label25: TLabel
+            Height = 15.000000000000000000
+            Position.X = -144.000000000000000000
+            Position.Y = 4.000000000000000000
+            Text = 'Release date'
+            Width = 81.000000000000000000
+          end
+        end
+        object edtExpirationDate: TCalendarEdit
+          Cursor = crIBeam
+          Date = 41166.000000000000000000
+          DisableFocusEffect = False
+          Height = 22.000000000000000000
+          KeyboardType = vktDefault
+          Position.X = 150.000000000000000000
+          Position.Y = 555.000000000000000000
+          Width = 89.000000000000000000
+          OnChange = ControlChanged
+          object Button2: TButton
+            DisableFocusEffect = False
+            Font.Style = [fsBold]
+            Height = 22.000000000000000000
+            Position.X = 92.000000000000000000
+            Text = 'X'
+            Width = 22.000000000000000000
+            OnClick = btnClearDateClick
+          end
+          object Label26: TLabel
+            Height = 15.000000000000000000
+            Position.X = -144.000000000000000000
+            Position.Y = 4.000000000000000000
+            Text = 'Expiration date'
+            Width = 89.000000000000000000
+          end
+        end
+        object edtOriginatingProgram: TEdit
+          DisableFocusEffect = False
+          KeyboardType = vktDefault
+          Password = False
+          Position.X = 150.000000000000000000
+          Position.Y = 583.000000000000000000
+          Width = 320.000000000000000000
+          Height = 22.000000000000000000
+          OnChange = ControlChanged
+          object Label27: TLabel
+            Height = 15.000000000000000000
+            Position.X = -144.000000000000000000
+            Position.Y = 4.000000000000000000
+            Text = 'Originating program'
+            Width = 124.000000000000000000
+          end
+        end
+        object edtProgramVersion: TEdit
+          DisableFocusEffect = False
+          KeyboardType = vktDefault
+          Password = False
+          Position.X = 150.000000000000000000
+          Position.Y = 611.000000000000000000
+          Width = 320.000000000000000000
+          Height = 22.000000000000000000
+          OnChange = ControlChanged
+          object Label28: TLabel
+            Height = 15.000000000000000000
+            Position.X = -144.000000000000000000
+            Position.Y = 4.000000000000000000
+            Text = 'Program version'
+            Width = 124.000000000000000000
+          end
+        end
+        object edtObjectCycleCode: TEdit
+          DisableFocusEffect = False
+          KeyboardType = vktDefault
+          Password = False
+          Position.X = 150.000000000000000000
+          Position.Y = 639.000000000000000000
+          Width = 320.000000000000000000
+          Height = 22.000000000000000000
+          OnChange = ControlChanged
+          object Label29: TLabel
+            Height = 15.000000000000000000
+            Position.X = -144.000000000000000000
+            Position.Y = 4.000000000000000000
+            Text = 'Object cycle code'
+            Width = 124.000000000000000000
+          end
+        end
+        object stgBylines: TGrid
+          Touch.InteractiveGestures = [igPan]
+          Height = 67.000000000000000000
+          Position.X = 150.000000000000000000
+          Position.Y = 668.000000000000000000
+          UseSmallScrollBars = True
+          Width = 320.000000000000000000
+          DisableFocusEffect = False
+          RowCount = 0
+          RowHeight = 21.000000000000000000
+          OnEditingDone = GridEditingDone
+          object colBylineName: TStringColumn
+            Header = 'Name'
+            Height = 42.000000000000000000
+            Width = 150.000000000000000000
+          end
+          object colBylineTitle: TStringColumn
+            Header = 'Title'
+            Height = 42.000000000000000000
+            Position.X = 150.000000000000000000
+            Width = 140.000000000000000000
+          end
+        end
+        object Label30: TLabel
+          Height = 45.000000000000000000
+          Position.X = 6.000000000000000000
+          Position.Y = 674.000000000000000000
+          Text = 'Bylines'
+          VertTextAlign = taLeading
+          Width = 137.000000000000000000
+        end
+        object edtCity: TEdit
+          DisableFocusEffect = False
+          KeyboardType = vktDefault
+          Password = False
+          Position.X = 150.000000000000000000
+          Position.Y = 741.000000000000000000
+          Width = 320.000000000000000000
+          Height = 22.000000000000000000
+          OnChange = ControlChanged
+          object Label31: TLabel
+            Height = 15.000000000000000000
+            Position.X = -144.000000000000000000
+            Position.Y = 4.000000000000000000
+            Text = 'City'
+            Width = 124.000000000000000000
+          end
+        end
+        object edtSubLocation: TEdit
+          DisableFocusEffect = False
+          KeyboardType = vktDefault
+          Password = False
+          Position.X = 150.000000000000000000
+          Position.Y = 769.000000000000000000
+          Width = 320.000000000000000000
+          Height = 22.000000000000000000
+          OnChange = ControlChanged
+          object Label32: TLabel
+            Height = 15.000000000000000000
+            Position.X = -144.000000000000000000
+            Position.Y = 4.000000000000000000
+            Text = 'Sub-location'
+            Width = 124.000000000000000000
+          end
+        end
+        object edtProvinceOrState: TEdit
+          DisableFocusEffect = False
+          KeyboardType = vktDefault
+          Password = False
+          Position.X = 150.000000000000000000
+          Position.Y = 797.000000000000000000
+          Width = 320.000000000000000000
+          Height = 22.000000000000000000
+          OnChange = ControlChanged
+          object Label33: TLabel
+            Height = 15.000000000000000000
+            Position.X = -144.000000000000000000
+            Position.Y = 4.000000000000000000
+            Text = 'Province/state'
+            Width = 124.000000000000000000
+          end
+        end
+        object edtCountryCode: TEdit
+          DisableFocusEffect = False
+          KeyboardType = vktDefault
+          Password = False
+          Position.X = 150.000000000000000000
+          Position.Y = 825.000000000000000000
+          Width = 115.000000000000000000
+          Height = 22.000000000000000000
+          OnChange = ControlChanged
+          object Label34: TLabel
+            Height = 15.000000000000000000
+            Position.X = -144.000000000000000000
+            Position.Y = 4.000000000000000000
+            Text = 'Country code'
+            Width = 124.000000000000000000
+          end
+        end
+        object edtCountryName: TEdit
+          DisableFocusEffect = False
+          KeyboardType = vktDefault
+          Password = False
+          Position.X = 150.000000000000000000
+          Position.Y = 853.000000000000000000
+          Width = 320.000000000000000000
+          Height = 22.000000000000000000
+          OnChange = ControlChanged
+          object Label35: TLabel
+            Height = 15.000000000000000000
+            Position.X = -144.000000000000000000
+            Position.Y = 4.000000000000000000
+            Text = 'Country name'
+            Width = 124.000000000000000000
+          end
+        end
+        object edtOriginalTransmissionRef: TEdit
+          DisableFocusEffect = False
+          KeyboardType = vktDefault
+          Password = False
+          Position.X = 150.000000000000000000
+          Position.Y = 881.000000000000000000
+          Width = 320.000000000000000000
+          Height = 22.000000000000000000
+          OnChange = ControlChanged
+          object Label36: TLabel
+            Height = 15.000000000000000000
+            Position.X = -144.000000000000000000
+            Position.Y = 4.000000000000000000
+            Text = 'Original transmission ref'
+            Width = 137.000000000000000000
+          end
+        end
+        object edtHeadline: TEdit
+          DisableFocusEffect = False
+          KeyboardType = vktDefault
+          Password = False
+          Position.X = 150.000000000000000000
+          Position.Y = 909.000000000000000000
+          Width = 320.000000000000000000
+          Height = 22.000000000000000000
+          OnChange = ControlChanged
+          object Label37: TLabel
+            Height = 15.000000000000000000
+            Position.X = -144.000000000000000000
+            Position.Y = 4.000000000000000000
+            Text = 'Headline'
+            Width = 124.000000000000000000
+          end
+        end
+        object edtCredit: TEdit
+          DisableFocusEffect = False
+          KeyboardType = vktDefault
+          Password = False
+          Position.X = 150.000000000000000000
+          Position.Y = 938.000000000000000000
+          Width = 320.000000000000000000
+          Height = 21.000000000000000000
+          OnChange = ControlChanged
+          object Label38: TLabel
+            Height = 15.000000000000000000
+            Position.X = -144.000000000000000000
+            Position.Y = 4.000000000000000000
+            Text = 'Credit'
+            Width = 124.000000000000000000
+          end
+        end
+        object edtSource: TEdit
+          DisableFocusEffect = False
+          KeyboardType = vktDefault
+          Password = False
+          Position.X = 150.000000000000000000
+          Position.Y = 966.000000000000000000
+          Width = 320.000000000000000000
+          Height = 21.000000000000000000
+          OnChange = ControlChanged
+          object Label39: TLabel
+            Height = 15.000000000000000000
+            Position.X = -144.000000000000000000
+            Position.Y = 4.000000000000000000
+            Text = 'Source'
+            Width = 124.000000000000000000
+          end
+        end
+        object edtCopyrightNotice: TEdit
+          DisableFocusEffect = False
+          KeyboardType = vktDefault
+          Password = False
+          Position.X = 150.000000000000000000
+          Position.Y = 994.000000000000000000
+          Width = 320.000000000000000000
+          Height = 21.000000000000000000
+          OnChange = ControlChanged
+          object Label40: TLabel
+            Height = 15.000000000000000000
+            Position.X = -144.000000000000000000
+            Position.Y = 4.000000000000000000
+            Text = 'Copyright notice'
+            Width = 124.000000000000000000
+          end
+        end
+        object Label42: TLabel
+          Height = 45.000000000000000000
+          Position.X = 6.000000000000000000
+          Position.Y = 1101.000000000000000000
+          Text = 'Caption or abstract'
+          VertTextAlign = taLeading
+          Width = 137.000000000000000000
+        end
+        object memCaptionOrAbstract: TMemo
+          Touch.InteractiveGestures = [igPan]
+          Height = 67.000000000000000000
+          Position.X = 150.000000000000000000
+          Position.Y = 1095.000000000000000000
+          UseSmallScrollBars = True
+          Width = 320.000000000000000000
+          DisableFocusEffect = False
+          KeyboardType = vktDefault
+          WordWrap = True
+          OnChange = ControlChanged
+        end
+        object Label43: TLabel
+          Height = 45.000000000000000000
+          Position.X = 6.000000000000000000
+          Position.Y = 1174.000000000000000000
+          Text = 'Writers/editors (one per line)'
+          VertTextAlign = taLeading
+          Width = 137.000000000000000000
+        end
+        object memWritersOrEditors: TMemo
+          Touch.InteractiveGestures = [igPan]
+          Height = 67.000000000000000000
+          Position.X = 150.000000000000000000
+          Position.Y = 1168.000000000000000000
+          UseSmallScrollBars = True
+          Width = 320.000000000000000000
+          DisableFocusEffect = False
+          KeyboardType = vktDefault
+          OnChange = ControlChanged
+        end
+        object Label41: TLabel
+          Height = 45.000000000000000000
+          Position.X = 6.000000000000000000
+          Position.Y = 1028.000000000000000000
+          Text = 'Contacts (one per line)'
+          VertTextAlign = taLeading
+          Width = 137.000000000000000000
+        end
+        object memContacts: TMemo
+          Touch.InteractiveGestures = [igPan]
+          Height = 67.000000000000000000
+          Position.X = 150.000000000000000000
+          Position.Y = 1022.000000000000000000
+          UseSmallScrollBars = True
+          Width = 320.000000000000000000
+          DisableFocusEffect = False
+          KeyboardType = vktDefault
+          OnChange = ControlChanged
+        end
+        object lyoSpacer: TLayout
+          Height = 7.000000000000000000
+          Position.X = 136.000000000000000000
+          Position.Y = 1264.000000000000000000
+          Width = 50.000000000000000000
+        end
+        object Label23: TLabel
+          Height = 15.000000000000000000
+          Position.X = 8.000000000000000000
+          Position.Y = 1244.000000000000000000
+          Text = 'Image orientation'
+          Width = 120.000000000000000000
+        end
+        object rdoUnspecifiedImageOrientation: TRadioButton
+          DisableFocusEffect = False
+          Height = 19.000000000000000000
+          Position.X = 150.000000000000000000
+          Position.Y = 1242.000000000000000000
+          Text = 'Unspecified'
+          Width = 89.000000000000000000
+        end
+        object rdoLandscape: TRadioButton
+          DisableFocusEffect = False
+          Height = 19.000000000000000000
+          Position.X = 238.000000000000000000
+          Position.Y = 1242.000000000000000000
+          Text = 'Landscape'
+          Width = 81.000000000000000000
+          OnChange = ControlChanged
+        end
+        object rdoPortrait: TRadioButton
+          DisableFocusEffect = False
+          Height = 19.000000000000000000
+          Position.X = 319.000000000000000000
+          Position.Y = 1242.000000000000000000
+          Text = 'Portrait'
+          Width = 81.000000000000000000
+          OnChange = ControlChanged
+        end
+        object rdoSquare: TRadioButton
+          DisableFocusEffect = False
+          Height = 19.000000000000000000
+          Position.X = 386.000000000000000000
+          Position.Y = 1242.000000000000000000
+          Text = 'Square'
+          Width = 65.000000000000000000
+        end
+      end
+    end
+  end
+  object lyoTabs: TLayout
+    Align = alBottom
+    Height = 22.000000000000000000
+    Margins.Bottom = 1.000000000000000000
+    Padding.Left = 5.000000000000000000
+    Padding.Right = 4.000000000000000000
+    Padding.Bottom = 4.000000000000000000
+    Position.X = 5.000000000000000000
+    Position.Y = 487.000000000000000000
+    Visible = False
+    Width = 460.000000000000000000
+    object rctEnvelopeRecord: TRectangle
+      Align = alLeft
+      Fill.Color = xFFFCFCFC
+      Height = 23.000000000000000000
+      Padding.Left = -1.000000000000000000
+      Padding.Top = -1.000000000000000000
+      Padding.Right = -1.000000000000000000
+      Padding.Bottom = -1.000000000000000000
+      Position.X = -1.000000000000000000
+      Position.Y = -1.000000000000000000
+      Sides = [sdLeft, sdBottom, sdRight]
+      Stroke.Color = claGray
+      Width = 99.000000000000000000
+      OnClick = rctTabClick
+      object lblEnvelopeRec: TLabel
+        Align = alClient
+        AutoSize = True
+        Height = 23.000000000000000000
+        Text = 'Envelope Record'
+        TextAlign = taCenter
+        Width = 99.000000000000000000
+        WordWrap = False
+      end
+    end
+    object rctApplicationRec: TRectangle
+      Tag = 1
+      Align = alLeft
+      Fill.Color = xFFEAEAEA
+      Height = 22.000000000000000000
+      Padding.Top = -1.000000000000000000
+      Position.X = 97.000000000000000000
+      Position.Y = -1.000000000000000000
+      Stroke.Color = claGray
+      Width = 112.000000000000000000
+      OnClick = rctTabClick
+      object lblApplicationRec: TLabel
+        Align = alClient
+        AutoSize = True
+        Height = 22.000000000000000000
+        Text = 'Application Record'
+        TextAlign = taCenter
+        Width = 112.000000000000000000
+        WordWrap = False
+      end
+    end
+    object lblNoTagsFound: TLabel
+      Align = alClient
+      FontColor = claDimgray
+      StyledSettings = [ssFamily, ssSize]
+      Height = 20.000000000000000000
+      Padding.Top = 1.000000000000000000
+      Padding.Right = 1.000000000000000000
+      Position.X = 209.000000000000000000
+      Position.Y = 1.000000000000000000
+      Text = 'No recognised IPTC tags were found in the file'
+      TextAlign = taTrailing
+      Visible = False
+      Width = 250.000000000000000000
+    end
+  end
+  object StyleBook: TStyleBook
+    Resource.Strings = (
+      'object TLayout'
+      '  Align = alClient'
+      '  Height = 452.000000000000000000'
+      '  Position.Y = 33.000000000000000000'
+      '  Width = 967.000000000000000000'
+      '  object TLayout'
+      '    StyleName = '#39'PlainTabControlStyle'#39
+      '    DesignVisible = False'
+      '    Height = 50.000000000000000000'
+      '    Position.X = 458.000000000000000000'
+      '    Position.Y = 201.000000000000000000'
+      '    Width = 50.000000000000000000'
+      '    object TRectangle'
+      '      Align = alClient'
+      '      Fill.Color = xFFFCFCFC'
+      '      Height = 50.000000000000000000'
+      '      HitTest = False'
+      '      Stroke.Color = claGray'
+      '      Width = 50.000000000000000000'
+      '    end'
+      '  end'
+      '  object TRectangle'
+      '    StyleName = '#39'GradientToolbar'#39
+      '    Fill.Kind = bkGradient'
+      '    Fill.Gradient.Points = <'
+      '      item'
+      '        Color = xFFD8D8D8'
+      '        Offset = 0.000000000000000000'
+      '      end'
+      '      item'
+      '        Color = claWhite'
+      '        Offset = 1.000000000000000000'
+      '      end>'
+      '    Fill.Gradient.StartPosition.X = 0.500000000000000000'
+      '    Fill.Gradient.StartPosition.Y = 1.000000000000000000'
+      '    Fill.Gradient.StopPosition.X = 0.499999970197677600'
+      '    Fill.Gradient.StopPosition.Y = 0.000000000000000000'
+      '    Height = 50.000000000000000000'
+      '    Position.X = 458.000000000000000000'
+      '    Position.Y = 201.000000000000000000'
+      '    Sides = [sdBottom]'
+      '    Stroke.Color = claDarkgray'
+      '    Width = 50.000000000000000000'
+      '  end'
+      'end')
+    Left = 240
+    Top = 432
+  end
+  object ToolBar: TToolBar
+    Height = 28.000000000000000000
+    Margins.Left = 2.000000000000000000
+    Margins.Top = 2.000000000000000000
+    Margins.Right = 2.000000000000000000
+    Margins.Bottom = 1.000000000000000000
+    StyleLookup = 'GradientToolbar'
+    Width = 488.000000000000000000
+    object btnOpen: TSpeedButton
+      Align = alLeft
+      Height = 25.000000000000000000
+      Position.X = 2.000000000000000000
+      Position.Y = 2.000000000000000000
+      Text = '&Open...'
+      TextAlign = taTrailing
+      Width = 69.000000000000000000
+      object Image1: TImage
+        Align = alLeft
+        Bitmap.PNG = {
+          89504E470D0A1A0A0000000D49484452000000100000001008060000001FF3FF
+          61000000017352474200AECE1CE90000000467414D410000B18F0BFC61050000
+          028A49444154384F8D924D48545114C7FFF3E6C3D17132D171A4C206A4C65468
+          84A245849353AB54A24D5F1065AB208829725BE2B20F995D0405B548881659E0
+          2A6CACCD28561391540386A536930EE298F33EEE7BF776EF7BFA1C62163D389C
+          F3DE3DE7F7CEFF9CEB4099A72AEEFC0E48216F851BC1C056CCCC65D312750DC8
+          09EDF9BFE9CE7200926209F701E708A134E7ADF0442F9E8C35AA443B956F5E09
+          E92936525A53162012C804CDEA299A24EDEAB842F4F3BD47F721B75488ACEC92
+          3FEA13C6970D8854AE83D26F6B0923999E9E4D2A2AC1B158072A2B5D43A5E72E
+          F1F2EAAEA747628E17A507D4C17A8F5CD55EAE7F1B9FCFE5A30DC11AEC6C0A84
+          942B0B916282A4C59963A3381A97E1C0B0CD783DD467C74F0A0C4AE77ED407FC
+          C8CCFCC258727A401E2237458224FE6C161B8FC10C6299AE63357609DD731417
+          946A8CFB6AC1B8D8A2A6C25BED415DBDEFC6967E2FAB884B1FAC19C80FC088C6
+          27A7816904D035F4EC6EC5BD13E70006C4BADA51E5F7A028723C0CCD6D41F0AD
+          A4BD941E366700A2883CA48607A11657ECD677F0E82C657834FA0E07A361E830
+          B0945F45616A16CFB6B9233E09CB26806A32E4421E945174F6DDE69311388709
+          8A726B494FE2FAD808C27B1B917D9FC59BF853F89D6E4C3C3C0E4B82AA209799
+          42A0A995EBE732089FC38624EECFB44570EB5037329359DC8974A0D6E7C26266
+          D42C35018C77B0F8E3331AB6B780A9456E32870ABF199F0EEFC1CFCBFD085757
+          02868199B7F721566D015415F29F65F8FD758052E4B606C6BD652296CD98CA3C
+          E61B02DF9478C43D3101F9856FF0D704ED22BA5E68790B22C0A6E7120B0BD3F6
+          A04DC0EFF9AFA86F0899AD6FB66FC9A0EB528487C6B7A5137C1A1D34DB17B5F6
+          4DB491FF19745D53CD35FD05A344696B9529493D0000000049454E44AE426082}
+        Height = 25.000000000000000000
+        HitTest = False
+        Width = 25.000000000000000000
+      end
+    end
+    object btnSave: TSpeedButton
+      Align = alLeft
+      Height = 25.000000000000000000
+      Position.X = 71.000000000000000000
+      Position.Y = 2.000000000000000000
+      Text = 'Save'
+      TextAlign = taTrailing
+      Width = 56.000000000000000000
+      object Image2: TImage
+        Align = alLeft
+        Bitmap.PNG = {
+          89504E470D0A1A0A0000000D49484452000000100000001008060000001FF3FF
+          61000000017352474200AECE1CE90000000467414D410000B18F0BFC61050000
+          016349444154384FC553314BC340187D77D7B4692B38B9148720A2A293E0503B
+          88F42708E2E05EF11FB8956ECE6E29FE0C2727C70E82935217C1C5411144A14D
+          7A978BDF5D6C686C6B870EBE21907CEFBDBCFBBEEF8039C18C7E63B3D900837F
+          777B36D36E7BE71C8871D27D68B50D995B058957BDBD996243B03CE20FC9B9DF
+          AA4EA733D5A85AAD8ED5C60C2691FE8AF6FF099226CE81F408EF1F2F689C5E63
+          7D6D09E5B2438D668863200CE9018D6289C31176EA19247BB0D58CBDE57D443A
+          44A1C0C940D0A83582BE84941A6EB108196AF4FA03B86E094FCF37E8DEB7AC36
+          4DC085403808E0FB35FA7344E21E2DCC00B99C06631C6FAF5F3838BC42A5E265
+          12647AC0C8536B85DAEE05EAF54B1BDD2D08E41DA35108824F4A144C36307938
+          67882295121CC70464504A414949F5BC4D338AF48D0B978A8E250E91770522A5
+          21958422636DFAF9B3FD434EE632998FC7472B5387EAB71FB1B048E719B94C73
+          6C4022FD06520A74369C310F100000000049454E44AE426082}
+        Height = 25.000000000000000000
+        HitTest = False
+        Width = 25.000000000000000000
+      end
+    end
+    object Line1: TLine
+      Align = alLeft
+      Height = 21.000000000000000000
+      LineType = ltLeft
+      Padding.Left = 2.000000000000000000
+      Padding.Top = 2.000000000000000000
+      Padding.Right = 2.000000000000000000
+      Padding.Bottom = 2.000000000000000000
+      Position.X = 129.000000000000000000
+      Position.Y = 4.000000000000000000
+      Stroke.Color = claGray
+      Width = 4.000000000000000000
+    end
+    object btnClearAll: TSpeedButton
+      Align = alLeft
+      Height = 25.000000000000000000
+      Position.X = 135.000000000000000000
+      Position.Y = 2.000000000000000000
+      Text = 'Clear All'
+      TextAlign = taTrailing
+      Width = 70.000000000000000000
+      object Image3: TImage
+        Align = alLeft
+        Bitmap.PNG = {
+          89504E470D0A1A0A0000000D49484452000000100000001008060000001FF3FF
+          61000000017352474200AECE1CE90000000467414D410000B18F0BFC61050000
+          018449444154384FC5924F4AC35010C667DE4B6C0585800B3715F404FDA3716D
+          6EA037486EE011BC41F504C90D7A84E052A4A59EC0D08DB86A15B16DDA37E324
+          25B5ADE942101C0881F7667EF37D5F02F0DF859980B1AB87D9DB80F2F61E67FD
+          DF885245B3901C051C7FB876631B80EBE0A467D899B9FAA6E859009469B2E16C
+          B3035C0E990A78AE558C84C7566A6ED700BB0F904C0C796028879040DE5CDB2F
+          9A26E7FA928062D23CB2A40F9F60B4A2FC5BF050245A966E33A24F80C008814D
+          545788D78A39AA764DB0692F0F71B3DE4F7548A87205920BA00CEF970C2FEE4B
+          6AACD49D610092BBB928F96475BF2DD81F809796ED13616C6482992212102284
+          D97919640D3068D86D8318CA8C230A8203912D06AE043642392F83E4193C4B78
+          A4EC8E467591799627A8F56651B1F1553E61A62A07034447DD741966AEC0E84A
+          8C323C964D06706D38BB3F94BFD328F698A12F1BFD4173272CE04B0B5319AECA
+          373EE94D979B573DD704929AD4136B7D09C54F5620DB022E3DCFEC26CD4A2769
+          55C4D11FD417908BA8D4FE4073C40000000049454E44AE426082}
+        Height = 25.000000000000000000
+        HitTest = False
+        Width = 25.000000000000000000
+      end
+    end
+    object btnReload: TSpeedButton
+      Align = alLeft
+      Height = 25.000000000000000000
+      Position.X = 205.000000000000000000
+      Position.Y = 2.000000000000000000
+      Text = 'Reload'
+      TextAlign = taTrailing
+      Width = 70.000000000000000000
+      object Image4: TImage
+        Align = alLeft
+        Bitmap.PNG = {
+          89504E470D0A1A0A0000000D49484452000000100000001008060000001FF3FF
+          61000000017352474200AECE1CE90000000467414D410000B18F0BFC61050000
+          015049444154384F6364808225CB0EFD87B1B1D13151768CD8C4E1822003741C
+          6C31D4DCB97C8A415A548CE1EE8DC70CD80C6142D6C10CE4A16390BCAE960C83
+          B2862C033657A218C002E4A163980520434C4D54300C41F182991BA6174006EC
+          D9B611C56B7C2C4270EF107401C845C2C2A20C4242C20C8282420C0202822886
+          6135E0F1E75B0C2A7398C018C4969492609092966290969166909195C16D0033
+          D04320ECB85283E160C40D3006B11985FF3038EC566150565202636480E682FF
+          C040FCCF7034F23A839AA02A1883D8F62B34C07A4072208CD3005814AA0AA9C1
+          A3D37AB9265C3D4C1E8F0B20D1283695198EDFE5FE6580615814133400A6E05C
+          DC7578BA78F0F1169C4DD00B20051712AE33182DD264B807D408C22036612F00
+          638005887F16FD65D00486C395C4EB0C060B34C118C406C981304E17A0E72455
+          4135B061200C6213CC8D5855E01084E54C002D206499A5541135000000004945
+          4E44AE426082}
+        Height = 25.000000000000000000
+        HitTest = False
+        Width = 25.000000000000000000
+      end
+    end
+    object Line2: TLine
+      Align = alLeft
+      Height = 21.000000000000000000
+      LineType = ltLeft
+      Padding.Left = 2.000000000000000000
+      Padding.Top = 2.000000000000000000
+      Padding.Right = 2.000000000000000000
+      Padding.Bottom = 2.000000000000000000
+      Position.X = 277.000000000000000000
+      Position.Y = 4.000000000000000000
+      Stroke.Color = claGray
+      Width = 4.000000000000000000
+    end
+    object btnClose: TSpeedButton
+      Align = alLeft
+      Height = 25.000000000000000000
+      Position.X = 283.000000000000000000
+      Position.Y = 2.000000000000000000
+      Text = 'Close'
+      Width = 44.000000000000000000
+    end
+  end
+end

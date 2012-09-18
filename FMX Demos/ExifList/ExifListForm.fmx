@@ -1,0 +1,291 @@
+object frmExifList: TfrmExifList
+  Left = 0
+  Top = 0
+  ActiveControl = btnOpenFile
+  Caption = 'Exif List'
+  ClientHeight = 455
+  ClientWidth = 520
+  FormFactor.Width = 1600
+  FormFactor.Height = 744
+  FormFactor.Devices = [dkDesktop]
+  OnCreate = FormCreate
+  OnClose = FormClose
+  OnDestroy = FormDestroy
+  OnShow = FormShow
+  object lyoButtonBar: TLayout
+    Align = alBottom
+    Height = 31.000000000000000000
+    Position.Y = 424.000000000000000000
+    Width = 520.000000000000000000
+    object btnCopyTags: TButton
+      DisableFocusEffect = False
+      Height = 22.000000000000000000
+      Position.X = 8.000000000000000000
+      Position.Y = 1.000000000000000000
+      Text = '&Copy Tags'
+      Width = 80.000000000000000000
+    end
+    object btnOpenInDefProgram: TButton
+      DisableFocusEffect = False
+      Height = 22.000000000000000000
+      Position.X = 96.000000000000000000
+      Position.Y = 1.000000000000000000
+      Text = 'Open Image in Default Program'
+      Width = 177.000000000000000000
+    end
+    object btnOpenFile: TButton
+      Anchors = [akTop, akRight]
+      DisableFocusEffect = False
+      Height = 22.000000000000000000
+      Position.X = 344.000000000000000000
+      Position.Y = 1.000000000000000000
+      Text = '&Open...'
+      Width = 80.000000000000000000
+    end
+    object btnClose: TButton
+      Anchors = [akTop, akRight]
+      DisableFocusEffect = False
+      Height = 22.000000000000000000
+      Position.X = 432.000000000000000000
+      Position.Y = 1.000000000000000000
+      Text = 'Close'
+      Width = 80.000000000000000000
+    end
+  end
+  object TabControl: TTabControl
+    Align = alClient
+    Height = 412.000000000000000000
+    Margins.Left = 6.000000000000000000
+    Margins.Top = 6.000000000000000000
+    Margins.Right = 6.000000000000000000
+    Margins.Bottom = 6.000000000000000000
+    Padding.Left = 6.000000000000000000
+    Padding.Top = 6.000000000000000000
+    Padding.Right = 6.000000000000000000
+    Padding.Bottom = 6.000000000000000000
+    Position.X = 6.000000000000000000
+    Position.Y = 6.000000000000000000
+    TabIndex = 0
+    Width = 508.000000000000000000
+    OnChange = TabControlChange
+    object tabStandard: TTabItem
+      WordWrap = False
+      Height = 23.000000000000000000
+      IsSelected = True
+      Position.X = 1.000000000000000000
+      Text = 'Standard'
+      Width = 65.000000000000000000
+      object lblNoExifData: TLabel
+        Align = alClient
+        Height = 365.000000000000000000
+        Opacity = 0.000000000000000000
+        Padding.Left = 6.000000000000000000
+        Padding.Top = 6.000000000000000000
+        Padding.Right = 6.000000000000000000
+        Padding.Bottom = 6.000000000000000000
+        Position.X = 6.000000000000000000
+        Position.Y = 6.000000000000000000
+        Text = 'No Exif metadata found'
+        TextAlign = taCenter
+        Width = 484.000000000000000000
+      end
+      object trvStandard: TTreeView
+        Touch.InteractiveGestures = [igPan]
+        Align = alClient
+        Height = 377.000000000000000000
+        Visible = False
+        Width = 496.000000000000000000
+        OnChange = UpdateValueHighlightColor
+        object tviEndiannes: TTreeViewItem
+          Height = 19.000000000000000000
+          IsChecked = False
+          IsExpanded = False
+          IsSelected = False
+          Text = 'Byte order'
+          Width = 492.000000000000000000
+          object lblEndianness: TLabel
+            Align = alClient
+            StyledSettings = [ssFamily, ssSize]
+            Height = 19.000000000000000000
+            Padding.Left = 224.000000000000000000
+            Position.X = 224.000000000000000000
+            Width = 268.000000000000000000
+          end
+        end
+        object tviGeneralSection: TTreeViewItem
+          Height = 19.000000000000000000
+          IsChecked = False
+          IsExpanded = True
+          IsSelected = False
+          Position.Y = 19.000000000000000000
+          Text = 'Main IFD'
+          Width = 492.000000000000000000
+          OnDblClick = tviTopLevelDblClick
+          object tviExampleChild: TTreeViewItem
+            Height = 19.000000000000000000
+            IsChecked = False
+            IsExpanded = False
+            IsSelected = False
+            Position.X = 19.000000000000000000
+            Position.Y = 19.000000000000000000
+            Text = 'tviExampleChild'
+            Width = 473.000000000000000000
+          end
+        end
+        object tviDetailsSection: TTreeViewItem
+          Height = 19.000000000000000000
+          IsChecked = False
+          IsExpanded = False
+          IsSelected = False
+          Position.Y = 57.000000000000000000
+          Text = 'Exif sub-IFD'
+          Width = 492.000000000000000000
+          OnDblClick = tviTopLevelDblClick
+        end
+        object tbiInteropSection: TTreeViewItem
+          Height = 19.000000000000000000
+          IsChecked = False
+          IsExpanded = False
+          IsSelected = False
+          Position.Y = 76.000000000000000000
+          Text = 'Interoperability sub-IFD'
+          Width = 492.000000000000000000
+          OnDblClick = tviTopLevelDblClick
+        end
+        object tviGPSSection: TTreeViewItem
+          Height = 19.000000000000000000
+          IsChecked = False
+          IsExpanded = False
+          IsSelected = False
+          Position.Y = 95.000000000000000000
+          Text = 'GPS sub-IFD'
+          Width = 492.000000000000000000
+          OnDblClick = tviTopLevelDblClick
+        end
+        object tviThumbnailSection: TTreeViewItem
+          Height = 19.000000000000000000
+          IsChecked = False
+          IsExpanded = False
+          IsSelected = False
+          Position.Y = 114.000000000000000000
+          Text = 'Thumbnail IFD'
+          Width = 492.000000000000000000
+          OnDblClick = tviTopLevelDblClick
+        end
+      end
+    end
+    object tabMakerNote: TTabItem
+      WordWrap = False
+      Height = 23.000000000000000000
+      IsSelected = False
+      Position.X = 66.000000000000000000
+      Text = 'MakerNote'
+      Width = 76.000000000000000000
+      object lblNoMakerNote: TLabel
+        Align = alClient
+        Height = 365.000000000000000000
+        Opacity = 0.000000000000000000
+        Padding.Left = 6.000000000000000000
+        Padding.Top = 6.000000000000000000
+        Padding.Right = 6.000000000000000000
+        Padding.Bottom = 6.000000000000000000
+        Position.X = 6.000000000000000000
+        Position.Y = 6.000000000000000000
+        Text = '(No MakerNote found)'
+        TextAlign = taCenter
+        Width = 484.000000000000000000
+      end
+      object trvMakerNote: TTreeView
+        Touch.InteractiveGestures = [igPan]
+        Align = alClient
+        Height = 377.000000000000000000
+        Visible = False
+        Width = 496.000000000000000000
+        OnChange = UpdateValueHighlightColor
+        object tviMakerNoteType: TTreeViewItem
+          Height = 19.000000000000000000
+          IsChecked = False
+          IsExpanded = False
+          IsSelected = False
+          Text = 'Type'
+          Width = 492.000000000000000000
+          object lblMakerNoteType: TLabel
+            Align = alClient
+            StyledSettings = [ssFamily, ssSize]
+            Height = 19.000000000000000000
+            Padding.Left = 224.000000000000000000
+            Position.X = 224.000000000000000000
+            Width = 268.000000000000000000
+          end
+        end
+        object tviMakerNoteEndianness: TTreeViewItem
+          Height = 19.000000000000000000
+          IsChecked = False
+          IsExpanded = False
+          IsSelected = False
+          Position.Y = 19.000000000000000000
+          Text = 'Byte order'
+          Width = 492.000000000000000000
+          object lblMakerNoteEndianness: TLabel
+            Align = alClient
+            StyledSettings = [ssFamily, ssSize]
+            Height = 19.000000000000000000
+            Padding.Left = 224.000000000000000000
+            Position.X = 224.000000000000000000
+            Width = 268.000000000000000000
+          end
+        end
+        object tviMakerNoteTags: TTreeViewItem
+          Height = 19.000000000000000000
+          IsChecked = False
+          IsExpanded = True
+          IsSelected = False
+          Position.Y = 38.000000000000000000
+          Text = 'Tags'
+          Width = 492.000000000000000000
+          OnDblClick = tviTopLevelDblClick
+        end
+      end
+    end
+    object tabThumbnail: TTabItem
+      WordWrap = False
+      Height = 23.000000000000000000
+      IsSelected = False
+      Position.X = 142.000000000000000000
+      Text = 'Thumbnail'
+      Width = 72.000000000000000000
+      object imgThumbnail: TImageControl
+        Align = alClient
+        DisableFocusEffect = False
+        EnableOpenDialog = False
+        Height = 377.000000000000000000
+        Width = 496.000000000000000000
+      end
+      object lblNoThumbnail: TLabel
+        Align = alClient
+        Height = 353.000000000000000000
+        Position.X = 2.000000000000000000
+        Position.Y = 8.000000000000000000
+        Text = '(No Exif thumbnail found)'
+        TextAlign = taCenter
+        Visible = False
+        Width = 494.000000000000000000
+      end
+    end
+    object tabSource: TTabItem
+      WordWrap = False
+      Height = 23.000000000000000000
+      IsSelected = False
+      Position.X = 214.000000000000000000
+      Text = 'Image'
+      Width = 52.000000000000000000
+      object imgSource: TImageControl
+        Align = alClient
+        DisableFocusEffect = False
+        EnableOpenDialog = False
+        Height = 50.000000000000000000
+        Width = 50.000000000000000000
+      end
+    end
+  end
+end
