@@ -39,7 +39,7 @@ type
 
   TMenuItem = class(FMX.Menus.TMenuItem, IItemsContainer)
   private type
-    TChangeKind = (ckChecked, ckEnabled, ckText, ckVisible); //unfortunately, IsChecked prop setter not virtual, so can't fix
+    TChangeKind = (ckChecked, ckEnabled, ckText, ckVisible);
 
     IFixedFMXMenuService = interface(IFMXMenuService)
     ['{DF5F5237-6640-4EFE-A5BB-C6AE7FC63459}']
@@ -57,7 +57,7 @@ type
     procedure SetText(const Value: string); override;
     procedure SetVisible(const Value: Boolean); override;
   published
-    property IsChecked write SetIsChecked;
+    property IsChecked write SetIsChecked; //unfortunately, IsChecked prop setter not virtual
   end;
 
   { TMainMenu doesn't work if placed on a data module, and always activates itself
