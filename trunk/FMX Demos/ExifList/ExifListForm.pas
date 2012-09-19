@@ -1,3 +1,21 @@
+{**************************************************************************************}
+{                                                                                      }
+{ CCR Exif - Delphi class library for reading and writing image metadata               }
+{ Version 1.5.2                                                                        }
+{                                                                                      }
+{ The contents of this file are subject to the Mozilla Public License Version 1.1      }
+{ (the "License"); you may not use this file except in compliance with the License.    }
+{ You may obtain a copy of the License at http://www.mozilla.org/MPL/                  }
+{                                                                                      }
+{ Software distributed under the License is distributed on an "AS IS" basis, WITHOUT   }
+{ WARRANTY OF ANY KIND, either express or implied. See the License for the specific    }
+{ language governing rights and limitations under the License.                         }
+{                                                                                      }
+{ The Initial Developer of the Original Code is Chris Rolliston. Portions created by   }
+{ Chris Rolliston are Copyright (C) 2009-2012 Chris Rolliston. All Rights Reserved.    }
+{                                                                                      }
+{**************************************************************************************}
+
 unit ExifListForm;
 {
   FMX/XE3 port of the original VCL Exif List demo. Targets both Windows and OS X; on Windows
@@ -6,10 +24,6 @@ unit ExifListForm;
   but intentional.
 }
 interface
-
-{$IFDEF VER230}
-{$MESSAGE ERROR 'Demo requires XE3, sorry'}
-{$ENDIF}
 
 uses
   System.SysUtils, System.Types, System.UITypes, System.Rtti, System.Classes,

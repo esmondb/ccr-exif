@@ -1,11 +1,29 @@
+{**************************************************************************************}
+{                                                                                      }
+{ CCR Exif - Delphi class library for reading and writing image metadata               }
+{ Version 1.5.2                                                                        }
+{                                                                                      }
+{ The contents of this file are subject to the Mozilla Public License Version 1.1      }
+{ (the "License"); you may not use this file except in compliance with the License.    }
+{ You may obtain a copy of the License at http://www.mozilla.org/MPL/                  }
+{                                                                                      }
+{ Software distributed under the License is distributed on an "AS IS" basis, WITHOUT   }
+{ WARRANTY OF ANY KIND, either express or implied. See the License for the specific    }
+{ language governing rights and limitations under the License.                         }
+{                                                                                      }
+{ The Initial Developer of the Original Code is Chris Rolliston. Portions created by   }
+{ Chris Rolliston are Copyright (C) 2009-2012 Chris Rolliston. All Rights Reserved.    }
+{                                                                                      }
+{**************************************************************************************}
+
 unit ScreenshooterForm;
 
 interface
 
 uses
   System.SysUtils, System.Types, System.UITypes, System.Rtti, System.Classes,
-  System.Variants, FMX.Types, FMX.Controls, FMX.Forms, FMX.Dialogs, FMX.Edit,
-  FMX.ListBox;
+  FMX.Types, FMX.Controls, FMX.Forms, FMX.Dialogs, FMX.Edit, FMX.ListBox,
+  CCR.Exif.FMXUtils;
 
 type
   TfrmScreenshooter = class(TForm)
@@ -30,15 +48,9 @@ type
     chkWriteThumbnail: TCheckBox;
     chkWriteXMP: TCheckBox;
     btnCreate: TButton;
-    btnClose: TButton;
     dlgSave: TSaveDialog;
-    procedure btnCloseClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure btnCreateClick(Sender: TObject);
-  private
-    { Private declarations }
-  public
-    { Public declarations }
   end;
 
 var
@@ -48,7 +60,7 @@ implementation
 
 {$R *.fmx}
 
-uses CCR.Exif, CCR.Exif.Consts, ScreenshooterUtils, CCR.Exif.FMXUtils;
+uses CCR.Exif, CCR.Exif.Consts, ScreenshooterUtils;
 
 procedure TfrmScreenshooter.FormCreate(Sender: TObject);
 begin
@@ -104,11 +116,6 @@ begin
   end;
   if MessageDlg('Created screenshot. Open it now?', TMsgDlgType.mtConfirmation, mbYesNo, 0) = mrYes then
     TFileManager.ShellExecute(dlgSave.FileName);
-end;
-
-procedure TfrmScreenshooter.btnCloseClick(Sender: TObject);
-begin
-  Close;
 end;
 
 end.

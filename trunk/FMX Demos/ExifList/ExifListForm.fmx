@@ -70,14 +70,14 @@ object frmExifList: TfrmExifList
     OnChange = TabControlChange
     object tabStandard: TTabItem
       WordWrap = False
-      Height = 23.000000000000000000
+      Height = 24.000000000000000000
       IsSelected = True
       Position.X = 1.000000000000000000
       Text = 'Standard'
       Width = 65.000000000000000000
       object lblNoExifData: TLabel
         Align = alClient
-        Height = 365.000000000000000000
+        Height = 364.000000000000000000
         Opacity = 0.000000000000000000
         Padding.Left = 6.000000000000000000
         Padding.Top = 6.000000000000000000
@@ -176,14 +176,14 @@ object frmExifList: TfrmExifList
     end
     object tabMakerNote: TTabItem
       WordWrap = False
-      Height = 23.000000000000000000
+      Height = 24.000000000000000000
       IsSelected = False
       Position.X = 66.000000000000000000
       Text = 'MakerNote'
-      Width = 76.000000000000000000
+      Width = 77.000000000000000000
       object lblNoMakerNote: TLabel
         Align = alClient
-        Height = 365.000000000000000000
+        Height = 38.000000000000000000
         Opacity = 0.000000000000000000
         Padding.Left = 6.000000000000000000
         Padding.Top = 6.000000000000000000
@@ -193,7 +193,7 @@ object frmExifList: TfrmExifList
         Position.Y = 6.000000000000000000
         Text = '(No MakerNote found)'
         TextAlign = taCenter
-        Width = 484.000000000000000000
+        Width = 38.000000000000000000
       end
       object trvMakerNote: TTreeView
         Touch.InteractiveGestures = [igPan]
@@ -249,17 +249,17 @@ object frmExifList: TfrmExifList
     end
     object tabThumbnail: TTabItem
       WordWrap = False
-      Height = 23.000000000000000000
+      Height = 24.000000000000000000
       IsSelected = False
-      Position.X = 142.000000000000000000
+      Position.X = 143.000000000000000000
       Text = 'Thumbnail'
       Width = 72.000000000000000000
       object imgThumbnail: TImageControl
         Align = alClient
         DisableFocusEffect = False
         EnableOpenDialog = False
-        Height = 377.000000000000000000
-        Width = 496.000000000000000000
+        Height = 50.000000000000000000
+        Width = 50.000000000000000000
       end
       object lblNoThumbnail: TLabel
         Align = alClient
@@ -274,9 +274,9 @@ object frmExifList: TfrmExifList
     end
     object tabSource: TTabItem
       WordWrap = False
-      Height = 23.000000000000000000
+      Height = 24.000000000000000000
       IsSelected = False
-      Position.X = 214.000000000000000000
+      Position.X = 215.000000000000000000
       Text = 'Image'
       Width = 52.000000000000000000
       object imgSource: TImageControl

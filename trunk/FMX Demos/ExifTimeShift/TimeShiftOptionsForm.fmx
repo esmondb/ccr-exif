@@ -4,7 +4,7 @@ object frmOptions: TfrmOptions
   BorderIcons = [biSystemMenu]
   BorderStyle = bsToolWindow
   Caption = 'Options'
-  ClientHeight = 143
+  ClientHeight = 145
   ClientWidth = 498
   Position = poDesigned
   FormFactor.Width = 1600

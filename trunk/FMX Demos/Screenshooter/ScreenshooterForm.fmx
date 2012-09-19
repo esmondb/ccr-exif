@@ -111,32 +111,37 @@ object frmScreenshooter: TfrmScreenshooter
       Height = 19.000000000000000000
       IsSelected = True
       Text = '<undefined>'
-      Width = 19.000000000000000000
+      Width = 185.000000000000000000
     end
     object ListBoxItem2: TListBoxItem
       Height = 19.000000000000000000
+      Position.Y = 19.000000000000000000
       Text = '1 star'
-      Width = 19.000000000000000000
+      Width = 185.000000000000000000
     end
     object ListBoxItem3: TListBoxItem
       Height = 19.000000000000000000
+      Position.Y = 38.000000000000000000
       Text = '2 stars'
-      Width = 19.000000000000000000
+      Width = 185.000000000000000000
     end
     object ListBoxItem4: TListBoxItem
       Height = 19.000000000000000000
+      Position.Y = 57.000000000000000000
       Text = '3 stars'
-      Width = 19.000000000000000000
+      Width = 185.000000000000000000
     end
     object ListBoxItem5: TListBoxItem
       Height = 19.000000000000000000
+      Position.Y = 76.000000000000000000
       Text = '4 stars'
-      Width = 19.000000000000000000
+      Width = 185.000000000000000000
     end
     object ListBoxItem6: TListBoxItem
       Height = 19.000000000000000000
+      Position.Y = 95.000000000000000000
       Text = '5 stars'
-      Width = 19.000000000000000000
+      Width = 185.000000000000000000
     end
   end
   object chkWriteThumbnail: TCheckBox
@@ -158,20 +163,11 @@ object frmScreenshooter: TfrmScreenshooter
   object btnCreate: TButton
     DisableFocusEffect = False
     Height = 22.000000000000000000
-    Position.X = 8.000000000000000000
+    Position.X = 80.000000000000000000
     Position.Y = 196.000000000000000000
     Text = 'Create Screenshot'
-    Width = 185.000000000000000000
+    Width = 129.000000000000000000
     OnClick = btnCreateClick
-  end
-  object btnClose: TButton
-    DisableFocusEffect = False
-    Height = 22.000000000000000000
-    Position.X = 200.000000000000000000
-    Position.Y = 196.000000000000000000
-    Text = 'Close'
-    Width = 80.000000000000000000
-    OnClick = btnCloseClick
   end
   object dlgSave: TSaveDialog
     DefaultExt = 'jpg'
