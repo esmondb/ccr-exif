@@ -6190,10 +6190,12 @@ end;
 
 class function TKodakMakerNote.FormatIsOK(SourceTag: TExifTag;
   out HeaderSize: Integer): Boolean;
+const
+  MinHeader: array[0..2] of AnsiChar = 'KDK';
 begin
-  HeaderSize := HeaderSize;
+  HeaderSize := TKodakMakerNote.HeaderSize;
   Result := (SourceTag.ElementCount > HeaderSize) and
-    (StrLComp(PAnsiChar(SourceTag.Data), 'KDK', 3) = 0);
+    CompareMem(SourceTag.Data, @MinHeader, SizeOf(MinHeader));
 end;
 
 procedure TKodakMakerNote.GetIFDInfo(SourceTag: TExifTag;

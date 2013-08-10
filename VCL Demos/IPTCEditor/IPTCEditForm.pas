@@ -416,7 +416,7 @@ begin
     edtOriginatingProgram.Text := IPTCData.OriginatingProgram;
     edtProgramVersion.Text := IPTCData.ProgramVersion;
     edtObjectCycleCode.Text := IPTCData.ObjectCycleCode;
-    IPTCData.GetBylineValues(vleBylines.Strings);
+    IPTCData.GetBylineDetails(vleBylines.Strings);
     edtCity.Text := IPTCData.City;
     edtSubLocation.Text := IPTCData.SubLocation;
     edtProvinceOrState.Text := IPTCData.ProvinceOrState;
@@ -560,7 +560,7 @@ begin
     IPTCData.OriginatingProgram := edtOriginatingProgram.Text;
     IPTCData.ProgramVersion := edtProgramVersion.Text;
     IPTCData.ObjectCycleCode := edtObjectCycleCode.Text;
-    IPTCData.SetBylineValues(vleBylines.Strings);
+    IPTCData.SetBylineDetails(vleBylines.Strings);
     IPTCData.City := edtCity.Text;
     IPTCData.SubLocation := edtSubLocation.Text;
     IPTCData.ProvinceOrState := edtProvinceOrState.Text;

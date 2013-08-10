@@ -1760,6 +1760,8 @@ begin
 end;
 
 function TXMPPacket.TryLoadFromStream(Stream: TStream): Boolean;
+const
+  XPacketStart: array[0..9] of AnsiChar = '<?xpacket ';
 var
   I: Integer;
   CharsPtr: PAnsiChar;
@@ -1781,7 +1783,7 @@ begin
     if not (Document as IDOMPersist).loadFromStream(NewStream) then Exit;
     if not FindRootRDFNode(Document, RootRDFNode) then Exit;
     Clear(True);
-    if StrLComp(CharsPtr, PAnsiChar('<?xpacket '), 10) = 0 then
+    if (NewStream.Size > SizeOf(XPacketStart)) and CompareMem(CharsPtr, @XPacketStart, SizeOf(XPacketStart)) then
       SetString(FRawXMLCache, CharsPtr, NewStream.Size)
     else
       FRawXMLCache := UTF8Encode((Document as IDOMPersist).xml)

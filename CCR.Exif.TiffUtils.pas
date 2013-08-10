@@ -1601,7 +1601,7 @@ var
   Tag: TTagToWrite;
 begin
   //write the IFD
-  AStream.Seek(ABasePosition + NewIFDOffset, soFromBeginning);
+  AStream.Seek(ABasePosition + NewIFDOffset, soBeginning);
   AStream.WriteWord(FTagsToWrite.Count, AEndianness);
   for I := 0 to FTagsToWrite.Count - 1 do
   begin
@@ -1638,7 +1638,7 @@ begin
       Stream.Position := BasePosition + FImageInfo[I].OldOffset;
       Stream.ReadBuffer(Buffer[0], FImageInfo[I].ByteCount);
     end;
-    AStream.Seek(ABasePosition + FImageInfo[I].NewOffset, soFromBeginning);
+    AStream.Seek(ABasePosition + FImageInfo[I].NewOffset, soBeginning);
     AStream.WriteBuffer(Buffer[0], FImageInfo[I].ByteCount);
   end;
 end;

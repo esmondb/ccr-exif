@@ -31,7 +31,8 @@ interface
 
 uses
   Types, SysUtils, Classes, Graphics, IniFiles, Controls, Forms, ActnList, StdActns,
-  ExtActns, StdCtrls, ExtCtrls, ComCtrls, Buttons, CCR.Exif.Demos, ExifListFrame;
+  ExtActns, StdCtrls, ExtCtrls, ComCtrls, Buttons, CCR.Exif.Demos, ExifListFrame,
+  System.Actions;
 
 type
   TfrmExifList = class(TForm)
