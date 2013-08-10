@@ -54,7 +54,8 @@ var
 
 implementation
 
-uses Masks, ShellApi;
+uses
+  {$IF RTLVersion >= 23}System.UITypes,{$IFEND} Masks, ShellApi;
 
 {$R *.dfm}
 
