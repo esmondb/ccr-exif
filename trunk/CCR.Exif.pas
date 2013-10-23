@@ -964,7 +964,7 @@ type
     procedure SetKeywords(const NewWords: array of UnicodeString); overload;
     procedure SetKeywords(NewWords: TStrings); overload;
     function HasMakerNote: Boolean;
-    function HasThumbnail: Boolean; inline;
+    function HasThumbnail: Boolean;
     procedure Rewrite;
     procedure SetAllDateTimeValues(const NewValue: TDateTimeTagValue);
     function ShutterSpeedInMSecs: Extended;
@@ -2671,7 +2671,11 @@ begin
   if Result then
   begin
     Len := Tag.ElementCount - 1;
-    if PAnsiChar(Tag.Data)[Len] > ' ' then Inc(Len);
+    if PAnsiChar(Tag.Data)[Len] > ' ' then
+      Inc(Len)
+    else
+      while (Len > 0) and (PAnsiChar(Tag.Data)[Len - 1] = #0) do
+        Dec(Len);
     SetString(S, PAnsiChar(Tag.Data), Len);
     Value := string(S); //for D2009+ compatibility
   end
