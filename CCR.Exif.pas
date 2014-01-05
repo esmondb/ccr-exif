@@ -3117,7 +3117,7 @@ begin
   begin
     Inc(SeekPtr); //skip past separator, whatever that may precisely be
     Minor := GetElement;
-    if not CharInSet(SeekPtr^, [#0, '0'..'9']) then Inc(SeekPtr); //ditto, though allow no separator too
+    if not IsCharIn(SeekPtr^, [#0, '0'..'9']) then Inc(SeekPtr); //ditto, though allow no separator too
     Release := GetElement;
   end
   else
