@@ -242,6 +242,11 @@ type
     property Value: Word read FValue;
   end;
 
+  TSmallPointHelper = record helper for TSmallPoint
+    class function CreateMissingOrInvalid: TSmallPoint; static;
+    function MissingOrInvalid: Boolean; inline;
+  end;
+
   TUserMemoryStream = class(TCustomMemoryStream) //read-only stream access on an existing buffer;
   protected
     procedure SetSize(NewSize: Longint); override;
@@ -1308,6 +1313,19 @@ end;
 class operator TWordTagValue.NotEqual(const A, B: TWordTagValue): Boolean;
 begin
   Result := not (A = B);
+end;
+
+{ TSmallPointHelper }
+
+class function TSmallPointHelper.CreateMissingOrInvalid: TSmallPoint;
+begin
+  Result.x := -1;
+  Result.y := -1;
+end;
+
+function TSmallPointHelper.MissingOrInvalid: Boolean;
+begin
+  Result := InvalidPoint(Self);
 end;
 
 { TUserMemoryStream }

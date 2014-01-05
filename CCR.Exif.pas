@@ -5495,7 +5495,7 @@ const
 var
   Tag: TExifTag;
 begin
-  if InvalidPoint(Value) then
+  if Value.MissingOrInvalid then
   begin
     FSections[esDetails].Remove(ttSubjectDistance);
     XMPPacket.RemoveProperty(xsExif, XMPName);
