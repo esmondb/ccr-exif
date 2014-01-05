@@ -1,7 +1,7 @@
 {**************************************************************************************}
 {                                                                                      }
 { CCR Exif - Delphi class library for reading and writing image metadata               }
-{ Version 1.5.2 beta                                                                   }
+{ Version 1.5.3                                                                        }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -14,7 +14,7 @@
 { The Original Code is CCR.Exif.IPTC.pas.                                              }
 {                                                                                      }
 { The Initial Developer of the Original Code is Chris Rolliston. Portions created by   }
-{ Chris Rolliston are Copyright (C) 2009-2012 Chris Rolliston. All Rights Reserved.    }
+{ Chris Rolliston are Copyright (C) 2009-2014 Chris Rolliston. All Rights Reserved.    }
 {                                                                                      }
 {**************************************************************************************}
 
@@ -35,8 +35,8 @@ unit CCR.Exif.IPTC;
 interface
 
 uses
-  Types, SysUtils, Classes, {$IFDEF HasGenerics}Generics.Collections,{$ENDIF}{$IFDEF VCL}Jpeg,{$ENDIF}
-  CCR.Exif.BaseUtils, CCR.Exif.TagIDs, CCR.Exif.TiffUtils;
+  Types, SysUtils, Classes, {$IFDEF HasGenerics}Generics.Collections, Generics.Defaults,{$ENDIF}
+  {$IFDEF VCL}Jpeg,{$ENDIF} CCR.Exif.BaseUtils, CCR.Exif.TagIDs, CCR.Exif.TiffUtils;
 
 type
   EInvalidIPTCData = class(ECCRExifException);
@@ -128,12 +128,25 @@ type
       function MoveNext: Boolean;
       property Current: TIPTCTag read GetCurrent;
     end;
+  private type
+    {$IFDEF HasGenerics}
+    TTagList = class(TObjectList<TIPTCTag>)
+      constructor Create;
+    end;
+    {$ELSE}
+    TTagList = class(TList)
+    protected
+      procedure Notify(Ptr: Pointer; Action: TListNotification); override;
+    public
+      procedure Sort;
+    end;
+    {$ENDIF}
   private
     FDefinitelySorted: Boolean;
     FID: TIPTCSectionID;
     FModified: Boolean;
     FOwner: TIPTCData;
-    FTags: TList;
+    FTags: TTagList;
     function GetTag(Index: Integer): TIPTCTag;
     function GetTagCount: Integer;
   public
@@ -366,7 +379,7 @@ type
 implementation
 
 uses
-  Contnrs, DateUtils, Math, {$IFDEF HasTTimeZone}TimeSpan,{$ENDIF}
+  DateUtils, Math, {$IFDEF HasTTimeZone}TimeSpan,{$ENDIF}
   CCR.Exif.Consts, CCR.Exif.StreamHelper;
 
 const
@@ -453,7 +466,11 @@ end;
 
 procedure TIPTCTag.Delete;
 begin
+  {$IFDEF NEXTGEN}
+  DisposeOf;
+  {$ELSE}
   Free;
+  {$ENDIF}
 end;
 
 function TIPTCTag.GetAsString: string;
@@ -499,14 +516,17 @@ end;
 
 procedure TIPTCTag.SetAsString(const Value: string);
 var
+  Bytes: TBytes;
   WordVal: Integer;
 begin
   case FindProperDataType(Self) of
     idString: WriteString(Value);
     idBinary:
     begin
-      SetDataSize(Length(Value) div 2);
-      HexToBin(PChar(LowerCase(Value)), FData, FDataSize);
+      Bytes := HexStrToBin(Value);
+      SetDataSize(Length(Bytes));
+      if FDataSize > 0 then
+        Move(Bytes[0], FData^, FDataSize);
     end
   else
     {$RANGECHECKS ON}
@@ -597,6 +617,35 @@ begin
   if Result then Inc(FIndex);
 end;
 
+{ TIPTCSection.TTagList }
+
+{$IFDEF HasGenerics}
+constructor TIPTCSection.TTagList.Create;
+begin
+  inherited Create(TComparer<TIPTCTag>.Construct(
+    function(const Left, Right: TIPTCTag): Integer
+    begin
+      Result := Right.ID - Left.ID;
+    end));
+end;
+{$ELSE}
+procedure TIPTCSection.TTagList.Notify(Ptr: Pointer; Action: TListNotification);
+begin
+  if Action = lnDeleted then
+    TObject(Ptr).Free;
+end;
+
+function CompareIDs(Item1, Item2: TIPTCTag): Integer;
+begin
+  Result := Item2.ID - Item1.ID;
+end;
+
+procedure TIPTCSection.TTagList.Sort;
+begin
+  inherited Sort(@CompareIDs);
+end;
+{$ENDIF}
+
 { TIPTCSection }
 
 constructor TIPTCSection.Create(AOwner: TIPTCData; AID: TIPTCSectionID);
@@ -604,7 +653,7 @@ begin
   inherited Create;
   FOwner := AOwner;
   FID := AID;
-  FTags := TObjectList.Create(True);
+  FTags := TTagList.Create;
 end;
 
 destructor TIPTCSection.Destroy;
@@ -696,11 +745,11 @@ var
 begin
   TimePart := TDateTimeTagValue.CreateMissingOrInvalid;
   S := GetStringValue(TimeTagID);
-  if (Length(S) = 11) and CharInSet(S[7], ['-', '+']) and TryStrToInt(Copy(S, 8, 2),
+  if (Length(S) = 11) and IsCharIn(S[7], ['-', '+']) and TryStrToInt(Copy(S, 8, 2),
     OffsetHrs) and TryStrToInt(Copy(S, 10, 2), OffsetMins) then
   begin
     for I in [1, 2, 3, 4, 5, 6, 8, 9, 10, 11] do
-      if not CharInSet(S[I], ['0'..'9']) then
+      if not IsCharIn(S[I], ['0'..'9']) then
       begin
         S := '';
         Break;
@@ -997,7 +1046,7 @@ end;
 
 function TIPTCSection.GetTag(Index: Integer): TIPTCTag;
 begin
-  Result := TIPTCTag(FTags[Index]);
+  Result := FTags[Index];
 end;
 
 function TIPTCSection.GetTagCount: Integer;
@@ -1065,15 +1114,10 @@ begin
   end;
 end;
 
-function CompareIDs(Item1, Item2: TIPTCTag): Integer;
-begin
-  Result := Item2.ID - Item1.ID;
-end;
-
 procedure TIPTCSection.Sort;
 begin
   if FDefinitelySorted then Exit;
-  FTags.Sort(@CompareIDs);
+  FTags.Sort;
   FModified := True;
   FDefinitelySorted := True;
 end;

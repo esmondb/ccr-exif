@@ -1,4 +1,13 @@
-{.$DEFINE FMX}                //*** remove the dot to assume FMX ***
+{.$DEFINE FMX}                //*** remove the dot to assume FMX on Windows ***
+
+{$IFNDEF MSWINDOWS}           //no VCL outside of Windows
+  {$DEFINE FMX}
+{$ENDIF}
+
+{$IF CompilerVersion >= 25}
+  {$LEGACYIFEND ON}
+  {$ZEROBASEDSTRINGS OFF}
+{$IFEND}
 
 {$IF CompilerVersion < 23}    //no FMX before XE2
   {$UNDEF FMX}
@@ -33,6 +42,10 @@
 
 {$IF CompilerVersion >= 24}
   {$DEFINE XE3+}
+{$IFEND}
+
+{$IF (CompilerVersion = 26) AND Defined(NEXTGEN)}
+  {$DEFINE NeedHausladenByteStringsFix}
 {$IFEND}
 
 {$IF DEFINED(VER240) AND DEFINED(MACOS)}

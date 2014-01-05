@@ -1,7 +1,7 @@
 {**************************************************************************************}
 {                                                                                      }
 { CCR Exif - Delphi class library for reading and writing image metadata               }
-{ Version 1.5.2 beta                                                                   }
+{ Version 1.5.3                                                                        }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -14,7 +14,7 @@
 { The Original Code is CCR.Exif.pas.                                                   }
 {                                                                                      }
 { The Initial Developer of the Original Code is Chris Rolliston. Portions created by   }
-{ Chris Rolliston are Copyright (C) 2009-2012 Chris Rolliston. All Rights Reserved.    }
+{ Chris Rolliston are Copyright (C) 2009-2014 Chris Rolliston. All Rights Reserved.    }
 {                                                                                      }
 {**************************************************************************************}
 
@@ -51,8 +51,10 @@ unit CCR.Exif;
 interface
 
 uses
-  Types, SysUtils, Classes, Contnrs, TypInfo, CCR.Exif.BaseUtils, CCR.Exif.IPTC,
-  {$IFDEF VCL}Graphics, Jpeg,{$ENDIF}{$IFDEF FMX}FMX.Types,{$ENDIF}
+  Types, SysUtils, Classes, TypInfo, CCR.Exif.BaseUtils, CCR.Exif.IPTC,
+  {$IFDEF HasGenerics}Generics.Collections, Generics.Defaults,{$ENDIF}
+  {$IFDEF VCL}Graphics, Jpeg,{$ENDIF}
+  {$IFDEF FMX}FMX.Types,{$IF CompilerVersion >= 26}FMX.Graphics, FMX.Surfaces,{$IFEND}{$ENDIF}
   CCR.Exif.StreamHelper, CCR.Exif.TagIDs, CCR.Exif.TiffUtils, CCR.Exif.XMPUtils;
 
 const
@@ -77,14 +79,16 @@ const
   leBadTagCount = CCR.Exif.BaseUtils.leBadTagCount;
   leBadTagHeader = CCR.Exif.BaseUtils.leBadTagHeader;
 
+  tdUndefined = CCR.Exif.TiffUtils.tdUndefined;
+
   StandardExifThumbnailWidth   = 160;
   StandardExifThumbnailHeight  = 120;
 
 type
 {$IFDEF FMX}
-  TGraphic = FMX.Types.TBitmap;
+  TGraphic = TBitmap;
 
-  TJPEGImage = class(FMX.Types.TBitmap, IStreamPersist)
+  TJPEGImage = class(TBitmap, IStreamPersist)
   public
     constructor Create; reintroduce;
     procedure SaveToStream(Stream: TStream);
@@ -220,13 +224,24 @@ type
   TExifSectionKind = esGeneral..esMakerNote;
 
   TExifSection = class(TNoRefCountInterfacedObject, ITiffDirectory)
+  private type
+    {$IFDEF HasGenerics}
+    TTagList = class(TList<TExifTag>)
+      constructor Create;
+    end;
+    {$ELSE}
+    TTagList = class(TList)
+    public
+      procedure Sort;
+    end;
+    {$ENDIF}
   public type
     TEnumerator = class sealed(TInterfacedObject, ITiffDirectoryEnumerator)
     private
       FCurrent: TExifTag;
       FIndex: Integer;
-      FTags: TList;
-      constructor Create(ATagList: TList);
+      FTags: TTagList;
+      constructor Create(ATagList: TTagList);
       function GetCurrent: ITiffTag;
     public
       function MoveNext: Boolean;
@@ -241,7 +256,7 @@ type
     FLoadErrors: TExifSectionLoadErrors;
     FModified: Boolean;
     FOwner: TCustomExifData;
-    FTagList: TList;
+    FTagList: TTagList;
     procedure DoSetFractionValue(TagID: TExifTagID; Index: Integer;
       DataType: TExifDataType; const Value);
   protected
@@ -343,7 +358,12 @@ type
   TWordBitEnum = 0..SizeOf(Word) * 8 - 1;
   TWordBitSet = set of TWordBitEnum;
 
-  TExifFlashInfo = class(TPersistent)
+  TObjectTagValue = class(TPersistent)
+  public
+    function MissingOrInvalid: Boolean; virtual; abstract;
+  end;
+
+  TExifFlashInfo = class(TObjectTagValue)
   strict private const
     FiredBit = 0;
     NotPresentBit = 5;
@@ -367,7 +387,7 @@ type
   public
     constructor Create(AOwner: TCustomExifData);
     procedure Assign(Source: TPersistent); override;
-    function MissingOrInvalid: Boolean;
+    function MissingOrInvalid: Boolean; override;
     property BitSet: TWordBitSet read GetBitSet write SetBitSet stored False;
   published
     property Fired: Boolean read GetFired write SetFired stored False;
@@ -380,7 +400,7 @@ type
 
   TExifVersionElement = 0..9;
 
-  TCustomExifVersion = class abstract(TPersistent)
+  TCustomExifVersion = class abstract(TObjectTagValue)
   strict private
     FOwner: TCustomExifData;
     function GetAsString: string;
@@ -391,8 +411,6 @@ type
     procedure SetMinor(Value: TExifVersionElement);
     function GetRelease: TExifVersionElement;
     procedure SetRelease(Value: TExifVersionElement);
-    function GetValue(Index: Integer): TExifVersionElement;
-    procedure SetValue(Index: Integer; Value: TExifVersionElement);
   strict protected
     FMajorIndex: Integer;
     FSectionKind: TExifSectionKind;
@@ -400,10 +418,13 @@ type
     FTagID: TExifTagID;
     FTiffDataType: TTiffDataType;
     procedure Initialize; virtual; abstract;
+    function GetValue(Index: Integer): TExifVersionElement; virtual;
+    procedure SetValue(Index: Integer; Value: TExifVersionElement); virtual;
   public
-    constructor Create(AOwner: TCustomExifData);
+    constructor Create(const AOwner: TCustomExifData); overload;
     procedure Assign(Source: TPersistent); override;
-    function MissingOrInvalid: Boolean;
+    procedure Clear; virtual;
+    function MissingOrInvalid: Boolean; override;
     {$IFDEF HasToString}
     function ToString: string; override;
     {$ENDIF}
@@ -416,8 +437,15 @@ type
   end;
 
   TExifVersion = class(TCustomExifVersion)
+  strict private
+    FValues: array[1..3] of TExifVersionElement;
   protected
     procedure Initialize; override;
+    function GetValue(Index: Integer): TExifVersionElement; override;
+    procedure SetValue(Index: Integer; Value: TExifVersionElement); override;
+  public
+    constructor Create; overload;
+    procedure Clear; override;
   end;
 
   TFlashPixVersion = class(TCustomExifVersion)
@@ -466,7 +494,7 @@ type
   TExifWhiteBalanceMode = (ewTagMissing = -1, ewAuto, ewManual);
 {$Z1}
 
-  TCustomExifResolution = class(TPersistent)
+  TCustomExifResolution = class(TObjectTagValue)
   strict private
     FOwner: TCustomExifData;
     FSchema: TXMPNamespace;
@@ -487,7 +515,7 @@ type
   public
     constructor Create(AOwner: TCustomExifData);
     procedure Assign(Source: TPersistent); override;
-    function MissingOrInvalid: Boolean;
+    function MissingOrInvalid: Boolean; override;
     {$IFDEF HasToString}
     function ToString: string; override;
     {$ENDIF}
@@ -519,7 +547,7 @@ type
       var XName, YName, UnitName: UnicodeString); override;
   end;
 
-  TISOSpeedRatings = class(TPersistent)
+  TISOSpeedRatings = class(TObjectTagValue)
   strict private const
     XMPSchema = xsExif;
     XMPKind = xpSeqArray;
@@ -539,7 +567,7 @@ type
   public
     constructor Create(AOwner: TCustomExifData);
     procedure Assign(Source: TPersistent); override;
-    function MissingOrInvalid: Boolean;
+    function MissingOrInvalid: Boolean; override;
     {$IFDEF HasToString}
     function ToString: string; override;
     {$ENDIF}
@@ -563,7 +591,7 @@ type
 {$Z2}
   TGPSDifferential = (dfTagMissing = -1, dfWithoutCorrection, dfCorrectionApplied);
 {$Z1}
-  TGPSCoordinate = class(TPersistent)
+  TGPSCoordinate = class(TObjectTagValue)
   strict private
     FOwner: TCustomExifData;
     FRefTagID, FTagID: TExifTagID;
@@ -582,7 +610,7 @@ type
   public
     constructor Create(AOwner: TCustomExifData; ATagID: TExifTagID);
     procedure Assign(Source: TPersistent); overload; override;
-    function MissingOrInvalid: Boolean;
+    function MissingOrInvalid: Boolean; override;
     {$IFDEF HasToString}
     function ToString: string; override;
     {$ENDIF}
@@ -664,6 +692,14 @@ type
   THeaderlessMakerNote = class(TExifMakerNote) //special type tried as a last resort; also serves as a
   protected                                    //nominal base class for a few of the concrete implementations
     class function FormatIsOK(SourceTag: TExifTag; out HeaderSize: Integer): Boolean; override;
+  end;
+
+  TAppleMakerNote = class(TExifMakerNote)
+  protected
+    const Header: array[0..13] of AnsiChar = 'Apple iOS'#0#0#1'MM';
+    class function FormatIsOK(SourceTag: TExifTag; out HeaderSize: Integer): Boolean; override;
+    procedure GetIFDInfo(SourceTag: TExifTag; var ProbableEndianness: TEndianness;
+      var DataOffsetsType: TExifDataOffsetsType); override;
   end;
 
   TCanonMakerNote = class(THeaderlessMakerNote)
@@ -794,6 +830,10 @@ type
     TMakerNoteTypePriority = (mtTestForLast, mtTestForFirst);
   strict private class var
     Diag35mm: Extended;
+    FMakerNoteClasses: TClassList;
+  private
+    class procedure InitializeClass(const MakerNoteClasses: array of TExifMakerNoteClass);
+    class procedure FinalizeClass;
   strict private
     FAlwaysWritePreciseTimes: Boolean;
     FChangedWhileUpdating: Boolean;
@@ -938,15 +978,13 @@ type
   protected
     const MaxThumbnailSize = $F000;
     class function SectionClass: TExifSectionClass; virtual;
-    procedure AddFromStream(Stream: TStream; TiffImageSource: Boolean = False); 
+    procedure AddFromStream(Stream: TStream; TiffImageSource: Boolean = False);
     procedure Changed(Section: TExifSection); virtual;
     function GetEmpty: Boolean;
     function LoadFromGraphic(Stream: TStream): Boolean;
     procedure ResetMakerNoteType;
     property OffsetBase: Int64 read FOffsetBase;
     property Thumbnail: TJPEGImage read GetThumbnail write SetThumbnail stored False;
-  private class var
-    FMakerNoteClasses: TList;
   public
     class procedure RegisterMakerNoteType(AClass: TExifMakerNoteClass;
       Priority: TMakerNoteTypePriority = mtTestForFirst);
@@ -1150,6 +1188,12 @@ type
       ThumbnailHeight: Integer = StandardExifThumbnailHeight);
     procedure StandardizeThumbnail;
     {$IFEND}
+    class function IsSupportedGraphic(Stream: TStream): Boolean; overload;
+    class function IsSupportedGraphic(const FileName: string): Boolean; overload;
+    {$IFDEF FMX}
+    function LoadFromBitmap(const Bitmap: TBitmap): Boolean; overload; inline;
+    function LoadFromBitmap(const FileName: string): Boolean; overload; inline;
+    {$ENDIF FMX}
     function LoadFromGraphic(Stream: TStream): Boolean; overload; inline;
     function LoadFromGraphic(const Graphic: IStreamPersist): Boolean; overload;
     function LoadFromGraphic(const FileName: string): Boolean; overload;
@@ -1402,7 +1446,7 @@ begin
   end;
 end;
 
-{$IF DECLARED(TBitmap)}
+{$IF Declared(TBitmap)}
 function CreateNewBitmap(const AWidth, AHeight: Integer): TBitmap;
 begin
   {$IFDEF VCL}
@@ -1564,6 +1608,18 @@ begin
     DeleteFile(TempFN);
   end;
 end;
+{$ELSEIF Declared(TBitmapSurface)}
+var
+  Surf: TBitmapSurface;
+begin
+  Surf := TBitmapSurface.Create;
+  try
+    Surf.Assign(Self);
+    TBitmapCodecManager.SaveToStream(Stream, Surf, '.jpg');
+  finally
+    Surf.Free;
+  end;
+end;
 {$ELSE}
 begin
   TBitmapCodecManager.SaveToStream(Stream, Self, 'jpg');
@@ -1698,7 +1754,11 @@ end;
 
 procedure TExifTag.Delete;
 begin
+  {$IFDEF NEXTGEN}
+  DisposeOf;
+  {$ELSE}
   Free;
+  {$ENDIF}
 end;
 
 function NextElementStr(DataType: TExifDataType; var SeekPtr: PAnsiChar): string;
@@ -1756,6 +1816,7 @@ end;
 
 procedure TExifTag.SetAsString(const Value: string);
 var
+  Bytes: TBytes;
   Buffer: TiffString;
   S: string;
   List: TStringList;
@@ -1775,10 +1836,11 @@ begin
       end;
       tdUndefined:
       begin
-        SetLength(Buffer, Length(Value) div 2);
-        SeekPtr := PAnsiChar(Buffer);
-        HexToBin(PChar(LowerCase(Value)), SeekPtr, Length(Buffer));
-        UpdateData(tdUndefined, Length(Buffer), SeekPtr^);
+        Bytes := HexStrToBin(Value);
+        if Bytes <> nil then
+          UpdateData(tdUndefined, Length(Bytes), Bytes[0])
+        else
+          UpdateData(tdUndefined, 0, Pointer(nil)^)
       end;
     else
       if HasWindowsStringData then
@@ -2070,7 +2132,7 @@ end;
 
 { TExifSection.TEnumerator }
 
-constructor TExifSection.TEnumerator.Create(ATagList: TList);
+constructor TExifSection.TEnumerator.Create(ATagList: TTagList);
 begin
   FCurrent := nil;
   FIndex := 0;
@@ -2084,11 +2146,34 @@ end;
 
 function TExifSection.TEnumerator.MoveNext: Boolean;
 begin //allow deleting a tag when enumerating
-  if (FCurrent <> nil) and (FIndex < FTags.Count) and (FCurrent = FTags.List[FIndex]) then
+  if (FCurrent <> nil) and (FIndex < FTags.Count) and (FCurrent = FTags[FIndex]) then
     Inc(FIndex);
   Result := FIndex < FTags.Count;
-  if Result then FCurrent := FTags.List[FIndex];
+  if Result then FCurrent := TExifTag(FTags[FIndex]);
 end;
+
+{ TExifSection.TTagList }
+
+{$IFDEF HasGenerics}
+constructor TExifSection.TTagList.Create;
+begin
+  inherited Create(TComparer<TExifTag>.Construct(
+    function(const Left, Right: TExifTag): Integer
+    begin
+      Result := Left.ID - Right.ID;
+    end));
+end;
+{$ELSE}
+function CompareIDs(Item1, Item2: TExifTag): Integer;
+begin
+  Result := Item1.ID - Item2.ID;
+end;
+
+procedure TExifSection.TTagList.Sort;
+begin
+  inherited Sort(@CompareIDs);
+end;
+{$ENDIF}
 
 { TExifSection }
 
@@ -2096,7 +2181,7 @@ constructor TExifSection.Create(AOwner: TCustomExifData; AKind: TExifSectionKind
 begin
   inherited Create;
   FOwner := AOwner;
-  FTagList := TList.Create;
+  FTagList := TTagList.Create;
   FKind := AKind;
 end;
 
@@ -2105,7 +2190,7 @@ var
   I: Integer;
 begin
   for I := FTagList.Count - 1 downto 0 do
-    with TExifTag(FTagList.List[I]) do
+    with TExifTag(FTagList[I]) do
     begin
       FSection := nil;
       Destroy;
@@ -2123,7 +2208,7 @@ begin
   CheckExtendable;
   for I := 0 to FTagList.Count - 1 do
   begin
-    Tag := FTagList.List[I];
+    Tag := TExifTag(FTagList[I]);
     if Tag.ID = ID then
       raise ETagAlreadyExists.CreateResFmt(@STagAlreadyExists, [ID]);
     if Tag.ID > ID then
@@ -2163,7 +2248,7 @@ procedure TExifSection.DoDelete(TagIndex: Integer; FreeTag: Boolean);
 var
   Tag: TExifTag;
 begin
-  Tag := FTagList[TagIndex];
+  Tag := TExifTag(FTagList[TagIndex]);
   FTagList.Delete(TagIndex);
   Tag.FSection := nil;
   if (Tag.ID = ttMakerNote) and (FKind = esDetails) and (FOwner <> nil) then
@@ -2183,7 +2268,7 @@ var
 begin
   Result := FindIndex(ID, Index);
   if Result then
-    Tag := FTagList.List[Index]
+    Tag := TExifTag(FTagList[Index])
   else
     Tag := nil;
 end;
@@ -2404,11 +2489,6 @@ begin
   Result := InheritsFrom(TExtendableExifSection);
 end;
 
-function CompareIDs(Item1, Item2: TExifTag): Integer;
-begin
-  Result := Item1.ID - Item2.ID;
-end;
-
 procedure TExifSection.Load(const Directory: IFoundTiffDirectory;
   TiffImageSource: Boolean);
 var
@@ -2428,7 +2508,7 @@ begin
         NewTag := TExifTag.Create(Self, Directory, I);
         FTagList.Add(NewTag);
       end;
-    FTagList.Sort(@CompareIDs);
+    FTagList.Sort;
   end;
   FModified := False;
 end;
@@ -2965,7 +3045,7 @@ end;
 
 { TCustomExifVersion }
 
-constructor TCustomExifVersion.Create(AOwner: TCustomExifData);
+constructor TCustomExifVersion.Create(const AOwner: TCustomExifData);
 begin
   inherited Create;
   FOwner := AOwner;
@@ -2978,21 +3058,27 @@ end;
 procedure TCustomExifVersion.Assign(Source: TPersistent);
 begin
   if Source = nil then
-    Owner[FSectionKind].Remove(FTagID)
+    Clear
   else if not (Source is TCustomExifVersion) then
     inherited
   else if TCustomExifVersion(Source).MissingOrInvalid then
-    Owner[FSectionKind].Remove(FTagID)
+    Clear
   else
   begin
     Major := TCustomExifVersion(Source).Major;
     Minor := TCustomExifVersion(Source).Minor;
+    Release := TCustomExifVersion(Source).Release;
   end;
+end;
+
+procedure TCustomExifVersion.Clear;
+begin
+  Owner[FSectionKind].Remove(FTagID);
 end;
 
 function TCustomExifVersion.MissingOrInvalid: Boolean;
 begin
-  Result := (Major = 0);
+  Result := (Major = 0) and (Minor = 0) and (Release = 0);
 end;
 
 function TCustomExifVersion.GetAsString: string;
@@ -3000,7 +3086,7 @@ begin
   if MissingOrInvalid then
     Result := ''
   else
-    FmtStr(Result, '%d%s%d%d', [Major, DecimalSeparator, Minor, Release]);
+    FmtStr(Result, '%d%s%d%s%d', [Major, DecimalSeparator, Minor, DecimalSeparator, Release]);
 end;
 
 procedure TCustomExifVersion.SetAsString(const Value: string);
@@ -3031,6 +3117,7 @@ begin
   begin
     Inc(SeekPtr); //skip past separator, whatever that may precisely be
     Minor := GetElement;
+    if not CharInSet(SeekPtr^, [#0, '0'..'9']) then Inc(SeekPtr); //ditto, though allow no separator too
     Release := GetElement;
   end
   else
@@ -3100,10 +3187,39 @@ end;
 
 { TExifVersion }
 
+constructor TExifVersion.Create;
+begin
+  inherited Create(nil);
+end;
+
 procedure TExifVersion.Initialize;
 begin
   FSectionKind := esDetails;
   FTagID := ttExifVersion;
+end;
+
+procedure TExifVersion.Clear;
+begin
+  if Owner = nil then
+    FillChar(FValues, SizeOf(FValues), 0)
+  else
+    inherited;
+end;
+
+function TExifVersion.GetValue(Index: Integer): TExifVersionElement;
+begin
+  if Owner = nil then
+    Result := FValues[Index]
+  else
+    Result := inherited GetValue(Index);
+end;
+
+procedure TExifVersion.SetValue(Index: Integer; Value: TExifVersionElement);
+begin
+  if Owner = nil then
+    FValues[Index] := Value
+  else
+    inherited SetValue(Index, Value);
 end;
 
 { TFlashPixVersion }
@@ -3532,7 +3648,7 @@ begin
   XMPValue := AsString;
   FOwner[esGPS].SetStringValue(RefTagID, ValueAsString);
   for I := Length(XMPValue) downto 1 do
-    if not CharInSet(XMPValue[I], ['A'..'Z', 'a'..'z']) then
+    if not IsCharIn(XMPValue[I], ['A'..'Z', 'a'..'z']) then
     begin
       XMPValue := Copy(XMPValue, 1, I) + ValueAsString;
       FOwner.XMPPacket.UpdateProperty(xsExif, XMPName, XMPValue);
@@ -3713,6 +3829,20 @@ end;
 class function TCustomExifData.SectionClass: TExifSectionClass;
 begin
   Result := TExifSection;
+end;
+
+class procedure TCustomExifData.InitializeClass(const MakerNoteClasses: array of TExifMakerNoteClass);
+var
+  I: Integer;
+begin
+  FMakerNoteClasses := TClassList.Create;
+  for I := Low(MakerNoteClasses) to High(MakerNoteClasses) do
+    FMakerNoteClasses.Add(MakerNoteClasses[I]);
+end;
+
+class procedure TCustomExifData.FinalizeClass;
+begin
+  FMakerNoteClasses.Free;
 end;
 
 class procedure TCustomExifData.RegisterMakerNoteType(AClass: TExifMakerNoteClass;
@@ -3982,6 +4112,7 @@ var
   Directory: IFoundTiffDirectory;
   ExifTag: TExifTag;
   I: Integer;
+  PossibleType: TExifMakerNoteClass;
   TiffTag: ITiffTag;
 begin
   if Stream.TryReadHeader(TJPEGSegment.ExifHeader, SizeOf(TJPEGSegment.ExifHeader)) then
@@ -4023,11 +4154,14 @@ begin
     begin
       FMakerNoteType := THeaderlessMakerNote;
       for I := FMakerNoteClasses.Count - 1 downto 0 do
-        if TExifMakerNoteClass(FMakerNoteClasses.List[I]).FormatIsOK(ExifTag) then
+      begin
+        PossibleType := TExifMakerNoteClass(FMakerNoteClasses[I]);
+        if PossibleType.FormatIsOK(ExifTag) then
         begin
-          FMakerNoteType := FMakerNoteClasses.List[I];
+          FMakerNoteType := PossibleType;
           Break;
         end;
+      end;
     end;
   finally
     FChangedWhileUpdating := False;
@@ -5547,6 +5681,35 @@ begin
   Result := TExtendableExifSection(inherited Sections[Section]);
 end;
 
+class function TExifData.IsSupportedGraphic(Stream: TStream): Boolean;
+begin
+  Result := HasJPEGHeader(Stream) or HasPSDHeader(Stream) or HasTiffHeader(Stream);
+end;
+
+class function TExifData.IsSupportedGraphic(const FileName: string): Boolean;
+var
+  Stream: TFileStream;
+begin
+  Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
+  try
+    Result := IsSupportedGraphic(Stream);
+  finally
+    Stream.Free;
+  end;
+end;
+
+{$IFDEF FMX}
+function TExifData.LoadFromBitmap(const Bitmap: TBitmap): Boolean;
+begin
+  Result := LoadFromGraphic(Bitmap);
+end;
+
+function TExifData.LoadFromBitmap(const FileName: string): Boolean;
+begin
+  Result := LoadFromGraphic(FileName);
+end;
+{$ENDIF FMX}
+
 function TExifData.LoadFromGraphic(Stream: TStream): Boolean;
 begin
   Result := inherited LoadFromGraphic(Stream);
@@ -6158,6 +6321,21 @@ begin
   Result := True;
 end;
 
+{ TAppleMakerNote }
+
+class function TAppleMakerNote.FormatIsOK(SourceTag: TExifTag; out HeaderSize: Integer): Boolean;
+begin
+  HeaderSize := SizeOf(Header);
+  Result := (SourceTag.ElementCount > HeaderSize) and
+    CompareMem(SourceTag.Data, @Header, HeaderSize);
+end;
+
+procedure TAppleMakerNote.GetIFDInfo(SourceTag: TExifTag; var ProbableEndianness: TEndianness;
+  var DataOffsetsType: TExifDataOffsetsType);
+begin
+  DataOffsetsType := doFromExifStart;
+end;
+
 { TCanonMakerNote }
 
 class function TCanonMakerNote.FormatIsOK(SourceTag: TExifTag; out HeaderSize: Integer): Boolean;
@@ -6462,18 +6640,20 @@ end;
 {$ENDIF}
 
 initialization
-  TCustomExifData.FMakerNoteClasses := TList.Create;
-  TCustomExifData.FMakerNoteClasses.Add(TCasioMakerNote);
-  TCustomExifData.FMakerNoteClasses.Add(TKonicaMinoltaMakerNote);
-  TCustomExifData.FMakerNoteClasses.Add(TNikonType2MakerNote);
-  TCustomExifData.FMakerNoteClasses.Add(TCanonMakerNote);
-  TCustomExifData.FMakerNoteClasses.Add(TPentaxMakerNote);
-  //TCustomExifData.FMakerNoteClasses.Add(TKodakMakerNote);
-  TCustomExifData.FMakerNoteClasses.Add(TSonyMakerNote);
-  TCustomExifData.FMakerNoteClasses.Add(TNikonType1MakerNote);
-  TCustomExifData.FMakerNoteClasses.Add(TNikonType3MakerNote);
-  TCustomExifData.FMakerNoteClasses.Add(TPanasonicMakerNote);
-  TCustomExifData.FMakerNoteClasses.Add(TCasio2MakerNote);
+  TCustomExifData.InitializeClass([
+    TCasioMakerNote,
+    TKonicaMinoltaMakerNote,
+    TNikonType2MakerNote,
+    TCanonMakerNote,
+    TPentaxMakerNote,
+    //TKodakMakerNote,
+    TSonyMakerNote,
+    TNikonType1MakerNote,
+    TNikonType3MakerNote,
+    TPanasonicMakerNote,
+    TCasio2MakerNote,
+    TAppleMakerNote
+  ]);
 finalization
-  TCustomExifData.FMakerNoteClasses.Free;
+  TCustomExifData.FinalizeClass;
 end.

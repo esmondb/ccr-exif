@@ -1,7 +1,7 @@
 {**************************************************************************************}
 {                                                                                      }
 { CCR Exif - Delphi class library for reading and writing image metadata               }
-{ Version 1.5.2 beta                                                                   }
+{ Version 1.5.3                                                                        }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -14,7 +14,7 @@
 { The Original Code is CCR.Exif.TiffUtils.pas.                                         }
 {                                                                                      }
 { The Initial Developer of the Original Code is Chris Rolliston. Portions created by   }
-{ Chris Rolliston are Copyright (C) 2009-2012 Chris Rolliston. All Rights Reserved.    }
+{ Chris Rolliston are Copyright (C) 2009-2014 Chris Rolliston. All Rights Reserved.    }
 {                                                                                      }
 {**************************************************************************************}
 
@@ -68,6 +68,7 @@ type
     constructor Create(ANumerator: LongWord; ADenominator: LongWord = 1); overload;
     constructor Create(const AQuotient: Currency); overload;
     constructor CreateFromString(const AString: string);
+    class function CreateMissingOrInvalid: TTiffLongWordFraction; static;
     function AsString: string;
     function MissingOrInvalid: Boolean;
     function Quotient: Extended;
@@ -220,7 +221,7 @@ type
     FSource: ITiffDirectory;
     FSourceInfo: TTiffTagInfoDynArray;
     FSourceParser: ITiffParser;
-    FTagsToWrite: TList;
+    FTagsToWrite: TObjectList;
     procedure AddTag(Tag: TTagToWrite); overload;
     function FindTagIndex(AID: TTiffTagID; out Index: Integer): Boolean;
     function GetTag(Index: Integer): TTagToWrite;
@@ -290,7 +291,7 @@ procedure WriteTiffHeader(Stream: TStream; Endianness: TEndianness;
 
 implementation
 
-uses Contnrs, Math, RTLConsts, CCR.Exif.Consts, CCR.Exif.TagIDs;
+uses Math, RTLConsts, CCR.Exif.Consts, CCR.Exif.TagIDs;
 
 function TryLoadJpegImageFromStream(const AJpegImage: IStreamPersist; AStream: TStream): Boolean;
 var
@@ -628,6 +629,12 @@ begin
   end;
   if not Result then
     PackedValue := 0;
+end;
+
+class function TTiffLongWordFraction.CreateMissingOrInvalid: TTiffLongWordFraction;
+begin
+  Result.Numerator := 0;
+  Result.Denominator := 0;
 end;
 
 function TTiffLongWordFraction.AsString: string;
@@ -1482,12 +1489,12 @@ var
   Index: Integer;
 begin
   Result := FindTagIndex(ID, Index);
-  if Result then Tag := FTagsToWrite.List[Index];
+  if Result then Tag := TTagToWrite(FTagsToWrite[Index]);
 end;
 
 function TTiffDirectoryRewriter.GetTag(Index: Integer): TTagToWrite;
 begin
-  Result := FTagsToWrite[Index];
+  Result := TTagToWrite(FTagsToWrite[Index]);
 end;
 
 function TTiffDirectoryRewriter.GetTagCount: Integer;
@@ -1523,7 +1530,7 @@ begin
   Result := True;
   if SubDir.FindTagIndex(ttOffsetSchema, Index) then //Aim to move the maker note back
   begin                                              //if an MS application such as the
-    Tag := SubDir.FTagsToWrite.List[Index];          //Windows shell has moved it.
+    Tag := TTagToWrite(SubDir.FTagsToWrite[Index]);  //Windows shell has moved it.
     if (Tag.DataType = tdLongInt) and (Tag.ElementCount = 1) then
     begin
       if Tag is TExternalTiffTagToWrite then
@@ -1578,7 +1585,7 @@ begin
   FNewIFDOffset := FixupNextOffset(2 + TTiffTag.HeaderSize * FTagsToWrite.Count + 4);
   for I := 0 to FTagsToWrite.Count - 1 do
   begin
-    Tag := FTagsToWrite.List[I];
+    Tag := TTagToWrite(FTagsToWrite[I]);
     if Tag = ProtectedTag then Continue; //assume its NewDataOffset property has already been set
     if Tag.DataSize > 4 then
       Tag.NewDataOffset := FixupNextOffset(Tag.DataSize)
@@ -1605,7 +1612,7 @@ begin
   AStream.WriteWord(FTagsToWrite.Count, AEndianness);
   for I := 0 to FTagsToWrite.Count - 1 do
   begin
-    Tag := FTagsToWrite.List[I];
+    Tag := TTagToWrite(FTagsToWrite[I]);
     AStream.WriteWord(Tag.ID, AEndianness);
     AStream.WriteWord(Ord(Tag.DataType), AEndianness);
     AStream.WriteLongInt(Tag.ElementCount, AEndianness);
@@ -1618,7 +1625,7 @@ begin
   //write any offsetted tag data and sub-directories
   for I := 0 to FTagsToWrite.Count - 1 do
   begin
-    Tag := FTagsToWrite.List[I];
+    Tag := TTagToWrite(FTagsToWrite[I]);
     if Tag.DataSize > 4 then
     begin
       AStream.Seek(ABasePosition + Tag.NewDataOffset, soBeginning);
@@ -1702,11 +1709,11 @@ var
   I: Integer;
   Parser: ITiffParser;
   Rewriter: TTiffDirectoryRewriter;
-  Rewriters: TList;
+  Rewriters: TObjectList;
 
   function GetRewriter(Index: Integer): TTiffDirectoryRewriter;
   begin
-    Result := Rewriters.List[Index];
+    Result := TTiffDirectoryRewriter(Rewriters[Index]);
   end;
 begin
   NewBasePosition := OutStream.Position;
