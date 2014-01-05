@@ -501,19 +501,19 @@ type
     FSection: TExifSection;
     FXTagID, FYTagID, FUnitTagID: TExifTagID;
     FXName, FYName, FUnitName: UnicodeString;
-    function GetUnit: TExifResolutionUnit;
-    function GetX: TExifFraction;
-    function GetY: TExifFraction;
-    procedure SetUnit(const Value: TExifResolutionUnit);
-    procedure SetX(const Value: TExifFraction);
-    procedure SetY(const Value: TExifFraction);
   protected
-    procedure GetTagInfo(var Section: TExifSectionKind; 
-      var XTag, YTag, UnitTag: TExifTagID; var Schema: TXMPNamespace; 
+    function GetUnit: TExifResolutionUnit; virtual;
+    function GetX: TExifFraction; virtual;
+    function GetY: TExifFraction; virtual;
+    procedure SetUnit(const Value: TExifResolutionUnit); virtual;
+    procedure SetX(const Value: TExifFraction); virtual;
+    procedure SetY(const Value: TExifFraction); virtual;
+    procedure GetTagInfo(var Section: TExifSectionKind;
+      var XTag, YTag, UnitTag: TExifTagID; var Schema: TXMPNamespace;
       var XName, YName, UnitName: UnicodeString); virtual; abstract;
     property Owner: TCustomExifData read FOwner;
   public
-    constructor Create(AOwner: TCustomExifData);
+    constructor Create(const AOwner: TCustomExifData);
     procedure Assign(Source: TPersistent); override;
     function MissingOrInvalid: Boolean; override;
     {$IFDEF HasToString}
@@ -524,6 +524,23 @@ type
     property X: TExifFraction read GetX write SetX stored False;
     property Y: TExifFraction read GetY write SetY stored False;
     property Units: TExifResolutionUnit read GetUnit write SetUnit stored False;
+  end;
+
+  TExifResolution = class(TCustomExifResolution) //standalone
+  strict private
+    FX, FY: TExifFraction;
+    FUnit: TExifResolutionUnit;
+  protected
+    function GetUnit: TExifResolutionUnit; override;
+    function GetX: TExifFraction; override;
+    function GetY: TExifFraction; override;
+    procedure SetUnit(const Value: TExifResolutionUnit); override;
+    procedure SetX(const Value: TExifFraction); override;
+    procedure SetY(const Value: TExifFraction); override;
+  public
+    constructor Create;
+    procedure Assign(Source: TPersistent); override;
+    function MissingOrInvalid: Boolean; override;
   end;
 
   TImageResolution = class(TCustomExifResolution)
@@ -3251,7 +3268,7 @@ end;
 
 { TCustomExifResolution }
 
-constructor TCustomExifResolution.Create(AOwner: TCustomExifData);
+constructor TCustomExifResolution.Create(const AOwner: TCustomExifData);
 var
   SectionKind: TExifSectionKind;
 begin
@@ -3261,7 +3278,7 @@ begin
   FYTagID := ttYResolution;
   FUnitTagID := ttResolutionUnit;
   GetTagInfo(SectionKind, FXTagID, FYTagID, FUnitTagID, FSchema, FXName, FYName, FUnitName);
-  FSection := AOwner[SectionKind];
+  if AOwner <> nil then FSection := AOwner[SectionKind];
 end;
 
 procedure TCustomExifResolution.Assign(Source: TPersistent);
@@ -3278,7 +3295,7 @@ begin
       Section.Remove(FXTagID);
       Section.Remove(FYTagID);
       Section.Remove(FUnitTagID);
-      if FSchema <> xsUnknown then 
+      if FSchema <> xsUnknown then
         FOwner.XMPPacket.RemoveProperties(FSchema, [FXName, FYName, FUnitName]);
     end
     else
@@ -3349,6 +3366,68 @@ begin
   FmtStr(Result, '%g%s x %g%1:s', [X.Quotient, Result, Y.Quotient]);
 end;
 {$ENDIF}
+
+{ TExifResolution }
+
+constructor TExifResolution.Create;
+begin
+  inherited Create(nil);
+  Assign(nil);
+end;
+
+procedure TExifResolution.Assign(Source: TPersistent);
+begin
+  if Source = nil then
+  begin
+    FX := TExifFraction.CreateMissingOrInvalid;
+    FY := TExifFraction.CreateMissingOrInvalid;
+    FUnit := trNone;
+    Exit;
+  end;
+  if Source is TCustomExifResolution then
+  begin
+    FX := TCustomExifResolution(Source).X;
+    FY := TCustomExifResolution(Source).Y;
+    FUnit := TCustomExifResolution(Source).Units;
+    Exit;
+  end;
+  inherited;
+end;
+
+function TExifResolution.GetUnit: TExifResolutionUnit;
+begin
+  Result := FUnit;
+end;
+
+function TExifResolution.GetX: TExifFraction;
+begin
+  Result := FX;
+end;
+
+function TExifResolution.GetY: TExifFraction;
+begin
+  Result := FY;
+end;
+
+function TExifResolution.MissingOrInvalid: Boolean;
+begin
+  Result := X.MissingOrInvalid or Y.MissingOrInvalid;
+end;
+
+procedure TExifResolution.SetUnit(const Value: TExifResolutionUnit);
+begin
+  FUnit := Value;
+end;
+
+procedure TExifResolution.SetX(const Value: TExifFraction);
+begin
+  FX := Value;
+end;
+
+procedure TExifResolution.SetY(const Value: TExifFraction);
+begin
+  FY := Value;
+end;
 
 { TImageResolution }
 
