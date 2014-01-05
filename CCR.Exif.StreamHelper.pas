@@ -1,7 +1,7 @@
 {**************************************************************************************}
 {                                                                                      }
 { CCR Exif - Delphi class library for reading and writing image metadata               }
-{ Version 1.5.1                                                                        }
+{ Version 1.5.3                                                                        }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -14,7 +14,7 @@
 { The Original Code is CCR.Exif.StreamHelper.pas.                                      }
 {                                                                                      }
 { The Initial Developer of the Original Code is Chris Rolliston. Portions created by   }
-{ Chris Rolliston are Copyright (C) 2009-2012 Chris Rolliston. All Rights Reserved.    }
+{ Chris Rolliston are Copyright (C) 2009-2014 Chris Rolliston. All Rights Reserved.    }
 {                                                                                      }
 {**************************************************************************************}
 
@@ -27,6 +27,10 @@ uses
   SysUtils, Classes;
 
 type
+  {$IF not Declared(TBytes)}
+  TBytes = array of Byte;           //added in D2007
+  {$IFEND}
+
   {$IF not Declared(UnicodeString)}
   UnicodeString = WideString;       //added in D2009
   {$IFEND}
@@ -60,19 +64,28 @@ type
     function ReadLongWord(Endianness: TEndianness; var Value: LongWord): Boolean; overload;
     function ReadLongWord(Endianness: TEndianness): LongWord; overload; inline;
     function ReadDouble(Endianness: TEndianness): Double;
+    {$IF Declared(ShortString)}
     function ReadShortString(var S: ShortString): Boolean; overload;
     function ReadShortString: ShortString; overload; inline;
+    {$IFEND}
     function TryReadBuffer(var Buffer; Count: Integer): Boolean;
     function TryReadHeader(const Header; HeaderSize: Byte;
       AlwaysResetPosition: Boolean = False): Boolean;
     procedure WriteByte(Value: Byte); overload; inline;
+    {$IF Declared(AnsiChar)}
     procedure WriteByte(Value: AnsiChar); overload; inline;
+    {$ELSE}
+    procedure WriteByte(Value: Char); overload;
+    {$IFEND}
     procedure WriteWord(Value: Word; Endianness: TEndianness);
     procedure WriteSmallInt(Value: SmallInt; Endianness: TEndianness);
     procedure WriteLongInt(Value: LongInt; Endianness: TEndianness);
     procedure WriteLongWord(Value: LongWord; Endianness: TEndianness);
     procedure WriteDouble(Value: Double; Endianness: TEndianness);
+    {$IF Declared(UTF8String)}
     procedure WriteUTF8Chars(const S: UTF8String); overload;
+    {$IFEND}
+    procedure WriteUTF8Chars(const S: TBytes); overload;
     procedure WriteUTF8Chars(const S: UnicodeString); overload;
     procedure WriteUTF8Chars(const S: UnicodeString; const Args: array of const); overload;
     procedure WriteWideChars(const S: UnicodeString; Endianness: TEndianness);
@@ -211,6 +224,7 @@ begin
     raise EReadError.CreateRes(@SReadError);
 end;
 
+{$IF Declared(ShortString)}
 function TStreamHelper.ReadShortString(var S: ShortString): Boolean;
 begin
   Result := (Read(S[0], 1) = 1) and (Read(S[1], Byte(S[0])) = Byte(S[0]));
@@ -221,6 +235,7 @@ begin
   if not ReadShortString(Result) then
     raise EReadError.CreateRes(@SReadError);
 end;
+{$IFEND}
 
 function TStreamHelper.ReadSmallInt(Endianness: TEndianness;
   var Value: SmallInt): Boolean;
@@ -261,10 +276,17 @@ begin
   WriteBuffer(Value, 1);
 end;
 
+{$IF Declared(AnsiChar)}
 procedure TStreamHelper.WriteByte(Value: AnsiChar);
 begin
   WriteBuffer(Value, 1);
 end;
+{$ELSE}
+procedure TStreamHelper.WriteByte(Value: Char);
+begin
+  WriteBuffer(Value, 1);
+end;
+{$IFEND}
 
 procedure TStreamHelper.WriteDouble(Value: Double; Endianness: TEndianness);
 begin
@@ -323,20 +345,31 @@ begin
   WriteBuffer(Value, 4);
 end;
 
+{$IF Declared(UTF8String)}
 procedure TStreamHelper.WriteUTF8Chars(const S: UTF8String);
+begin
+  WriteBuffer(Pointer(S)^, Length(S));
+end;
+{$IFEND}
+
+procedure TStreamHelper.WriteUTF8Chars(const S: TBytes);
 begin
   WriteBuffer(Pointer(S)^, Length(S));
 end;
 
 procedure TStreamHelper.WriteUTF8Chars(const S: UnicodeString);
 begin
+  {$IF Declared(UTF8String)}
   WriteUTF8Chars(UTF8Encode(S));
+  {$ELSE}
+  WriteUTF8Chars(TEncoding.UTF8.GetBytes(S));
+  {$IFEND}
 end;
 
 procedure TStreamHelper.WriteUTF8Chars(const S: UnicodeString;
   const Args: array of const);
 begin
-  WriteUTF8Chars(UTF8Encode(UnicodeFormat(S, Args)));
+  WriteUTF8Chars(UnicodeFormat(S, Args));
 end;
 
 end.

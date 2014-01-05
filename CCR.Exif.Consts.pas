@@ -1,7 +1,7 @@
 {**************************************************************************************}
 {                                                                                      }
 { CCR Exif - Delphi class library for reading and writing Exif metadata in JPEG files  }
-{ Version 1.5.2 beta                                                                   }
+{ Version 1.5.3                                                                        }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -14,7 +14,7 @@
 { The Original Code is CCR.Exif.Consts.pas.                                            }
 {                                                                                      }
 { The Initial Developer of the Original Code is Chris Rolliston. Portions created by   }
-{ Chris Rolliston are Copyright (C) 2009-2012 Chris Rolliston. All Rights Reserved.    }
+{ Chris Rolliston are Copyright (C) 2009-2014 Chris Rolliston. All Rights Reserved.    }
 {                                                                                      }
 {**************************************************************************************}
 
@@ -26,6 +26,7 @@ const
   CCRExifVersion = '1.5.2 beta';
 
 resourcestring
+  SInvalidHexString = 'Invalid hex string (%s)';
   SStreamIsReadOnly = 'Stream is read-only';
   SUnsupportedGraphicFormat = 'Unsupported graphic format';
   SInvalidJPEGHeader = 'JPEG header is not valid';
