@@ -537,6 +537,9 @@ type
     procedure SetUnit(const Value: TExifResolutionUnit); override;
     procedure SetX(const Value: TExifFraction); override;
     procedure SetY(const Value: TExifFraction); override;
+    procedure GetTagInfo(var Section: TExifSectionKind;
+      var XTag, YTag, UnitTag: TExifTagID; var Schema: TXMPNamespace;
+      var XName, YName, UnitName: UnicodeString); override;
   public
     constructor Create;
     procedure Assign(Source: TPersistent); override;
@@ -545,8 +548,8 @@ type
 
   TImageResolution = class(TCustomExifResolution)
   protected
-    procedure GetTagInfo(var Section: TExifSectionKind; 
-      var XTag, YTag, UnitTag: TExifTagID; var Schema: TXMPNamespace; 
+    procedure GetTagInfo(var Section: TExifSectionKind;
+      var XTag, YTag, UnitTag: TExifTagID; var Schema: TXMPNamespace;
       var XName, YName, UnitName: UnicodeString); override;
   end;
 
@@ -3392,6 +3395,11 @@ begin
     Exit;
   end;
   inherited;
+end;
+
+procedure TExifResolution.GetTagInfo(var Section: TExifSectionKind; var XTag, YTag,
+  UnitTag: TExifTagID; var Schema: TXMPNamespace; var XName, YName, UnitName: UnicodeString);
+begin
 end;
 
 function TExifResolution.GetUnit: TExifResolutionUnit;
