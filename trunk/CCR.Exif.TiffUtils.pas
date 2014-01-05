@@ -81,6 +81,7 @@ type
     constructor Create(ANumerator: LongInt; ADenominator: LongInt = 1); overload;
     constructor Create(const AQuotient: Currency); overload;
     constructor CreateFromString(const AString: string);
+    class function CreateMissingOrInvalid: TTiffLongIntFraction; static;
     function AsString: string;
     function MissingOrInvalid: Boolean;
     function Quotient: Extended;
@@ -562,6 +563,12 @@ begin
   end;
   if not Result then
     PackedValue := 0;
+end;
+
+class function TTiffLongIntFraction.CreateMissingOrInvalid: TTiffLongIntFraction;
+begin
+  Result.Numerator := 0;
+  Result.Denominator := 0;
 end;
 
 function TTiffLongIntFraction.AsString: string;
