@@ -550,18 +550,24 @@ end;
 constructor TTiffLongIntFraction.CreateFromString(const AString: string);
 var
   DivSignPos: Integer;
-  Result: Boolean;
+  Quotient: Currency;
+  Valid: Boolean;
 begin
   DivSignPos := Pos('/', AString);
   if DivSignPos <> 0 then
-    Result := TryStrToInt(Copy(AString, 1, DivSignPos - 1), Numerator) and
+    Valid := TryStrToInt(Copy(AString, 1, DivSignPos - 1), Numerator) and
       TryStrToInt(Copy(AString, DivSignPos + 1, MaxInt), Denominator)
   else
   begin
-    Result := TryStrToInt(AString, Numerator);
-    if Result then Denominator := 1;
+    Valid := TryStrToCurr(AString, Quotient);
+    if Valid then
+      try
+        Create(Quotient);
+      except
+        on ERangeError do Valid := False;
+      end;
   end;
-  if not Result then
+  if not Valid then
     PackedValue := 0;
 end;
 
@@ -623,18 +629,24 @@ end;
 constructor TTiffLongWordFraction.CreateFromString(const AString: string);
 var
   DivSignPos: Integer;
-  Result: Boolean;
+  Quotient: Currency;
+  Valid: Boolean;
 begin
   DivSignPos := Pos('/', AString);
   if DivSignPos <> 0 then
-    Result := TryStrToLongWord(Copy(AString, 1, DivSignPos - 1), Numerator) and
+    Valid := TryStrToLongWord(Copy(AString, 1, DivSignPos - 1), Numerator) and
       TryStrToLongWord(Copy(AString, DivSignPos + 1, MaxInt), Denominator)
   else
   begin
-    Result := TryStrToLongWord(AString, Numerator);
-    if Result then Denominator := 1;
+    Valid := TryStrToCurr(AString, Quotient);
+    if Valid then
+      try
+        Create(Quotient);
+      except
+        on ERangeError do Valid := False;
+      end;
   end;
-  if not Result then
+  if not Valid then
     PackedValue := 0;
 end;
 
