@@ -155,6 +155,7 @@ object frmIPTC: TfrmIPTC
           Width = 131
           Height = 21
           Style = csDropDownList
+          ItemHeight = 13
           TabOrder = 7
           OnChange = ControlChange
         end
@@ -162,7 +163,7 @@ object frmIPTC: TfrmIPTC
           Left = 148
           Top = 140
           Width = 131
-          Height = 25
+          Height = 21
           Anchors = [akLeft, akTop, akRight]
           TabOrder = 5
           OnChange = ControlChange
@@ -171,7 +172,7 @@ object frmIPTC: TfrmIPTC
           Left = 148
           Top = 5
           Width = 131
-          Height = 25
+          Height = 21
           Anchors = [akLeft, akTop, akRight]
           TabOrder = 0
           OnChange = ControlChange
@@ -180,7 +181,7 @@ object frmIPTC: TfrmIPTC
           Left = 148
           Top = 32
           Width = 131
-          Height = 25
+          Height = 21
           Anchors = [akLeft, akTop, akRight]
           TabOrder = 1
           OnChange = ControlChange
@@ -189,7 +190,7 @@ object frmIPTC: TfrmIPTC
           Left = 148
           Top = 86
           Width = 131
-          Height = 25
+          Height = 21
           Anchors = [akLeft, akTop, akRight]
           TabOrder = 3
           OnChange = ControlChange
@@ -198,7 +199,7 @@ object frmIPTC: TfrmIPTC
           Left = 148
           Top = 113
           Width = 131
-          Height = 25
+          Height = 21
           Anchors = [akLeft, akTop, akRight]
           TabOrder = 4
           OnChange = ControlChange
@@ -207,7 +208,7 @@ object frmIPTC: TfrmIPTC
           Left = 148
           Top = 302
           Width = 131
-          Height = 25
+          Height = 21
           Anchors = [akLeft, akTop, akRight]
           TabOrder = 11
           OnChange = ControlChange
@@ -216,7 +217,7 @@ object frmIPTC: TfrmIPTC
           Left = 148
           Top = 167
           Width = 131
-          Height = 25
+          Height = 21
           Anchors = [akLeft, akTop, akRight]
           TabOrder = 6
           OnChange = ControlChange
@@ -236,7 +237,7 @@ object frmIPTC: TfrmIPTC
           Left = 148
           Top = 59
           Width = 131
-          Height = 25
+          Height = 21
           Anchors = [akLeft, akTop, akRight]
           TabOrder = 2
           OnChange = ControlChange
@@ -245,7 +246,7 @@ object frmIPTC: TfrmIPTC
           Left = 148
           Top = 248
           Width = 131
-          Height = 25
+          Height = 21
           Anchors = [akLeft, akTop, akRight]
           TabOrder = 9
           OnChange = ControlChange
@@ -254,7 +255,7 @@ object frmIPTC: TfrmIPTC
           Left = 148
           Top = 275
           Width = 131
-          Height = 25
+          Height = 21
           Anchors = [akLeft, akTop, akRight]
           TabOrder = 10
           OnChange = ControlChange
@@ -657,8 +658,9 @@ object frmIPTC: TfrmIPTC
           Left = 148
           Top = 140
           Width = 131
-          Height = 25
+          Height = 21
           Style = csDropDownList
+          ItemHeight = 0
           TabOrder = 5
           OnChange = ControlChange
         end
@@ -930,6 +932,7 @@ object frmIPTC: TfrmIPTC
           Width = 131
           Height = 21
           Style = csDropDownList
+          ItemHeight = 13
           TabOrder = 15
           OnChange = ControlChange
           Items.Strings = (
@@ -945,6 +948,7 @@ object frmIPTC: TfrmIPTC
           Width = 131
           Height = 21
           Style = csDropDownList
+          ItemHeight = 13
           TabOrder = 35
           OnChange = ControlChange
           Items.Strings = (
@@ -964,9 +968,6 @@ object frmIPTC: TfrmIPTC
     Align = alRight
     BevelOuter = bvNone
     TabOrder = 1
-    ExplicitLeft = 304
-    ExplicitTop = 6
-    ExplicitHeight = 363
     object btnOpen: TBitBtn
       Left = 6
       Top = 16
@@ -974,6 +975,7 @@ object frmIPTC: TfrmIPTC
       Height = 28
       Action = actOpen
       Caption = '&Open File'
+      TabOrder = 0
       Glyph.Data = {
         36030000424D3603000000000000360000002800000010000000100000000100
         18000000000000030000120B0000120B00000000000000000000FF00FF078DBE
@@ -1001,7 +1003,6 @@ object frmIPTC: TfrmIPTC
         FF00FFFF00FFFF00FFFF00FFFF00FF0C85180C85180C85180C8518FF00FFFF00
         FFFF00FFFF00FFFF00FFFF00FFFF00FFFF00FFFF00FFFF00FF0C85180C85180C
         85180C8518FF00FFFF00FFFF00FFFF00FFFF00FFFF00FFFF00FF}
-      TabOrder = 0
     end
     object btnSave: TBitBtn
       Left = 6
@@ -1010,6 +1011,7 @@ object frmIPTC: TfrmIPTC
       Height = 28
       Action = actSaveOrReload
       Caption = '&Save File'
+      TabOrder = 1
       Glyph.Data = {
         36060000424D3606000000000000360000002800000020000000100000000100
         18000000000000060000120B0000120B00000000000000000000FF00FFFF00FF
@@ -1062,7 +1064,6 @@ object frmIPTC: TfrmIPTC
         FFFF00FFFF00FFFF00FFFF00FFFF00FFFF00FFFF00FFFF00FFFF00FFFF00FFFF
         00FFFF00FFFF00FFFF00FFFF00FFFF00FFFF00FFFF00FFFF00FF}
       NumGlyphs = 2
-      TabOrder = 1
     end
     object btnClose: TBitBtn
       Left = 6
@@ -1090,6 +1091,7 @@ object frmIPTC: TfrmIPTC
       Height = 28
       Action = actSaveOrReload
       Caption = '&Reload File'
+      TabOrder = 3
       Glyph.Data = {
         36060000424D3606000000000000360000002800000020000000100000000100
         18000000000000060000120B0000120B00000000000000000000FF00FFFF00FF
@@ -1142,7 +1144,6 @@ object frmIPTC: TfrmIPTC
         FFFF00FFFF00FFFF00FFFF00FFFF00FFB3B3B3B3B3B3B3B3B3B3B3B3B3B3B3B3
         B3B3B3B3B3B3B3B3FF00FFFF00FFFF00FFFF00FFFF00FFFF00FF}
       NumGlyphs = 2
-      TabOrder = 3
     end
   end
   object panFooter: TPanel
@@ -1164,22 +1165,20 @@ object frmIPTC: TfrmIPTC
     ParentFont = False
     TabOrder = 2
     Visible = False
-    ExplicitLeft = 6
-    ExplicitTop = 369
-    ExplicitWidth = 391
     object lblTagsWith: TLabel
       Left = 4
       Top = 6
       Width = 49
-      Height = 13
+      Height = 16
       Align = alLeft
       Caption = 'Tags with '
+      ExplicitHeight = 13
     end
     object lblHighlighted: TLabel
       Left = 53
       Top = 6
       Width = 52
-      Height = 13
+      Height = 16
       Align = alLeft
       Caption = 'highlighted'
       Font.Charset = DEFAULT_CHARSET
@@ -1188,14 +1187,16 @@ object frmIPTC: TfrmIPTC
       Font.Name = 'Tahoma'
       Font.Style = []
       ParentFont = False
+      ExplicitHeight = 13
     end
     object lblLabelsHaveEtc: TLabel
       Left = 105
       Top = 6
       Width = 161
-      Height = 13
+      Height = 16
       Align = alLeft
       Caption = ' labels have data in the saved file'
+      ExplicitHeight = 13
     end
     object lblNoTagsFound: TLabel
       Left = 4

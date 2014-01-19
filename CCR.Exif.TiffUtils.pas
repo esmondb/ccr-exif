@@ -69,9 +69,10 @@ type
     constructor Create(const AQuotient: Currency); overload;
     constructor CreateFromString(const AString: string);
     class function CreateMissingOrInvalid: TTiffLongWordFraction; static;
-    function AsString: string;
+    function AsString: string; deprecated {$IFDEF DepCom}'Use ToString instead'{$ENDIF};
     function MissingOrInvalid: Boolean;
     function Quotient: Extended;
+    function ToString: string;
     case Integer of
       0: (Numerator, Denominator: LongWord);
       1: (PackedValue: Int64);
@@ -82,9 +83,10 @@ type
     constructor Create(const AQuotient: Currency); overload;
     constructor CreateFromString(const AString: string);
     class function CreateMissingOrInvalid: TTiffLongIntFraction; static;
-    function AsString: string;
+    function AsString: string; deprecated {$IFDEF DepCom}'Use ToString instead'{$ENDIF};
     function MissingOrInvalid: Boolean;
     function Quotient: Extended;
+    function ToString: string;
     case Integer of
       0: (Numerator, Denominator: LongInt);
       1: (PackedValue: Int64);
@@ -579,12 +581,7 @@ end;
 
 function TTiffLongIntFraction.AsString: string;
 begin
-  if MissingOrInvalid then
-    Result := ''
-  else if Denominator = 1 then
-    Result := IntToStr(Numerator)
-  else
-    FmtStr(Result, '%d/%d', [Numerator, Denominator]);
+  Result := ToString;
 end;
 
 function TTiffLongIntFraction.MissingOrInvalid: Boolean;
@@ -598,6 +595,16 @@ begin
     Result := 0
   else
     Result := Numerator / Denominator
+end;
+
+function TTiffLongIntFraction.ToString: string;
+begin
+  if MissingOrInvalid then
+    Result := ''
+  else if Denominator = 1 then
+    Result := IntToStr(Numerator)
+  else
+    FmtStr(Result, '%d/%d', [Numerator, Denominator]);
 end;
 
 function TryStrToLongWord(const S: string; var Value: LongWord): Boolean;
@@ -658,12 +665,7 @@ end;
 
 function TTiffLongWordFraction.AsString: string;
 begin
-  if MissingOrInvalid then
-    Result := ''
-  else if Denominator = 1 then
-    Result := IntToStr(Numerator)
-  else
-    FmtStr(Result, '%d/%d', [Numerator, Denominator]);
+  Result := ToString;
 end;
 
 function TTiffLongWordFraction.MissingOrInvalid: Boolean;
@@ -677,6 +679,16 @@ begin
     Result := 0
   else
     Result := Numerator / Denominator
+end;
+
+function TTiffLongWordFraction.ToString: string;
+begin
+  if MissingOrInvalid then
+    Result := ''
+  else if Denominator = 1 then
+    Result := IntToStr(Numerator)
+  else
+    FmtStr(Result, '%d/%d', [Numerator, Denominator]);
 end;
 
 { TIFF parsing routines }

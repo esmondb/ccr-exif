@@ -164,7 +164,9 @@ type
     class operator GreaterThanOrEqual(const A, B: TDateTimeTagValue): Boolean;
     function ToString: string; overload;
     function ToString(const Format: string): string; overload;
+    {$IFDEF HasFormatSettings}
     function ToString(const Format: string; const Settings: TFormatSettings): string; overload;
+    {$ENDIF}
     property AsString: string read ToString;
     function MissingOrInvalid: Boolean; inline;
     property Value: TDateTime read FValue;
@@ -994,9 +996,13 @@ end;
 
 function TDateTimeTagValue.ToString(const Format: string): string;
 begin
-  Result := ToString(Format, FormatSettings);
+  if MissingOrInvalid then
+    Result := ''
+  else
+    DateTimeToString(Result, Format, Value);
 end;
 
+{$IFDEF HasFormatSettings}
 function TDateTimeTagValue.ToString(const Format: string; const Settings: TFormatSettings): string;
 begin
   if MissingOrInvalid then
@@ -1004,6 +1010,7 @@ begin
   else
     DateTimeToString(Result, Format, Value, Settings);
 end;
+{$ENDIF}
 
 class operator TDateTimeTagValue.Equal(const A, B: TDateTimeTagValue): Boolean;
 begin

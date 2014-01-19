@@ -1,7 +1,7 @@
 {**************************************************************************************}
 {                                                                                      }
 { CCR Exif - Delphi class library for reading and writing image metadata               }
-{ Version 1.5.1                                                                        }
+{ Version 1.5.3                                                                        }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -562,6 +562,11 @@ procedure TOutputFrame.LoadStandardValues(ExifData: TExifData);
       AddValue(Name, '%g %s', [Fraction.Quotient, Units]);
   end;
 
+  procedure AddValue(const Name: string; const Obj: TObjectTagValue); overload;
+  begin
+    AddValue(Name, Obj.ToString);
+  end;
+
   procedure AddValue(const Name: string; const Fraction: TExifSignedFraction); overload;
   begin
     if not Fraction.MissingOrInvalid then
@@ -727,25 +732,25 @@ begin
   begin
     AddValue('GPS version', ExifData.GPSVersion.AsString);
     AddValue('GPS date/time (UTC)', ExifData.GPSDateTimeUTC);
-    AddValue('GPS latitude', ExifData.GPSLatitude);
+    AddValue('GPS latitude', ExifData.GPSLatitude.ToString);
     AddValue('GPS longitude', ExifData.GPSLongitude);
-    AddValue('GPS altitude', ExifData.GPSAltitude, 'metres ' +
-      GPSAltitudeRefToStr(ExifData.GPSAltitudeRef));
+    AddValue('GPS altitude', ExifData.GPSAltitude.Value, 'metres ' +
+      GPSAltitudeRefToStr(ExifData.GPSAltitude.Ref));
     AddValue('GPS satellites', ExifData.GPSSatellites);
     AddValue('GPS status', GPSStatusToStr(ExifData.GPSStatus));
     AddValue('GPS measure mode', GPSMeasureModeToStr(ExifData.GPSMeasureMode));
     AddValue('GPS DOP', ExifData.GPSDOP);
-    AddValue('GPS speed', ExifData.GPSSpeed, GPSSpeedRefToStr(ExifData.GPSSpeedRef));
-    AddValue('GPS track', ExifData.GPSTrack, ExifData.GPSTrackRef);
-    AddValue('GPS image direction', ExifData.GPSImgDirection,
-      ExifData.GPSImgDirectionRef);
+    AddValue('GPS speed', ExifData.GPSSpeed.Value, GPSSpeedRefToStr(ExifData.GPSSpeed.Ref));
+    AddValue('GPS track', ExifData.GPSTrack.Value, ExifData.GPSTrack.Ref);
+    AddValue('GPS image direction', ExifData.GPSImgDirection.Value,
+      ExifData.GPSImgDirection.Ref);
     AddValue('GPS map datum', ExifData.GPSMapDatum);
     AddValue('GPS destination latitude', ExifData.GPSDestLatitude);
     AddValue('GPS destination longitude', ExifData.GPSDestLongitude);
-    AddValue('GPS destination bearing', ExifData.GPSDestBearing,
-      ExifData.GPSDestBearingRef);
-    AddValue('GPS destination distance', ExifData.GPSDestDistance,
-      ExifData.GPSDestDistanceRef);
+    AddValue('GPS destination bearing', ExifData.GPSDestBearing.Value,
+      ExifData.GPSDestBearing.Ref);
+    AddValue('GPS destination distance', ExifData.GPSDestDistance.Value,
+      ExifData.GPSDestDistance.Ref);
     AddValue('GPS differential', GPSDifferentialToStr(ExifData.GPSDifferential));
   end;
   if DoSection(esThumbnail, 'Thumbnail IFD') then

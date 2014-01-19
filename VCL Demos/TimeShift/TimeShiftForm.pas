@@ -1,7 +1,7 @@
 {**************************************************************************************}
 {                                                                                      }
 { CCR Exif - Delphi class library for reading and writing Exif metadata in JPEG files  }
-{ Version 1.5.2 beta                                                                   }
+{ Version 1.5.3                                                                        }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -27,7 +27,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, ExtCtrls, ToolWin, ComCtrls, Menus, ActnList, ImgList, ExtDlgs,
-  CCR.Exif.Demos, FileTimeOptsForm, System.Actions;
+  CCR.Exif.Demos, FileTimeOptsForm;
 
 type
   TListView = class(ComCtrls.TListView) //OK, using an interposer class is a bit lazy,
