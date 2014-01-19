@@ -38,6 +38,7 @@
 {$IF CompilerVersion >= 22}
   {$DEFINE HasTTimeZone}
   {$DEFINE HasGenerics}
+  {$DEFINE HasFormatSettings}
 {$IFEND}
 
 {$IF CompilerVersion >= 24}

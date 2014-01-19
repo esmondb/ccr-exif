@@ -1,7 +1,7 @@
 {**************************************************************************************}
 {                                                                                      }
 { CCR Exif - Delphi class library for reading and writing image metadata               }
-{ Version 1.5.1                                                                        }
+{ Version 1.5.3                                                                        }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -31,8 +31,7 @@ interface
 
 uses
   Types, SysUtils, Classes, Graphics, IniFiles, Controls, Forms, ActnList, StdActns,
-  ExtActns, StdCtrls, ExtCtrls, ComCtrls, Buttons, CCR.Exif.Demos, ExifListFrame,
-  System.Actions;
+  ExtActns, StdCtrls, ExtCtrls, ComCtrls, Buttons, CCR.Exif.Demos, ExifListFrame;
 
 type
   TfrmExifList = class(TForm)

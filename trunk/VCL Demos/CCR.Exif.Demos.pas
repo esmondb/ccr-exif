@@ -1,7 +1,7 @@
 {**************************************************************************************}
 {                                                                                      }
 { CCR Exif - Delphi class library for reading and writing image metadata               }
-{ Version 1.5.1                                                                        }
+{ Version 1.5.3                                                                        }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -211,7 +211,7 @@ begin
   else
   begin
     S := ParamStr(1);
-    if (S <> '') and not CharInSet(S[1], SwitchChars) then
+    if (S <> '') and not IsCharIn(S[1], SwitchChars) then
       OpenFile(S);
     DragAcceptFiles(Handle, True);
   end;

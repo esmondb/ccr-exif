@@ -57,6 +57,14 @@ resourcestring
   SInvalidAdobeSegment = 'Invalid Adobe metadata segment';
   SInvalidIPTCTagSizeField = 'Invalid IPTC tag size field (%d)';
 
+  SAboveSeaLevelValue = '%s above sea level';
+  SBelowSeaLevelValue = '%s below sea level';
+  STrueNorthValue = '%s° true north';
+  SMagneticNorthValue = '%s° magnetic north';
+//  SKPHSymbol = 'km/h';
+//  SMPHSymbol = 'mph';
+//  SKnotsSymbol = 'kt';
+
 implementation
 
 end.

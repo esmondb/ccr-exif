@@ -53,6 +53,7 @@ object frmXMPBrowser: TfrmXMPBrowser
       Anchors = [akTop, akRight]
       Caption = '&Open File'
       Default = True
+      DoubleBuffered = True
       Glyph.Data = {
         36030000424D3603000000000000360000002800000010000000100000000100
         18000000000000030000120B0000120B00000000000000000000FF00FF078DBE
@@ -80,6 +81,7 @@ object frmXMPBrowser: TfrmXMPBrowser
         FF00FFFF00FFFF00FFFF00FFFF00FF0C85180C85180C85180C8518FF00FFFF00
         FFFF00FFFF00FFFF00FFFF00FFFF00FFFF00FFFF00FFFF00FF0C85180C85180C
         85180C8518FF00FFFF00FFFF00FFFF00FFFF00FFFF00FFFF00FF}
+      ParentDoubleBuffered = False
       TabOrder = 0
     end
     object btnExit: TBitBtn
@@ -90,6 +92,8 @@ object frmXMPBrowser: TfrmXMPBrowser
       Anchors = [akTop, akRight]
       Cancel = True
       Caption = 'Exit'
+      DoubleBuffered = True
+      ParentDoubleBuffered = False
       TabOrder = 1
       OnClick = btnExitClick
     end
@@ -104,10 +108,6 @@ object frmXMPBrowser: TfrmXMPBrowser
     TabOrder = 1
     object tabOriginal: TTabSheet
       Caption = 'Original'
-      ExplicitLeft = 0
-      ExplicitTop = 0
-      ExplicitWidth = 0
-      ExplicitHeight = 0
     end
     object tabResaved: TTabSheet
       Caption = 'Resaved'
