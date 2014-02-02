@@ -14,7 +14,7 @@
 { The Original Code is ExifListFrame.pas.                                              }
 {                                                                                      }
 { The Initial Developer of the Original Code is Chris Rolliston. Portions created by   }
-{ Chris Rolliston are Copyright (C) 2009-2011 Chris Rolliston. All Rights Reserved.    }
+{ Chris Rolliston are Copyright (C) 2009-2014 Chris Rolliston. All Rights Reserved.    }
 {                                                                                      }
 {**************************************************************************************}
 

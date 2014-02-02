@@ -23,7 +23,7 @@ unit CCR.Exif.Consts;
 interface
 
 const
-  CCRExifVersion = '1.5.2 beta';
+  CCRExifVersion = '1.5.3';
 
 resourcestring
   SInvalidHexString = 'Invalid hex string (%s)';
@@ -61,9 +61,6 @@ resourcestring
   SBelowSeaLevelValue = '%s below sea level';
   STrueNorthValue = '%s° true north';
   SMagneticNorthValue = '%s° magnetic north';
-//  SKPHSymbol = 'km/h';
-//  SMPHSymbol = 'mph';
-//  SKnotsSymbol = 'kt';
 
 implementation
 
