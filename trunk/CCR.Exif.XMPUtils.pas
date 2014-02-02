@@ -150,6 +150,7 @@ type
     function FindSubProperty(const AName: UnicodeString; out Prop: TXMPProperty): Boolean;
     function ReadValue(const Default: Boolean): Boolean; overload;
     function ReadValue(const Default: Integer): Integer; overload;
+    function ReadValue(const Default: TDateTime): TDateTime; overload;
     function ReadValue(const Default: UnicodeString = ''): UnicodeString; overload;
     function RemoveSubProperty(const AName: UnicodeString): Boolean;
     function HasNamedSubProperties: Boolean; overload;
@@ -160,6 +161,7 @@ type
     procedure UpdateSubProperty(const SubPropName: UnicodeString; NewValue: Integer); overload;
     procedure UpdateSubProperty(const SubPropName: UnicodeString; NewValue: Boolean); overload;
     procedure WriteValue(const NewValue: UnicodeString); overload;
+    procedure WriteValue(const NewValue: TDateTime); overload;
     procedure WriteValue(const NewValue: Integer); overload;
     procedure WriteValue(const NewValue: Boolean); overload;
     property Kind: TXMPPropertyKind read FKind write SetKind;
@@ -300,6 +302,23 @@ type
     property Schemas[Kind: TXMPKnownNamespace]: TXMPSchema read FindOrAddSchema; default;
     property Schemas[Index: Integer]: TXMPSchema read GetSchema; default;
     property Schemas[const URI: UnicodeString]: TXMPSchema read FindOrAddSchema; default;
+    { TCustomIniFile-like value getters and setters for convenience }
+    function ReadBool(SchemaKind: TXMPKnownNamespace; const PropertyName: string; DefValue: Boolean): Boolean; overload;
+    function ReadBool(const SchemaURI: string; const PropertyName: string; DefValue: Boolean): Boolean; overload;
+    function ReadDateTime(SchemaKind: TXMPKnownNamespace; const PropertyName: string; const DefValue: TDateTime): TDateTime; overload;
+    function ReadDateTime(const SchemaURI: string; const PropertyName: string; const DefValue: TDateTime): TDateTime; overload;
+    function ReadInteger(SchemaKind: TXMPKnownNamespace; const PropertyName: string; DefValue: Integer): Integer; overload;
+    function ReadInteger(const SchemaURI: string; const PropertyName: string; DefValue: Integer): Integer; overload;
+    function ReadString(SchemaKind: TXMPKnownNamespace; const PropertyName: string; const DefValue: string): string; overload;
+    function ReadString(const SchemaURI: string; const PropertyName: string; const DefValue: string): string; overload;
+    procedure WriteBool(SchemaKind: TXMPKnownNamespace; const PropertyName: string; Value: Boolean);  overload; inline;
+    procedure WriteBool(const SchemaURI: string; const PropertyName: string; Value: Boolean);  overload; inline;
+    procedure WriteDateTime(SchemaKind: TXMPKnownNamespace; const PropertyName: string; const Value: TDateTime); overload; inline;
+    procedure WriteDateTime(const SchemaURI: string; const PropertyName: string; const Value: TDateTime); overload; inline;
+    procedure WriteInteger(SchemaKind: TXMPKnownNamespace; const PropertyName: string; Value: Integer); overload; inline;
+    procedure WriteInteger(const SchemaURI: string; const PropertyName: string; Value: Integer); overload; inline;
+    procedure WriteString(SchemaKind: TXMPKnownNamespace; const PropertyName: string; const Value: string); overload; inline;
+    procedure WriteString(const SchemaURI: string; const PropertyName: string; const Value: string); overload; inline;
   published
     property Empty: Boolean read GetEmpty;
     property RawXML: UTF8String read GetRawXML write SetRawXML;
@@ -312,12 +331,13 @@ const
   XMPBoolStrs: array[Boolean] of string = ('False', 'True'); //case as per the XMP spec
 
 function DateTimeToXMPString(const Value: TDateTime; ApplyLocalBias: Boolean = True): UnicodeString;
+function XMPStringToDateTime(const Value: string; AsUTCTime: Boolean = False): TDateTime;
 function EscapeXML(const Source: UnicodeString): UnicodeString;
 
 implementation
 
 uses
-  {$IFDEF HasTTimeZone}TimeSpan{$ELSE}Windows{$ENDIF}, Math, RTLConsts, DateUtils, StrUtils,
+  {$IFDEF HasTTimeZone}TimeSpan{$ELSE}Windows{$ENDIF}, Math, RTLConsts, SysConst, DateUtils, StrUtils,
   CCR.Exif.Consts, CCR.Exif.TagIDs, CCR.Exif.StreamHelper;
 
 const
@@ -472,6 +492,73 @@ begin
   if ApplyLocalBias then
     Result := Format('%s%s%.2d:%.2d', [Result,
       PlusNegSyms[GetUTCOffset(Value, Hours, Mins) >= 0], Hours, Mins]);
+end;
+
+function XMPStringToDateTime(const Value: string; AsUTCTime: Boolean = False): TDateTime;
+var
+  SeekPtr: PChar;
+
+  function ReadDigit: Byte;
+  begin
+    case SeekPtr^ of
+      '0'..'9': Result := Ord(SeekPtr^) - Ord('0');
+    else raise EConvertError.CreateResFmt(@SInvalidInteger, [string(SeekPtr^)]);
+    end;
+    Inc(SeekPtr);
+  end;
+
+  function Read2Digits: Word;
+  begin
+    Result := ReadDigit * 10 + ReadDigit;
+  end;
+
+  function Read4Digits: Word;
+  begin
+    Result := ReadDigit * 1000 + ReadDigit * 100 + ReadDigit * 10 + ReadDigit;
+  end;
+
+  function Read2DigitsAfter(CharsToSkip: Integer): Word;
+  begin
+    Inc(SeekPtr, CharsToSkip);
+    Result := ReadDigit * 10 + ReadDigit;
+  end;
+var
+  Minus: Boolean;
+  Year, Month, Day, Hour, Min, Sec, MSecs: Integer;
+  Offset: TDateTime;
+begin
+  SeekPtr := PChar(Value);
+  Year := Read4Digits;
+  Month := Read2DigitsAfter(1);
+  Day := Read2DigitsAfter(1);
+  Result := EncodeDate(Year, Month, Day);
+  if SeekPtr^ = #0 then Exit;
+  Hour := Read2DigitsAfter(1);
+  Min := Read2DigitsAfter(1);
+  Sec := Read2DigitsAfter(1);
+  MSecs := 0;
+  if SeekPtr^ = '.' then
+  begin
+    Inc(SeekPtr);
+    repeat
+      MSecs := MSecs * 10 + ReadDigit;
+    until CharInSet(SeekPtr^, [#0, 'Z', 'z', '-', '+']);
+  end;
+  Result := Result + EncodeTime(Hour, Min, Sec, MSecs);
+  if AsUTCTime then Exit;
+  case SeekPtr^ of
+    #0, 'Z', 'z': Exit;
+    '-': Minus := True;
+    '+': Minus := False;
+  else raise EConvertError.CreateResFmt(@SInvalidDateTime, [Value]);
+  end;
+  Hour := Read2DigitsAfter(1);
+  Min := Read2DigitsAfter(1);
+  Offset := EncodeTime(Hour, Min, 0, 0);
+  if Minus then
+    Result := Result - Offset
+  else
+    Result := Result + Offset;
 end;
 
 function DefinesNS(const Attr: IDOMNode): Boolean;
@@ -977,6 +1064,16 @@ begin
   Result := StrToIntDef(ReadValue, Default);
 end;
 
+function TXMPProperty.ReadValue(const Default: TDateTime): TDateTime;
+begin
+  try
+    Result := XMPStringToDateTime(ReadValue);
+  except
+    on EConvertError do
+      Result := Default;
+  end;
+end;
+
 function TXMPProperty.ReadValue(const Default: UnicodeString): UnicodeString;
 var
   I: Integer;
@@ -1156,6 +1253,11 @@ begin
       Strings.Free;
     end;
   end;
+end;
+
+procedure TXMPProperty.WriteValue(const NewValue: TDateTime);
+begin
+  WriteValue(DateTimeToXMPString(NewValue));
 end;
 
 procedure TXMPProperty.WriteValue(const NewValue: Integer);
@@ -1963,6 +2065,134 @@ begin
     S := DateTimeToXMPString(NewValue, ApplyLocalBias);
     UpdateProperty(SchemaKind, PropName, xpSimple, S);
   end;
+end;
+
+function TXMPPacket.ReadBool(SchemaKind: TXMPKnownNamespace; const PropertyName: string; DefValue: Boolean): Boolean;
+var
+  Prop: TXMPProperty;
+  Schema: TXMPSchema;
+begin
+  if FindSchema(SchemaKind, Schema) and Schema.FindProperty(PropertyName, Prop) then
+    Result := Prop.ReadValue(DefValue)
+  else
+    Result := DefValue;
+end;
+
+function TXMPPacket.ReadBool(const SchemaURI: string; const PropertyName: string; DefValue: Boolean): Boolean;
+var
+  Prop: TXMPProperty;
+  Schema: TXMPSchema;
+begin
+  if FindSchema(SchemaURI, Schema) and Schema.FindProperty(PropertyName, Prop) then
+    Result := Prop.ReadValue(DefValue)
+  else
+    Result := DefValue;
+end;
+
+function TXMPPacket.ReadDateTime(SchemaKind: TXMPKnownNamespace; const PropertyName: string; const DefValue: TDateTime): TDateTime;
+var
+  Prop: TXMPProperty;
+  Schema: TXMPSchema;
+begin
+  if FindSchema(SchemaKind, Schema) and Schema.FindProperty(PropertyName, Prop) then
+    Result := Prop.ReadValue(DefValue)
+  else
+    Result := DefValue;
+end;
+
+function TXMPPacket.ReadDateTime(const SchemaURI: string; const PropertyName: string; const DefValue: TDateTime): TDateTime;
+var
+  Prop: TXMPProperty;
+  Schema: TXMPSchema;
+begin
+  if FindSchema(SchemaURI, Schema) and Schema.FindProperty(PropertyName, Prop) then
+    Result := Prop.ReadValue(DefValue)
+  else
+    Result := DefValue;
+end;
+
+function TXMPPacket.ReadInteger(SchemaKind: TXMPKnownNamespace; const PropertyName: string; DefValue: Integer): Integer;
+var
+  Prop: TXMPProperty;
+  Schema: TXMPSchema;
+begin
+  if FindSchema(SchemaKind, Schema) and Schema.FindProperty(PropertyName, Prop) then
+    Result := Prop.ReadValue(DefValue)
+  else
+    Result := DefValue;
+end;
+
+function TXMPPacket.ReadInteger(const SchemaURI: string; const PropertyName: string; DefValue: Integer): Integer;
+var
+  Prop: TXMPProperty;
+  Schema: TXMPSchema;
+begin
+  if FindSchema(SchemaURI, Schema) and Schema.FindProperty(PropertyName, Prop) then
+    Result := Prop.ReadValue(DefValue)
+  else
+    Result := DefValue;
+end;
+
+function TXMPPacket.ReadString(SchemaKind: TXMPKnownNamespace; const PropertyName: string; const DefValue: string): string;
+var
+  Prop: TXMPProperty;
+  Schema: TXMPSchema;
+begin
+  if FindSchema(SchemaKind, Schema) and Schema.FindProperty(PropertyName, Prop) then
+    Result := Prop.ReadValue(DefValue)
+  else
+    Result := DefValue;
+end;
+
+function TXMPPacket.ReadString(const SchemaURI: string; const PropertyName: string; const DefValue: string): string;
+var
+  Prop: TXMPProperty;
+  Schema: TXMPSchema;
+begin
+  if FindSchema(SchemaURI, Schema) and Schema.FindProperty(PropertyName, Prop) then
+    Result := Prop.ReadValue(DefValue)
+  else
+    Result := DefValue;
+end;
+
+procedure TXMPPacket.WriteBool(SchemaKind: TXMPKnownNamespace; const PropertyName: string; Value: Boolean);
+begin
+  Schemas[SchemaKind].Properties[PropertyName].WriteValue(Value);
+end;
+
+procedure TXMPPacket.WriteBool(const SchemaURI: string; const PropertyName: string; Value: Boolean);
+begin
+  Schemas[SchemaURI].Properties[PropertyName].WriteValue(Value);
+end;
+
+procedure TXMPPacket.WriteDateTime(SchemaKind: TXMPKnownNamespace; const PropertyName: string; const Value: TDateTime);
+begin
+  Schemas[SchemaKind].Properties[PropertyName].WriteValue(Value);
+end;
+
+procedure TXMPPacket.WriteDateTime(const SchemaURI: string; const PropertyName: string; const Value: TDateTime);
+begin
+  Schemas[SchemaURI].Properties[PropertyName].WriteValue(Value);
+end;
+
+procedure TXMPPacket.WriteInteger(SchemaKind: TXMPKnownNamespace; const PropertyName: string; Value: Integer);
+begin
+  Schemas[SchemaKind].Properties[PropertyName].WriteValue(Value);
+end;
+
+procedure TXMPPacket.WriteInteger(const SchemaURI: string; const PropertyName: string; Value: Integer);
+begin
+  Schemas[SchemaURI].Properties[PropertyName].WriteValue(Value);
+end;
+
+procedure TXMPPacket.WriteString(SchemaKind: TXMPKnownNamespace; const PropertyName: string; const Value: string);
+begin
+  Schemas[SchemaKind].Properties[PropertyName].WriteValue(Value);
+end;
+
+procedure TXMPPacket.WriteString(const SchemaURI: string; const PropertyName: string; const Value: string);
+begin
+  Schemas[SchemaURI].Properties[PropertyName].WriteValue(Value);
 end;
 
 { TXMPPacket.TEnumerator }
