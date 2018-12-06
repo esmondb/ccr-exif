@@ -53,7 +53,11 @@ type
   TIPTCRepeatablePairs = array of TIPTCRepeatablePair;
 {$ENDIF}
 
+  {$IFDEF XE103+}
+  TIPTCStringArray = TStringDynArray;
+  {$ELSE}
   TIPTCStringArray = type Types.TStringDynArray; //using 'type' means the helper defined below will only apply to it
+  {$ENDIF}
 
   {$IFDEF XE3+}
   TIPTCStringArrayHelper = record helper for TIPTCStringArray
