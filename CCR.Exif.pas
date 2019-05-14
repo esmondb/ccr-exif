@@ -53,7 +53,15 @@ interface
 uses
   Types, SysUtils, Classes, TypInfo, CCR.Exif.BaseUtils, CCR.Exif.IPTC,
   {$IFDEF HasGenerics}Generics.Collections, Generics.Defaults,{$ENDIF}
-  {$IFDEF VCL}Graphics, Jpeg,{$ENDIF}
+  {$IFDEF VCL}
+  {$IFDEF HAS_UNITSCOPE}
+  Graphics,
+  Jpeg,
+  {$ELSE}
+  Vcl.Graphics,
+  Vcl.Imaging.jpeg,
+  {$ENDIF}
+  {$ENDIF}
   {$IFDEF FMX}FMX.Types,{$IF CompilerVersion >= 26}FMX.Graphics, FMX.Surfaces,{$IFEND}{$ENDIF}
   CCR.Exif.StreamHelper, CCR.Exif.TagIDs, CCR.Exif.TiffUtils, CCR.Exif.XMPUtils;
 

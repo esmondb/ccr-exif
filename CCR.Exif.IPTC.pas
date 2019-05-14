@@ -36,7 +36,13 @@ interface
 
 uses
   Types, SysUtils, Classes, {$IFDEF HasGenerics}Generics.Collections, Generics.Defaults,{$ENDIF}
-  {$IFDEF VCL}Jpeg,{$ENDIF} CCR.Exif.BaseUtils, CCR.Exif.TagIDs, CCR.Exif.TiffUtils;
+  {$IFDEF VCL}
+  {$IFDEF HAS_UNITSCOPE}
+  Jpeg,
+  {$ELSE}
+  Vcl.Imaging.jpeg,
+  {$ENDIF}
+  {$ENDIF} CCR.Exif.BaseUtils, CCR.Exif.TagIDs, CCR.Exif.TiffUtils;
 
 type
   EInvalidIPTCData = class(ECCRExifException);
@@ -53,7 +59,11 @@ type
   TIPTCRepeatablePairs = array of TIPTCRepeatablePair;
 {$ENDIF}
 
+  {$IFDEF XE103+}
+  TIPTCStringArray = TStringDynArray;
+  {$ELSE}
   TIPTCStringArray = type Types.TStringDynArray; //using 'type' means the helper defined below will only apply to it
+  {$ENDIF}
 
   {$IFDEF XE3+}
   TIPTCStringArrayHelper = record helper for TIPTCStringArray
