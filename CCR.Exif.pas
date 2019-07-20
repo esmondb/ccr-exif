@@ -2521,9 +2521,9 @@ var
 begin
   Result := False;
   for I := 0 to FTagList.Count - 1 do
-    if TExifTag(FTagList.List[I]).ID >= ID then
+    if TExifTag(FTagList[I]).ID >= ID then
     begin
-      if TExifTag(FTagList.List[I]).ID = ID then
+      if TExifTag(FTagList[I]).ID = ID then
       begin
         TagIndex := I;
         Result := True;
@@ -2773,7 +2773,7 @@ begin
   try
     for I := FTagList.Count - 1 downto 0 do
     begin
-      Tag := TExifTag(FTagList.List[I]);
+      Tag := TExifTag(FTagList[I]);
       for ID in IDs do
         if ID = Tag.ID then
         begin
@@ -2936,7 +2936,7 @@ var
 begin
   if ChangeType = tcID then
     for I := FTagList.Count - 1 downto 0 do
-      if Tag.ID > TExifTag(FTagList.List[I]).ID then
+      if Tag.ID > TExifTag(FTagList[I]).ID then
       begin
         FTagList.Move(FTagList.IndexOf(Tag), I + 1);
         Break;
