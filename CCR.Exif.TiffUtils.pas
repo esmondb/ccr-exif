@@ -1497,7 +1497,7 @@ var
 begin
   for I := FTagsToWrite.Count - 1 downto 0 do
   begin
-    ExistingID := TTagToWrite(FTagsToWrite.List[I]).ID;
+    ExistingID := TTagToWrite(FTagsToWrite[I]).ID;
     if AID > ExistingID then
     begin
       Index := I + 1;
