@@ -53,6 +53,10 @@
   {$DEFINE XE103+}
 {$IFEND}
 
+{$IF (CompilerVersion >= 35)}
+  {$DEFINE XE11+}
+{$IFEND}
+
 {$IF DEFINED(VER240) AND DEFINED(MACOS)}
   {$DEFINE BrokenFMXJpegExport}
 {$IFEND}
