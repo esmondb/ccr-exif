@@ -1,7 +1,10 @@
+{$IFNDEF SIG_ABOUT_SHOWN}
+{$MESSAGE hint 'CCR.Exif wird verwendet. Wenn fuer externe Programme (an Kunden, auch kostenlos!) verwendet, muss w_SigAbout verwendet und angezeigt werden!'}
+{$ENDIF SIG_ABOUT_SHOWN}
 {**************************************************************************************}
 {                                                                                      }
 { CCR Exif - Delphi class library for reading and writing image metadata               }
-{ Version 1.5.3                                                                        }
+{ Version 1.5.1                                                                        }
 {                                                                                      }
 { The contents of this file are subject to the Mozilla Public License Version 1.1      }
 { (the "License"); you may not use this file except in compliance with the License.    }
@@ -14,7 +17,7 @@
 { The Original Code is CCR.Exif.pas.                                                   }
 {                                                                                      }
 { The Initial Developer of the Original Code is Chris Rolliston. Portions created by   }
-{ Chris Rolliston are Copyright (C) 2009-2014 Chris Rolliston. All Rights Reserved.    }
+{ Chris Rolliston are Copyright (C) 2009-2012 Chris Rolliston. All Rights Reserved.    }
 {                                                                                      }
 {**************************************************************************************}
 
@@ -45,16 +48,14 @@ unit CCR.Exif;
     by setting the XMPWritePolicy property of TExifData.
   - Maker note rewriting is *not* supported in TExifData. While you can make changes to
     the loaded maker note tags, these changes won't ever be persisted.
-  - When compiling in XE2+, you need to set a 'FMX' global define for this unit to work
+  - When compiling in XE2, you need to set a 'FMX' global define for this unit to work
     properly in a FireMonkey application.
 }
 interface
 
 uses
-  Types, SysUtils, Classes, TypInfo, CCR.Exif.BaseUtils, CCR.Exif.IPTC,
-  {$IFDEF HasGenerics}Generics.Collections, Generics.Defaults,{$ENDIF}
-  {$IFDEF VCL}Graphics, Jpeg,{$ENDIF}
-  {$IFDEF FMX}FMX.Types,{$IF CompilerVersion >= 26}FMX.Graphics, FMX.Surfaces,{$IFEND}{$ENDIF}
+  Types, SysUtils, Classes, Contnrs, TypInfo, CCR.Exif.BaseUtils, CCR.Exif.IPTC,
+  {$IFDEF VCL}Graphics, Jpeg,{$ENDIF}{$IFDEF FMX}FMX.Types,{$ENDIF}
   CCR.Exif.StreamHelper, CCR.Exif.TagIDs, CCR.Exif.TiffUtils, CCR.Exif.XMPUtils;
 
 const
@@ -79,20 +80,17 @@ const
   leBadTagCount = CCR.Exif.BaseUtils.leBadTagCount;
   leBadTagHeader = CCR.Exif.BaseUtils.leBadTagHeader;
 
-  tdUndefined = CCR.Exif.TiffUtils.tdUndefined;
-
   StandardExifThumbnailWidth   = 160;
   StandardExifThumbnailHeight  = 120;
 
 type
 {$IFDEF FMX}
-  TGraphic = TBitmap;
+  TGraphic = FMX.Types.TBitmap;
 
-  TJPEGImage = class(TBitmap, IStreamPersist)
+  TJPEGImage = class(FMX.Types.TBitmap, IStreamPersist)
   public
     constructor Create; reintroduce;
     procedure SaveToStream(Stream: TStream);
-    property Empty: Boolean read IsEmpty;
   end;
 {$ENDIF}
 {$IF NOT Declared(TJPEGImage)}
@@ -175,7 +173,7 @@ type
     function GetOriginalDataOffset: LongWord;
     function GetParent: ITiffDirectory;
   protected
-    {$IFDEF WEAKREF}[Weak]{$ENDIF}FSection: TExifSection;
+    FSection: TExifSection;
     procedure Changing(NewID: TExifTagID; NewDataType: TExifDataType;
       NewElementCount: LongInt; NewData: Boolean);
     procedure Changed(ChangeType: TExifTagChangeType); overload;
@@ -224,24 +222,13 @@ type
   TExifSectionKind = esGeneral..esMakerNote;
 
   TExifSection = class(TNoRefCountInterfacedObject, ITiffDirectory)
-  private type
-    {$IFDEF HasGenerics}
-    TTagList = class(TList<TExifTag>)
-      constructor Create;
-    end;
-    {$ELSE}
-    TTagList = class(TList)
-    public
-      procedure Sort;
-    end;
-    {$ENDIF}
   public type
     TEnumerator = class sealed(TInterfacedObject, ITiffDirectoryEnumerator)
     private
       FCurrent: TExifTag;
       FIndex: Integer;
-      FTags: TTagList;
-      constructor Create(ATagList: TTagList);
+      FTags: TList;
+      constructor Create(ATagList: TList);
       function GetCurrent: ITiffTag;
     public
       function MoveNext: Boolean;
@@ -255,8 +242,8 @@ type
     FKind: TExifSectionKindEx;
     FLoadErrors: TExifSectionLoadErrors;
     FModified: Boolean;
-    {$IFDEF WEAKREF}[Weak]{$ENDIF}FOwner: TCustomExifData;
-    FTagList: TTagList;
+    FOwner: TCustomExifData;
+    FTagList: TList;
     procedure DoSetFractionValue(TagID: TExifTagID; Index: Integer;
       DataType: TExifDataType; const Value);
   protected
@@ -269,7 +256,7 @@ type
     function GetTagCount: Integer;
     function LoadSubDirectory(OffsetTagID: TTiffTagID): ITiffDirectory;
     { other }
-    constructor Create(const AOwner: TCustomExifData; AKind: TExifSectionKindEx);
+    constructor Create(AOwner: TCustomExifData; AKind: TExifSectionKindEx);
     function Add(ID: TExifTagID; DataType: TExifDataType; ElementCount: LongInt): TExifTag;
     procedure Changed;
     function CheckExtendable: TExtendableExifSection;
@@ -311,7 +298,7 @@ type
     procedure Remove(const IDs: array of TExifTagID); overload;
     function RemovePaddingTag: Boolean; //returns True if contained a padding tag
     function SetByteValue(TagID: TExifTagID; Index: Integer; Value: Byte): TExifTag;
-    procedure SetDateTimeValue(MainID, SubSecsID: TExifTagID; const DateTime: TDateTimeTagValue);
+    procedure SetDateTimeValue(MainID, SubSecsID: TExifTagID; const Value: TDateTimeTagValue);
     procedure SetFractionValue(TagID: TExifTagID; Index: Integer; const Value: TExifFraction);
     function SetLongWordValue(TagID: TExifTagID; Index: Integer; Value: LongWord): TExifTag;
     procedure SetSignedFractionValue(TagID: TExifTagID; Index: Integer;
@@ -352,57 +339,19 @@ type
 
   EInvalidMakerNoteFormat = class(EInvalidTiffData);
 
-  TObjectTagValue = class(TInterfacedPersistent)
-  strict private
-    {$IFDEF WEAKREF}[Weak]{$ENDIF}FOwner: TCustomExifData;
-  protected
-    constructor Create(const AOwner: TCustomExifData);
-    function GetOwner: TPersistent; override;
-    property Owner: TCustomExifData read FOwner;
-  public
-    function MissingOrInvalid: Boolean; virtual; abstract;
-    {$IFNDEF HasToString}
-    function ToString: string; virtual;
-    {$ENDIF}
-  end;
-
-  IEnumToCharMapper = interface
-  ['{B068C720-1832-4A3F-97F1-0321809EC33B}']
-    function EnumValueToChar(OrdValue: Integer): AnsiChar;
-    function CharToEnumValue(Ch: AnsiChar): Integer;
-    function GetEnumTypeInfo: PTypeInfo;
-    property EnumTypeInfo: PTypeInfo read GetEnumTypeInfo;
-  end;
-
-  IEnumToCharMapperEx = interface(IEnumToCharMapper)
-  ['{7911A192-BEA4-42A8-B1A7-EB5749972FB0}']
-    function GetEnumName(OrdValue: Integer): string;
-    function GetMinEnumValue: Integer;
-    function GetMaxEnumValue: Integer;
-    property MinEnumValue: Integer read GetMinEnumValue;
-    property MaxEnumValue: Integer read GetMaxEnumValue;
-  end;
-
-  TEnumObjectTagValue = class(TObjectTagValue)
-  strict private
-    FValidCharsToAssign: TSysCharSet;
-    function GetValidCharsToAssign: TSysCharSet;
-  protected
-    property ValidCharsToAssign: TSysCharSet read GetValidCharsToAssign;
-  end;
-
   TExifFlashMode = (efUnknown, efCompulsoryFire, efCompulsorySuppression, efAuto);
   TExifStrobeLight = (esNoDetectionFunction, esUndetected, esDetected);
 
   TWordBitEnum = 0..SizeOf(Word) * 8 - 1;
   TWordBitSet = set of TWordBitEnum;
 
-  TExifFlashInfo = class(TObjectTagValue)
+  TExifFlashInfo = class(TPersistent)
   strict private const
     FiredBit = 0;
     NotPresentBit = 5;
     RedEyeReductionBit = 6;
   strict private
+    FOwner: TCustomExifData;
     function GetBitSet: TWordBitSet;
     procedure SetBitSet(const Value: TWordBitSet);
     function GetFired: Boolean;
@@ -418,8 +367,9 @@ type
     function GetStrobeLight: TExifStrobeLight;
     procedure SetStrobeLight(const Value: TExifStrobeLight);
   public
+    constructor Create(AOwner: TCustomExifData);
     procedure Assign(Source: TPersistent); override;
-    function MissingOrInvalid: Boolean; override;
+    function MissingOrInvalid: Boolean;
     property BitSet: TWordBitSet read GetBitSet write SetBitSet stored False;
   published
     property Fired: Boolean read GetFired write SetFired stored False;
@@ -432,49 +382,47 @@ type
 
   TExifVersionElement = 0..9;
 
-  TCustomExifVersion = class abstract(TObjectTagValue)
+  TCustomExifVersion = class abstract(TPersistent)
   strict private
+    FOwner: TCustomExifData;
     function GetAsString: string;
     procedure SetAsString(const Value: string);
     function GetMajor: TExifVersionElement;
-    procedure SetMajor(Value: TExifVersionElement);
+//    procedure SetMajor(Value: TExifVersionElement);
     function GetMinor: TExifVersionElement;
-    procedure SetMinor(Value: TExifVersionElement);
+//    procedure SetMinor(Value: TExifVersionElement);
     function GetRelease: TExifVersionElement;
-    procedure SetRelease(Value: TExifVersionElement);
-  protected
+//    procedure SetRelease(Value: TExifVersionElement);
+    function GetFourthPart: TExifVersionElement;
+    function GetValue(Index: Integer): TExifVersionElement;
+    procedure SetValue(Index: Integer; Value: TExifVersionElement);
+  strict protected
     FMajorIndex: Integer;
     FSectionKind: TExifSectionKind;
     FStoreAsChar: Boolean;
     FTagID: TExifTagID;
     FTiffDataType: TTiffDataType;
-    constructor Create(const AOwner: TCustomExifData);
     procedure Initialize; virtual; abstract;
-    function GetValue(Index: Integer): TExifVersionElement; virtual;
-    procedure SetValue(Index: Integer; Value: TExifVersionElement); virtual;
   public
+    constructor Create(AOwner: TCustomExifData);
     procedure Assign(Source: TPersistent); override;
-    procedure Clear; virtual;
-    function MissingOrInvalid: Boolean; override;
+    function MissingOrInvalid: Boolean;
+    procedure SetAll(_Major, _Minor, _Release: TExifVersionElement; _FourthPart: TExifVersionElement = 0);
+    {$IFDEF HasToString}
     function ToString: string; override;
+    {$ENDIF}
     property AsString: string read GetAsString write SetAsString;
+    property Owner: TCustomExifData read FOwner;
   published
-    property Major: TExifVersionElement read GetMajor write SetMajor stored False;
-    property Minor: TExifVersionElement read GetMinor write SetMinor stored False;
-    property Release: TExifVersionElement read GetRelease write SetRelease stored False;
+    property Major: TExifVersionElement read GetMajor stored False;
+    property Minor: TExifVersionElement read GetMinor stored False;
+    property Release: TExifVersionElement read GetRelease stored False;
+    property FourthPart: TExifVersionElement read GetFourthPart stored False;
   end;
 
   TExifVersion = class(TCustomExifVersion)
-  strict private
-    FValues: array[1..3] of TExifVersionElement;
   protected
     procedure Initialize; override;
-    function GetValue(Index: Integer): TExifVersionElement; override;
-    procedure SetValue(Index: Integer; Value: TExifVersionElement); override;
-  public
-    constructor Create(const AOwner: TCustomExifData); overload;
-    constructor Create; overload;
-    procedure Clear; override;
   end;
 
   TFlashPixVersion = class(TCustomExifVersion)
@@ -523,27 +471,31 @@ type
   TExifWhiteBalanceMode = (ewTagMissing = -1, ewAuto, ewManual);
 {$Z1}
 
-  TCustomExifResolution = class(TObjectTagValue)
+  TCustomExifResolution = class(TPersistent)
   strict private
+    FOwner: TCustomExifData;
     FSchema: TXMPNamespace;
     FSection: TExifSection;
     FXTagID, FYTagID, FUnitTagID: TExifTagID;
     FXName, FYName, FUnitName: UnicodeString;
+    function GetUnit: TExifResolutionUnit;
+    function GetX: TExifFraction;
+    function GetY: TExifFraction;
+    procedure SetUnit(const Value: TExifResolutionUnit);
+    procedure SetX(const Value: TExifFraction);
+    procedure SetY(const Value: TExifFraction);
   protected
-    function GetUnit: TExifResolutionUnit; virtual;
-    function GetX: TExifFraction; virtual;
-    function GetY: TExifFraction; virtual;
-    procedure SetUnit(const Value: TExifResolutionUnit); virtual;
-    procedure SetX(const Value: TExifFraction); virtual;
-    procedure SetY(const Value: TExifFraction); virtual;
-    procedure GetTagInfo(var Section: TExifSectionKind;
-      var XTag, YTag, UnitTag: TExifTagID; var Schema: TXMPNamespace;
+    procedure GetTagInfo(var Section: TExifSectionKind; 
+      var XTag, YTag, UnitTag: TExifTagID; var Schema: TXMPNamespace; 
       var XName, YName, UnitName: UnicodeString); virtual; abstract;
+    property Owner: TCustomExifData read FOwner;
   public
-    constructor Create(const AOwner: TCustomExifData);
+    constructor Create(AOwner: TCustomExifData);
     procedure Assign(Source: TPersistent); override;
-    function MissingOrInvalid: Boolean; override;
+    function MissingOrInvalid: Boolean;
+    {$IFDEF HasToString}
     function ToString: string; override;
+    {$ENDIF}
     property Section: TExifSection read FSection;
   published
     property X: TExifFraction read GetX write SetX stored False;
@@ -551,30 +503,10 @@ type
     property Units: TExifResolutionUnit read GetUnit write SetUnit stored False;
   end;
 
-  TExifResolution = class(TCustomExifResolution) //standalone
-  strict private
-    FX, FY: TExifFraction;
-    FUnit: TExifResolutionUnit;
-  protected
-    function GetUnit: TExifResolutionUnit; override;
-    function GetX: TExifFraction; override;
-    function GetY: TExifFraction; override;
-    procedure SetUnit(const Value: TExifResolutionUnit); override;
-    procedure SetX(const Value: TExifFraction); override;
-    procedure SetY(const Value: TExifFraction); override;
-    procedure GetTagInfo(var Section: TExifSectionKind;
-      var XTag, YTag, UnitTag: TExifTagID; var Schema: TXMPNamespace;
-      var XName, YName, UnitName: UnicodeString); override;
-  public
-    constructor Create;
-    procedure Assign(Source: TPersistent); override;
-    function MissingOrInvalid: Boolean; override;
-  end;
-
   TImageResolution = class(TCustomExifResolution)
   protected
-    procedure GetTagInfo(var Section: TExifSectionKind;
-      var XTag, YTag, UnitTag: TExifTagID; var Schema: TXMPNamespace;
+    procedure GetTagInfo(var Section: TExifSectionKind; 
+      var XTag, YTag, UnitTag: TExifTagID; var Schema: TXMPNamespace; 
       var XName, YName, UnitName: UnicodeString); override;
   end;
 
@@ -587,17 +519,18 @@ type
 
   TThumbnailResolution = class(TCustomExifResolution)
   protected
-    procedure GetTagInfo(var Section: TExifSectionKind;
+    procedure GetTagInfo(var Section: TExifSectionKind; 
       var XTag, YTag, UnitTag: TExifTagID; var Schema: TXMPNamespace; 
       var XName, YName, UnitName: UnicodeString); override;
   end;
 
-  TISOSpeedRatings = class(TObjectTagValue)
+  TISOSpeedRatings = class(TPersistent)
   strict private const
     XMPSchema = xsExif;
     XMPKind = xpSeqArray;
     XMPName = UnicodeString('ISOSpeedRatings');
   strict private
+    FOwner: TCustomExifData;
     function GetAsString: string;
     procedure SetAsString(const Value: string);
     function GetCount: Integer;
@@ -607,10 +540,14 @@ type
   protected
     procedure Clear;
     function FindTag(VerifyDataType: Boolean; out Tag: TExifTag): Boolean;
+    property Owner: TCustomExifData read FOwner;
   public
+    constructor Create(AOwner: TCustomExifData);
     procedure Assign(Source: TPersistent); override;
-    function MissingOrInvalid: Boolean; override;
+    function MissingOrInvalid: Boolean;
+    {$IFDEF HasToString}
     function ToString: string; override;
+    {$ENDIF}
     property Items[Index: Integer]: Word read GetItem write SetItem; default;
   published
     property AsString: string read GetAsString write SetAsString stored False;
@@ -622,7 +559,10 @@ type
 
   TGPSLatitudeRef = (ltMissingOrInvalid, ltNorth, ltSouth);
   TGPSLongitudeRef = (lnMissingOrInvalid, lnWest, lnEast);
-  TGPSAltitudeRef = (alTagMissing = -1, alAboveSeaLevel, alBelowSeaLevel); //!!!corrected v1.5.2
+  // alTagMissing can either mean that the tag is missing or that the tag's value is invalid
+  // so it should really be alMissingOrInvalid
+  // 2021-05-28 twm
+  TGPSAltitudeRef = (alTagMissing, alAboveSeaLevel, alBelowSeaLevel);
   TGPSStatus = (stMissingOrInvalid, stMeasurementActive, stMeasurementVoid);
   TGPSMeasureMode = (mmUnknown, mm2D, mm3D);
   TGPSSpeedRef = (srMissingOrInvalid, srKilometresPerHour, srMilesPerHour, srKnots); //Exif spec makes KM/h the default value
@@ -631,170 +571,40 @@ type
 {$Z2}
   TGPSDifferential = (dfTagMissing = -1, dfWithoutCorrection, dfCorrectionApplied);
 {$Z1}
-
-  TCustomGPSFraction = class(TEnumObjectTagValue)
+  TGPSCoordinate = class(TPersistent)
   strict private
-    FMainTagID, FRefTagID: TExifTagID;
-    function GetDenominator: LongWord;
-    function GetNumerator: LongWord;
-    function GetQuotient: Extended;
-  protected
-    constructor Create(const AOwner: TCustomExifData;
-      AMainTagID, ARefTagID: TExifTagID); overload;
-    function GetValue: TExifFraction; virtual;
-    procedure SetValue(const Value: TExifFraction); virtual;
-    function GetRefChar: AnsiChar; virtual;
-    procedure SetRefChar(const Value: AnsiChar); virtual;
-    property MainTagID: TExifTagID read FMainTagID;
-    property RefTagID: TExifTagID read FRefTagID;
-  public
-    procedure Assign(Source: TPersistent); override;
-    function MissingOrInvalid: Boolean; override;
-    function ToString: string; override;
-    property Numerator: LongWord read GetNumerator;
-    property Denominator: LongWord read GetDenominator;
-    property Quotient: Extended read GetQuotient;
-    property Ref: AnsiChar read GetRefChar write SetRefChar;
-    property Value: TExifFraction read GetValue write SetValue;
-  end;
-
-  TGPSFraction = class(TCustomGPSFraction) //standalone
-  strict private
-    FRefChar: AnsiChar;
-    FValue: TExifFraction;
-  protected
-    function GetValue: TExifFraction; override;
-    procedure SetValue(const NewValue: TExifFraction); override;
-    function GetRefChar: AnsiChar; override;
-    procedure SetRefChar(const Value: AnsiChar); override;
-  public
-    constructor Create;
-  end;
-
-  TGPSAltitude = class(TCustomGPSFraction, IEnumToCharMapper, IEnumToCharMapperEx)
-  strict private
-    function GetRef: TGPSAltitudeRef;
-    procedure SetRef(const Value: TGPSAltitudeRef);
-  protected
-    function GetRefChar: AnsiChar; override;
-    procedure SetRefChar(const Value: AnsiChar); override;
-    { IEnumToCharMapper/Ex - no RTTI, so need to provide min and max ordinal values explicitly }
-    function EnumValueToChar(OrdValue: Integer): AnsiChar;
-    function CharToEnumValue(Ch: AnsiChar): Integer;
-    function GetEnumTypeInfo: PTypeInfo;
-    function GetMinEnumValue: Integer;
-    function GetMaxEnumValue: Integer;
-    function GetEnumName(OrdValue: Integer): string;
-  public
-    function ToString: string; override;
-    property Ref: TGPSAltitudeRef read GetRef write SetRef;
-  end;
-
-  TGPSSpeed = class(TCustomGPSFraction, IEnumToCharMapper)
-  strict private
-    function GetRef: TGPSSpeedRef; inline;
-    procedure SetRef(const Value: TGPSSpeedRef); inline;
-  protected
-    { IEnumToCharMapper }
-    function EnumValueToChar(OrdValue: Integer): AnsiChar;
-    function CharToEnumValue(Ch: AnsiChar): Integer;
-    function GetEnumTypeInfo: PTypeInfo;
-  public
-    function ToString: string; override;
-    property Ref: TGPSSpeedRef read GetRef write SetRef;
-  end;
-
-  TCustomGPSFractionWithDirection = class(TCustomGPSFraction, IEnumToCharMapper)
-  strict private
-    function GetRef: TGPSDirectionRef; inline;
-    procedure SetRef(const Value: TGPSDirectionRef); inline;
-  protected
-    { IEnumToCharMapper }
-    function EnumValueToChar(OrdValue: Integer): AnsiChar;
-    function CharToEnumValue(Ch: AnsiChar): Integer;
-    function GetEnumTypeInfo: PTypeInfo;
-  public
-    function ToString: string; override;
-    property Ref: TGPSDirectionRef read GetRef write SetRef;
-  end;
-
-  TGPSTrack = class(TCustomGPSFractionWithDirection)
-  end;
-
-  TGPSImgDirection = class(TCustomGPSFractionWithDirection)
-  end;
-
-  TGPSDestBearing = class(TCustomGPSFractionWithDirection)
-  end;
-
-  TGPSDestDistance = class(TCustomGPSFraction, IEnumToCharMapper)
-  strict private
-    function GetRef: TGPSDistanceRef; inline;
-    procedure SetRef(const Value: TGPSDistanceRef); inline;
-  protected
-    { IEnumToCharMapper }
-    function EnumValueToChar(OrdValue: Integer): AnsiChar;
-    function CharToEnumValue(Ch: AnsiChar): Integer;
-    function GetEnumTypeInfo: PTypeInfo;
-  public
-    function ToString: string; override;
-    property Ref: TGPSDistanceRef read GetRef write SetRef;
-  end;
-
-  TCustomGPSCoordinate = class(TEnumObjectTagValue)
-  strict private
+    FOwner: TCustomExifData;
     FRefTagID, FTagID: TExifTagID;
     FXMPName: UnicodeString;
-    procedure AssignCoordinate(Source: TCustomGPSCoordinate);
+    function GetAsString: string;
+    function GetDirectionChar: AnsiChar;
+    function GetValue(Index: Integer): TExifFraction;
+    procedure SetDirectionChar(NewChar: AnsiChar);
   protected
-    constructor Create(const AOwner: TCustomExifData; const ATagID: TExifTagID); overload;
     procedure Assign(const ADegrees, AMinutes, ASeconds: TExifFraction;
-      ADirectionChar: AnsiChar); reintroduce; overload; virtual;
-    function GetDirectionChar: AnsiChar; virtual;
-    function GetValue(Index: Integer): TExifFraction; virtual;
-    procedure SetDirectionChar(NewChar: AnsiChar); virtual;
-    function TryGetTag(out Tag: TExifTag): Boolean;
+      ADirectionChar: AnsiChar); reintroduce; overload;
+    property Owner: TCustomExifData read FOwner;
     property RefTagID: TExifTagID read FRefTagID;
     property TagID: TExifTagID read FTagID;
     property XMPName: UnicodeString read FXMPName;
   public
+    constructor Create(AOwner: TCustomExifData; ATagID: TExifTagID);
     procedure Assign(Source: TPersistent); overload; override;
-    function MissingOrInvalid: Boolean; override;
+    function MissingOrInvalid: Boolean;
+    {$IFDEF HasToString}
     function ToString: string; override;
+    {$ENDIF}
     property Degrees: TExifFraction index 0 read GetValue;
     property Minutes: TExifFraction index 1 read GetValue;
     property Seconds: TExifFraction index 2 read GetValue;
-    property Direction: AnsiChar read GetDirectionChar write SetDirectionChar; //not DirectionChar so that it gets hidden by properly typed version in descendant classes
+    property Direction: AnsiChar read GetDirectionChar write SetDirectionChar;
   published
-    property AsString: string read ToString;
+    property AsString: string read GetAsString;
   end;
 
-  TGPSCoordinate = class(TCustomGPSCoordinate) //standalone
+  TGPSLatitude = class(TGPSCoordinate)
   strict private
-    FDirectionChar: AnsiChar;
-    FValues: array[0..2] of TExifFraction;
-  protected
-    procedure AssignTo(Dest: TPersistent); override;
-    function GetDirectionChar: AnsiChar; override;
-    function GetValue(Index: Integer): TExifFraction; override;
-    procedure SetDirectionChar(NewChar: AnsiChar); override;
-  public
-    constructor Create;
-    procedure Assign(const ADegrees, AMinutes, ASeconds: TExifFraction;
-      ADirectionChar: AnsiChar); override;
-    property Degrees write FValues[0];
-    property Minutes write FValues[1];
-    property Seconds write FValues[2];
-  end;
-
-  TGPSLatitude = class(TCustomGPSCoordinate, IEnumToCharMapper)
-  strict private
-    function GetDirection: TGPSLatitudeRef; inline;
-  protected
-    { IEnumToCharMapper }
-    function EnumValueToChar(OrdValue: Integer): AnsiChar;
-    function CharToEnumValue(Ch: AnsiChar): Integer;
-    function GetEnumTypeInfo: PTypeInfo;
+    function GetDirection: TGPSLatitudeRef;
   public
     procedure Assign(const ADegrees, AMinutes, ASeconds: TExifFraction;
       ADirection: TGPSLatitudeRef); reintroduce; overload;
@@ -807,14 +617,9 @@ type
     property Direction: TGPSLatitudeRef read GetDirection;
   end;
 
-  TGPSLongitude = class(TCustomGPSCoordinate, IEnumToCharMapper)
+  TGPSLongitude = class(TGPSCoordinate)
   strict private
-    function GetDirection: TGPSLongitudeRef; inline;
-  protected
-    { IEnumToCharMapper }
-    function EnumValueToChar(OrdValue: Integer): AnsiChar;
-    function CharToEnumValue(Ch: AnsiChar): Integer;
-    function GetEnumTypeInfo: PTypeInfo;
+    function GetDirection: TGPSLongitudeRef;
   public
     procedure Assign(const ADegrees, AMinutes, ASeconds: TExifFraction;
       ADirection: TGPSLongitudeRef); reintroduce; overload;
@@ -865,16 +670,8 @@ type
   end;
 
   THeaderlessMakerNote = class(TExifMakerNote) //special type tried as a last resort; also serves as a
-  protected                                    //nominal base class for a few of the concrete implementations
+  protected                                    //nominal base class for two of the concrete implementations
     class function FormatIsOK(SourceTag: TExifTag; out HeaderSize: Integer): Boolean; override;
-  end;
-
-  TAppleMakerNote = class(TExifMakerNote)
-  protected
-    const Header: array[0..13] of AnsiChar = 'Apple iOS'#0#0#1'MM';
-    class function FormatIsOK(SourceTag: TExifTag; out HeaderSize: Integer): Boolean; override;
-    procedure GetIFDInfo(SourceTag: TExifTag; var ProbableEndianness: TEndianness;
-      var DataOffsetsType: TExifDataOffsetsType); override;
   end;
 
   TCanonMakerNote = class(THeaderlessMakerNote)
@@ -882,17 +679,6 @@ type
     class function FormatIsOK(SourceTag: TExifTag; out HeaderSize: Integer): Boolean; override;
     procedure GetIFDInfo(SourceTag: TExifTag; var ProbableEndianness: TEndianness;
       var DataOffsetsType: TExifDataOffsetsType); override;
-  end;
-
-  TCasioMakerNote = class(THeaderlessMakerNote)
-  protected
-    class function FormatIsOK(SourceTag: TExifTag; out HeaderSize: Integer): Boolean; override;
-  end;
-
-  TCasio2MakerNote = class(TExifMakerNote)
-  protected
-    const Header: array[0..5] of AnsiChar = 'QVC';
-    class function FormatIsOK(SourceTag: TExifTag; out HeaderSize: Integer): Boolean; override;
   end;
 
   TKodakMakerNote = class(TExifMakerNote) //!!!work in very early progress
@@ -911,11 +697,6 @@ type
     procedure GetIFDInfo(SourceTag: TExifTag; var Endianness: TEndianness;
       var DataOffsetsType: TExifDataOffsetsType); override;
   end experimental;
-
-  TKonicaMinoltaMakerNote = class(THeaderlessMakerNote)
-  protected
-    class function FormatIsOK(SourceTag: TExifTag; out HeaderSize: Integer): Boolean; override;
-  end;
 
   TPanasonicMakerNote = class(TExifMakerNote)
   protected
@@ -1005,13 +786,6 @@ type
     TMakerNoteTypePriority = (mtTestForLast, mtTestForFirst);
   strict private class var
     Diag35mm: Extended;
-    FMakerNoteClasses: TClassList;
-  private
-    class procedure InitializeClass(const MakerNoteClasses: array of TExifMakerNoteClass);
-    class procedure FinalizeClass;
-    procedure SetGPSDestBearing(const Value: TGPSDestBearing);
-    procedure SetGPSImgDirection(const Value: TGPSImgDirection);
-    procedure SetGPSTrack(const Value: TGPSTrack);
   strict private
     FAlwaysWritePreciseTimes: Boolean;
     FChangedWhileUpdating: Boolean;
@@ -1023,14 +797,8 @@ type
     FFlash: TExifFlashInfo;
     FFlashPixVersion: TCustomExifVersion;
     FFocalPlaneResolution: TCustomExifResolution;
-    FGPSAltitude: TGPSAltitude;
-    FGPSDestBearing: TGPSDestBearing;
-    FGPSDestDistance: TGPSDestDistance;
-    FGPSImgDirection: TGPSImgDirection;
     FGPSLatitude, FGPSDestLatitude: TGPSLatitude;
     FGPSLongitude, FGPSDestLongitude: TGPSLongitude;
-    FGPSSpeed: TGPSSpeed;
-    FGPSTrack: TGPSTrack;
     FGPSVersion: TCustomExifVersion;
     FInteropVersion: TCustomExifVersion;
     FISOSpeedRatings: TISOSpeedRatings;
@@ -1080,9 +848,12 @@ type
     procedure SetResolution(Value: TCustomExifResolution);
     procedure SetThumbnailResolution(Value: TCustomExifResolution);
     procedure SetGPSVersion(Value: TCustomExifVersion);
-    procedure SetGPSAltitude(const Value: TGPSAltitude);
     procedure SetGPSLatitude(Value: TGPSLatitude);
     procedure SetGPSLongitude(Value: TGPSLongitude);
+    function GetGPSAltitudeRef: TGPSAltitudeRef;
+    procedure SetGPSAltitudeRef(const Value: TGPSAltitudeRef);
+    function GetGPSFraction(TagID: Integer): TExifFraction;
+    procedure SetGPSFraction(TagID: Integer; const Value: TExifFraction);
     function GetGPSDateTimeUTC: TDateTimeTagValue;
     procedure SetGPSDateTimeUTC(const Value: TDateTimeTagValue);
     function GetGPSTimeStamp(const Index: Integer): TExifFraction;
@@ -1093,10 +864,14 @@ type
     procedure SetGPSStatus(const Value: TGPSStatus);
     function GetGPSMeasureMode: TGPSMeasureMode;
     procedure SetGPSMeasureMode(const Value: TGPSMeasureMode);
-    procedure SetGPSSpeed(const Value: TGPSSpeed);
+    function GetGPSSpeedRef: TGPSSpeedRef;
+    procedure SetGPSSpeedRef(const Value: TGPSSpeedRef);
+    function GetGPSDirection(TagID: Integer): TGPSDirectionRef;
+    procedure SetGPSDirection(TagID: Integer; Value: TGPSDirectionRef);
     procedure SetGPSDestLatitude(Value: TGPSLatitude);
     procedure SetGPSDestLongitude(Value: TGPSLongitude);
-    procedure SetGPSDestDistance(const Value: TGPSDestDistance);
+    function GetGPSDestDistanceRef: TGPSDistanceRef;
+    procedure SetGPSDestDistanceRef(const Value: TGPSDistanceRef);
     function GetGPSDifferential: TGPSDifferential;
     procedure SetGPSDifferential(Value: TGPSDifferential);
     function GetColorSpace: TExifColorSpace;
@@ -1155,15 +930,15 @@ type
   protected
     const MaxThumbnailSize = $F000;
     class function SectionClass: TExifSectionClass; virtual;
-    procedure AddFromStream(Stream: TStream; TiffImageSource: Boolean = False);
+    procedure AddFromStream(Stream: TStream; TiffImageSource: Boolean = False); 
     procedure Changed(Section: TExifSection); virtual;
     function GetEmpty: Boolean;
-    function GetGPSFraction(TagID: Integer): TExifFraction;
-    procedure SetGPSFraction(TagID: Integer; const Value: TExifFraction);
     function LoadFromGraphic(Stream: TStream): Boolean;
     procedure ResetMakerNoteType;
     property OffsetBase: Int64 read FOffsetBase;
     property Thumbnail: TJPEGImage read GetThumbnail write SetThumbnail stored False;
+  private class var
+    FMakerNoteClasses: TList;
   public
     class procedure RegisterMakerNoteType(AClass: TExifMakerNoteClass;
       Priority: TMakerNoteTypePriority = mtTestForFirst);
@@ -1171,7 +946,7 @@ type
       Priority: TMakerNoteTypePriority = mtTestForFirst);
     class procedure UnregisterMakerNoteType(AClass: TExifMakerNoteClass);
   public
-    constructor Create(AOwner: TComponent = nil); overload; override;
+    constructor Create(AOwner: TComponent = nil); overload; override; 
     destructor Destroy; override;
     function GetEnumerator: TEnumerator;
     procedure Clear(XMPPacketToo: Boolean = True);
@@ -1181,7 +956,7 @@ type
     procedure SetKeywords(const NewWords: array of UnicodeString); overload;
     procedure SetKeywords(NewWords: TStrings); overload;
     function HasMakerNote: Boolean;
-    function HasThumbnail: Boolean;
+    function HasThumbnail: Boolean; inline;
     procedure Rewrite;
     procedure SetAllDateTimeValues(const NewValue: TDateTimeTagValue);
     function ShutterSpeedInMSecs: Extended;
@@ -1273,21 +1048,27 @@ type
     property InteropVersion: TCustomExifVersion read FInteropVersion write SetInteropVersion stored False;
     { GPS }
     property GPSVersion: TCustomExifVersion read FGPSVersion write SetGPSVersion stored False;
-    property GPSLatitude: TGPSLatitude read FGPSLatitude write SetGPSLatitude stored False;
-    property GPSLongitude: TGPSLongitude read FGPSLongitude write SetGPSLongitude stored False;
-    property GPSAltitude: TGPSAltitude read FGPSAltitude write SetGPSAltitude stored False;
+    property GPSLatitude: TGPSLatitude read FGPSLatitude write SetGPSLatitude;
+    property GPSLongitude: TGPSLongitude read FGPSLongitude write SetGPSLongitude;
+    property GPSAltitudeRef: TGPSAltitudeRef read GetGPSAltitudeRef write SetGPSAltitudeRef stored False;
+    property GPSAltitude: TExifFraction index ttGPSAltitude read GetGPSFraction write SetGPSFraction stored False;
     property GPSSatellites: string index ttGPSSatellites read GetGPSString write SetGPSString stored False;
     property GPSStatus: TGPSStatus read GetGPSStatus write SetGPSStatus stored False;
     property GPSMeasureMode: TGPSMeasureMode read GetGPSMeasureMode write SetGPSMeasureMode stored False;
     property GPSDOP: TExifFraction index ttGPSDOP read GetGPSFraction write SetGPSFraction stored False;
-    property GPSSpeed: TGPSSpeed read FGPSSpeed write SetGPSSpeed stored False;
-    property GPSTrack: TGPSTrack read FGPSTrack write SetGPSTrack stored False;
-    property GPSImgDirection: TGPSImgDirection read FGPSImgDirection write SetGPSImgDirection stored False;
-    property GPSMapDatum: string index ttGPSMapDatum read GetGPSString write SetGPSString stored False;
-    property GPSDestLatitude: TGPSLatitude read FGPSDestLatitude write SetGPSDestLatitude stored False;
-    property GPSDestLongitude: TGPSLongitude read FGPSDestLongitude write SetGPSDestLongitude stored False;
-    property GPSDestBearing: TGPSDestBearing read FGPSDestBearing write SetGPSDestBearing stored False;
-    property GPSDestDistance: TGPSDestDistance read FGPSDestDistance write SetGPSDestDistance stored False;
+    property GPSSpeedRef: TGPSSpeedRef read GetGPSSpeedRef write SetGPSSpeedRef stored False;
+    property GPSSpeed: TExifFraction index ttGPSSpeed read GetGPSFraction write SetGPSFraction stored False;
+    property GPSTrackRef: TGPSDirectionRef index ttGPSTrackRef read GetGPSDirection write SetGPSDirection stored False;
+    property GPSTrack: TExifFraction index ttGPSTrack read GetGPSFraction write SetGPSFraction;
+    property GPSImgDirectionRef: TGPSDirectionRef index ttGPSImgDirectionRef read GetGPSDirection write SetGPSDirection stored False;
+    property GPSImgDirection: TExifFraction index ttGPSImgDirection read GetGPSFraction write SetGPSFraction;
+    property GPSMapDatum: string index ttGPSMapDatum read GetGPSString write SetGPSString;
+    property GPSDestLatitude: TGPSLatitude read FGPSDestLatitude write SetGPSDestLatitude;
+    property GPSDestLongitude: TGPSLongitude read FGPSDestLongitude write SetGPSDestLongitude;
+    property GPSDestBearingRef: TGPSDirectionRef index ttGPSDestBearingRef read GetGPSDirection write SetGPSDirection stored False;
+    property GPSDestBearing: TExifFraction index ttGPSDestBearing read GetGPSFraction write SetGPSFraction stored False;
+    property GPSDestDistanceRef: TGPSDistanceRef read GetGPSDestDistanceRef write SetGPSDestDistanceRef stored False;
+    property GPSDestDistance: TExifFraction index ttGPSDestDistance read GetGPSFraction write SetGPSFraction stored False;
     property GPSDifferential: TGPSDifferential read GetGPSDifferential write SetGPSDifferential stored False;
     property GPSDateTimeUTC: TDateTimeTagValue read GetGPSDateTimeUTC write SetGPSDateTimeUTC stored False;
     { GPS tags whose data are rolled into the GPSDataTimeUTC property, so don't display them for the sake of it }
@@ -1322,8 +1103,8 @@ type
     { the following two methods originally had params typed to TJpegImage; these
       have been made more weakly typed for FMX compatibility }
     {$IF CompilerVersion >= 22}
-    procedure GetImage<T: TPersistent, IStreamPersist>(const Dest: T);
-    procedure GetThumbnail<T: TPersistent, IStreamPersist>(const Dest: T);
+    procedure GetImage<T: TPersistent, IStreamPersist>(Dest: T);
+    procedure GetThumbnail<T: TPersistent, IStreamPersist>(Dest: T);
     {$ELSE}
     procedure GetImage(const Dest: IStreamPersist);
     procedure GetThumbnail(Dest: TPersistent);
@@ -1361,14 +1142,6 @@ type
       ThumbnailHeight: Integer = StandardExifThumbnailHeight);
     procedure StandardizeThumbnail;
     {$IFEND}
-    class function IsSupportedGraphic(Stream: TStream): Boolean; overload;
-    class function IsSupportedGraphic(const FileName: string): Boolean; overload;
-    {$IFDEF FMX}
-    function LoadFromBitmap(const Bitmap: TBitmap): Boolean; overload; inline;
-    function LoadFromBitmap(const FileName: string): Boolean; overload; inline;
-    procedure SaveToBitmap(const Bitmap: TBitmap); overload;
-    procedure SaveToBitmap(const FileName: string); overload;
-    {$ENDIF FMX}
     function LoadFromGraphic(Stream: TStream): Boolean; overload; inline;
     function LoadFromGraphic(const Graphic: IStreamPersist): Boolean; overload;
     function LoadFromGraphic(const FileName: string): Boolean; overload;
@@ -1377,9 +1150,16 @@ type
     procedure RemovePaddingTags;
     procedure SaveToGraphic(const FileName: string); overload;
     procedure SaveToGraphic(const Graphic: IStreamPersist); overload;
-    procedure SaveToGraphic(const InMemoryGraphic: TCustomMemoryStream); overload;
     procedure SaveToStream(Stream: TStream);
     property Sections[Section: TExifSectionKind]: TExtendableExifSection read GetSection; default;
+  {$IF DECLARED(TJPEGData)}
+  public //deprecated methods - to be removed in a future release
+    procedure LoadFromJPEG(JPEGStream: TStream); overload; deprecated {$IFDEF DepCom}'Use LoadFromGraphic'{$ENDIF};
+    procedure LoadFromJPEG(JPEGImage: TJPEGImage); overload; inline; deprecated {$IFDEF DepCom}'Use LoadFromGraphic'{$ENDIF};
+    procedure LoadFromJPEG(const FileName: string); overload; inline; deprecated {$IFDEF DepCom}'Use LoadFromGraphic'{$ENDIF};
+    procedure SaveToJPEG(const JPEGFileName: string; Dummy: Boolean = True); overload; inline; deprecated {$IFDEF DepCom}'Use SaveToGraphic'{$ENDIF};
+    procedure SaveToJPEG(JPEGImage: TJPEGImage); overload; inline; deprecated {$IFDEF DepCom}'Use SaveToGraphic'{$ENDIF};
+  {$IFEND}
   published
     property RemovePaddingTagsOnSave: Boolean read FRemovePaddingTagsOnSave write
       FRemovePaddingTagsOnSave default True;
@@ -1430,6 +1210,9 @@ function ContainsOnlyASCII(const S: RawByteString): Boolean; overload;
 function DateTimeToExifString(const DateTime: TDateTime): string;
 function TryExifStringToDateTime(const S: string; var DateTime: TDateTime): Boolean; overload;
 
+function HasExifHeader(Stream: TStream;
+  MovePosOnSuccess: Boolean = False): Boolean; deprecated; //use Segment.HasExifHeader
+
 function ProportionallyResizeExtents(const Width, Height: Integer;
   const MaxWidth, MaxHeight: Integer): TSize;
 
@@ -1441,14 +1224,14 @@ function RemoveMetadataFromJPEG(const JPEGFileName: string;
 function RemoveMetadataFromJPEG(JPEGImage: TJPEGImage;
   Kinds: TJPEGMetadataKinds = AllJPEGMetaDataKinds): TJPEGMetadataKinds; overload;
 
-function GetEnumToCharMapperEx(const RegularMapper: IEnumToCharMapper): IEnumToCharMapperEx; //queries for IEnumToCharMapperEx, and if not supported, creates a generic implementation
-
 implementation
 
 uses
-  {$IFDEF POSIX}Posix.Unistd,{$ENDIF} //to quell braindead H2443 compiler hint (to make it worse, the XE3 impl involves upteen function calls - one more isn't going to make a significant difference!)
-  {$IFDEF BrokenFMXJpegExport}System.Diagnostics, System.IOUtils,{$ENDIF}
-  SysConst, RTLConsts, Math, DateUtils, StrUtils, CCR.Exif.Consts;
+  SysConst, RTLConsts, Math, DateUtils, StrUtils,
+{$IF CompilerVersion >= 24} // Delphi XE3 / BDS 10
+  AnsiStrings,
+{$IFEND}
+  CCR.Exif.Consts;
 
 type
   PExifFractionArray = ^TExifFractionArray;
@@ -1495,12 +1278,12 @@ begin
     end;
 end;
 
-{$IFDEF HasFormatSettings}
+{$IF CompilerVersion >= 22}
 function DecimalSeparator: Char; inline; //avoid compiler warning about deprecated symbol
 begin
   Result := FormatSettings.DecimalSeparator;
 end;
-{$ENDIF}
+{$IFEND}
 
 {$IF Declared(TGraphic)}
 function IsGraphicEmpty(AGraphic: TGraphic): Boolean; inline;
@@ -1518,10 +1301,8 @@ begin
   {$IFDEF VCL}
   ADest.StretchDraw(ARect, AGraphic);
   {$ELSE}
-  ADest.BeginScene;
   ADest.DrawBitmap(AGraphic, RectF(0, 0, AGraphic.Width, AGraphic.Height),
     RectF(ARect.Left, ARect.Top, ARect.Right, ARect.Bottom), 1);
-  ADest.EndScene;
   {$ENDIF}
 end;
 {$ELSE}
@@ -1623,7 +1404,7 @@ begin
   end;
 end;
 
-{$IF Declared(TBitmap)}
+{$IF DECLARED(TBitmap)}
 function CreateNewBitmap(const AWidth, AHeight: Integer): TBitmap;
 begin
   {$IFDEF VCL}
@@ -1751,71 +1532,6 @@ begin
   end;
 end;
 
-{ GetEnumToCharMapperEx }
-
-type
-  TEnumToCharMapperEx = class(TInterfacedObject, IEnumToCharMapperEx)
-  strict private
-    FTypeInfo: PTypeInfo;
-    FRegularMapper: IEnumToCharMapper;
-  protected
-    function GetEnumName(OrdValue: Integer): string;
-    function GetMinEnumValue: Integer;
-    function GetMaxEnumValue: Integer;
-    function CharToEnumValue(Ch: AnsiChar): Integer;
-    function EnumValueToChar(OrdValue: Integer): AnsiChar;
-    function GetEnumTypeInfo: PTypeInfo;
-  public
-    constructor Create(const RegularMapper: IEnumToCharMapper);
-  end;
-
-constructor TEnumToCharMapperEx.Create(const RegularMapper: IEnumToCharMapper);
-begin
-  inherited Create;
-  FRegularMapper := RegularMapper;
-  FTypeInfo := RegularMapper.EnumTypeInfo;
-  if FTypeInfo = nil then
-    raise EInvalidOperation.Create('IEnumToCharMapper.EnumTypeInfo must not return nil');
-end;
-
-function TEnumToCharMapperEx.CharToEnumValue(Ch: AnsiChar): Integer;
-begin
-  Result := FRegularMapper.CharToEnumValue(Ch);
-end;
-
-function TEnumToCharMapperEx.EnumValueToChar(OrdValue: Integer): AnsiChar;
-begin
-  Result := FRegularMapper.EnumValueToChar(OrdValue);
-end;
-
-function TEnumToCharMapperEx.GetEnumName(OrdValue: Integer): string;
-begin
-  Result := TypInfo.GetEnumName(FTypeInfo, OrdValue)
-end;
-
-function TEnumToCharMapperEx.GetEnumTypeInfo: PTypeInfo;
-begin
-  Result := FTypeInfo;
-end;
-
-function TEnumToCharMapperEx.GetMinEnumValue: Integer;
-begin
-  Result := GetTypeData(FTypeInfo).MinValue;
-end;
-
-function TEnumToCharMapperEx.GetMaxEnumValue: Integer;
-begin
-  Result := GetTypeData(FTypeInfo).MaxValue;
-end;
-
-function GetEnumToCharMapperEx(const RegularMapper: IEnumToCharMapper): IEnumToCharMapperEx;
-begin
-  if not Supports(RegularMapper, IEnumToCharMapperEx, Result) then
-    Result := TEnumToCharMapperEx.Create(RegularMapper);
-end;
-
-{ TJPEGImage }
-
 {$IFDEF FMX}
 constructor TJPEGImage.Create;
 begin
@@ -1823,50 +1539,16 @@ begin
 end;
 
 procedure TJPEGImage.SaveToStream(Stream: TStream);
-{$IF DEFINED(VER230)}
 var
-  Codec: TBitmapCodec;
+  Filter: TBitmapCodec;
 begin
-  Codec := DefaultBitmapCodecClass.Create;
+  Filter := DefaultBitmapCodecClass.Create;
   try
-    Codec.SaveToStream(Stream, TBitmap(Self), 'jpeg');
+    Filter.SaveToStream(Stream, TBitmap(Self), 'jpeg');
   finally
-    Codec.Free;
+    Filter.Free;
   end;
 end;
-{$ELSEIF DEFINED(BrokenFMXJpegExport)} //QC108621
-var
-  FileStream: TFileStream;
-  TempFN: string;
-begin
-  FileStream := nil;
-  TempFN := IncludeTrailingPathDelimiter(TPath.GetTempPath) + IntToStr(TStopwatch.GetTimeStamp) + '.jpg';
-  try
-    TBitmapCodecManager.SaveToFile(TempFN, Self);
-    FileStream := TFileStream.Create(TempFN, fmOpenRead or fmShareDenyWrite);
-    Stream.CopyFrom(FileStream, 0);
-  finally
-    FileStream.Free;
-    DeleteFile(TempFN);
-  end;
-end;
-{$ELSEIF Declared(TBitmapSurface)}
-var
-  Surf: TBitmapSurface;
-begin
-  Surf := TBitmapSurface.Create;
-  try
-    Surf.Assign(Self);
-    TBitmapCodecManager.SaveToStream(Stream, Surf, '.jpg');
-  finally
-    Surf.Free;
-  end;
-end;
-{$ELSE}
-begin
-  TBitmapCodecManager.SaveToStream(Stream, Self, 'jpg');
-end;
-{$IFEND}
 {$ENDIF}
 
 { segment header checking }
@@ -1996,11 +1678,7 @@ end;
 
 procedure TExifTag.Delete;
 begin
-  {$IFDEF NEXTGEN}
-  DisposeOf;
-  {$ELSE}
   Free;
-  {$ENDIF}
 end;
 
 function NextElementStr(DataType: TExifDataType; var SeekPtr: PAnsiChar): string;
@@ -2015,7 +1693,7 @@ begin
     tdLongInt, tdSubDirectory: Result := IntToStr(PLongInt(SeekPtr)^);
     tdSingle: Result := FloatToStr(PSingle(SeekPtr)^);
     tdDouble: Result := FloatToStr(PDouble(SeekPtr)^);
-    tdLongWordFraction, tdLongIntFraction: Result := PExifFraction(SeekPtr).ToString;
+    tdLongWordFraction, tdLongIntFraction: Result := PExifFraction(SeekPtr).AsString;
   end;
   Inc(SeekPtr, TiffElementSizes[DataType]);
 end;
@@ -2058,7 +1736,6 @@ end;
 
 procedure TExifTag.SetAsString(const Value: string);
 var
-  Bytes: TBytes;
   Buffer: TiffString;
   S: string;
   List: TStringList;
@@ -2078,11 +1755,10 @@ begin
       end;
       tdUndefined:
       begin
-        Bytes := HexStrToBin(Value);
-        if Bytes <> nil then
-          UpdateData(tdUndefined, Length(Bytes), Bytes[0])
-        else
-          UpdateData(tdUndefined, 0, Pointer(nil)^)
+        SetLength(Buffer, Length(Value) div 2);
+        SeekPtr := PAnsiChar(Buffer);
+        HexToBin(PChar(LowerCase(Value)), SeekPtr, Length(Buffer));
+        UpdateData(tdUndefined, Length(Buffer), SeekPtr^);
       end;
     else
       if HasWindowsStringData then
@@ -2374,7 +2050,7 @@ end;
 
 { TExifSection.TEnumerator }
 
-constructor TExifSection.TEnumerator.Create(ATagList: TTagList);
+constructor TExifSection.TEnumerator.Create(ATagList: TList);
 begin
   FCurrent := nil;
   FIndex := 0;
@@ -2388,42 +2064,19 @@ end;
 
 function TExifSection.TEnumerator.MoveNext: Boolean;
 begin //allow deleting a tag when enumerating
-  if (FCurrent <> nil) and (FIndex < FTags.Count) and (FCurrent = FTags[FIndex]) then
+  if (FCurrent <> nil) and (FIndex < FTags.Count) and (FCurrent = FTags.List[FIndex]) then
     Inc(FIndex);
   Result := FIndex < FTags.Count;
-  if Result then FCurrent := TExifTag(FTags[FIndex]);
+  if Result then FCurrent := FTags.List[FIndex];
 end;
-
-{ TExifSection.TTagList }
-
-{$IFDEF HasGenerics}
-constructor TExifSection.TTagList.Create;
-begin
-  inherited Create(TComparer<TExifTag>.Construct(
-    function(const Left, Right: TExifTag): Integer
-    begin
-      Result := Left.ID - Right.ID;
-    end));
-end;
-{$ELSE}
-function CompareIDs(Item1, Item2: TExifTag): Integer;
-begin
-  Result := Item1.ID - Item2.ID;
-end;
-
-procedure TExifSection.TTagList.Sort;
-begin
-  inherited Sort(@CompareIDs);
-end;
-{$ENDIF}
 
 { TExifSection }
 
-constructor TExifSection.Create(const AOwner: TCustomExifData; AKind: TExifSectionKindEx);
+constructor TExifSection.Create(AOwner: TCustomExifData; AKind: TExifSectionKindEx);
 begin
   inherited Create;
   FOwner := AOwner;
-  FTagList := TTagList.Create;
+  FTagList := TList.Create;
   FKind := AKind;
 end;
 
@@ -2432,10 +2085,10 @@ var
   I: Integer;
 begin
   for I := FTagList.Count - 1 downto 0 do
-    with TExifTag(FTagList[I]) do
+    with TExifTag(FTagList.List[I]) do
     begin
       FSection := nil;
-      Free;
+      Destroy;
     end;
   FTagList.Free;
   inherited;
@@ -2450,7 +2103,7 @@ begin
   CheckExtendable;
   for I := 0 to FTagList.Count - 1 do
   begin
-    Tag := TExifTag(FTagList[I]);
+    Tag := FTagList.List[I];
     if Tag.ID = ID then
       raise ETagAlreadyExists.CreateResFmt(@STagAlreadyExists, [ID]);
     if Tag.ID > ID then
@@ -2490,12 +2143,12 @@ procedure TExifSection.DoDelete(TagIndex: Integer; FreeTag: Boolean);
 var
   Tag: TExifTag;
 begin
-  Tag := TExifTag(FTagList[TagIndex]);
+  Tag := FTagList[TagIndex];
   FTagList.Delete(TagIndex);
   Tag.FSection := nil;
   if (Tag.ID = ttMakerNote) and (FKind = esDetails) and (FOwner <> nil) then
     FOwner.ResetMakerNoteType;
-  if FreeTag then Tag.Free; //!!!don't call Destroy directly under ARC
+  if FreeTag then Tag.Destroy;
   Changed;
 end;
 
@@ -2510,7 +2163,7 @@ var
 begin
   Result := FindIndex(ID, Index);
   if Result then
-    Tag := TExifTag(FTagList[Index])
+    Tag := FTagList.List[Index]
   else
     Tag := nil;
 end;
@@ -2731,6 +2384,11 @@ begin
   Result := InheritsFrom(TExtendableExifSection);
 end;
 
+function CompareIDs(Item1, Item2: TExifTag): Integer;
+begin
+  Result := Item1.ID - Item2.ID;
+end;
+
 procedure TExifSection.Load(const Directory: IFoundTiffDirectory;
   TiffImageSource: Boolean);
 var
@@ -2750,7 +2408,7 @@ begin
         NewTag := TExifTag.Create(Self, Directory, I);
         FTagList.Add(NewTag);
       end;
-    FTagList.Sort;
+    FTagList.Sort(@CompareIDs);
   end;
   FModified := False;
 end;
@@ -2806,7 +2464,7 @@ begin
 end;
 
 procedure TExifSection.SetDateTimeValue(MainID, SubSecsID: TExifTagID;
-  const DateTime: TDateTimeTagValue);
+  const Value: TDateTimeTagValue);
 var
   SubSecsTag: TExifTag;
 begin
@@ -2814,22 +2472,22 @@ begin
     SubSecsTag := nil
   else
     if not Owner[esDetails].Find(SubSecsID, SubSecsTag) then
-      if not DateTime.MissingOrInvalid and Owner.AlwaysWritePreciseTimes then
+      if not Value.MissingOrInvalid and Owner.AlwaysWritePreciseTimes then
         SubSecsTag := Owner[esDetails].Add(SubSecsID, tdAscii, 4)
       else
         SubSecsTag := nil;
-  if DateTime.MissingOrInvalid then
+  if Value.MissingOrInvalid then
   begin
     Remove(MainID);
     FreeAndNil(SubSecsTag);
   end
   else
   begin
-    if DateTime <> LastSetDateTimeValue then
+    if Value <> LastSetDateTimeValue then
     begin
-      LastSetDateTimeValue := DateTime.Value;
-      LastSetDateTimeMainStr := DateTimeToExifString(DateTime.Value);
-      LastSetDateTimeSubSecStr := GetExifSubSecsString(DateTime.Value);
+      LastSetDateTimeValue := Value;
+      LastSetDateTimeMainStr := DateTimeToExifString(Value);
+      LastSetDateTimeSubSecStr := GetExifSubSecsString(Value);
     end;
     SetStringValue(MainID, LastSetDateTimeMainStr);
     if SubSecsTag <> nil then
@@ -2993,11 +2651,7 @@ begin
   if Result then
   begin
     Len := Tag.ElementCount - 1;
-    if PAnsiChar(Tag.Data)[Len] > ' ' then
-      Inc(Len)
-    else
-      while (Len > 0) and (PAnsiChar(Tag.Data)[Len - 1] = #0) do
-        Dec(Len);
+    if PAnsiChar(Tag.Data)[Len] > ' ' then Inc(Len);
     SetString(S, PAnsiChar(Tag.Data), Len);
     Value := string(S); //for D2009+ compatibility
   end
@@ -3090,48 +2744,6 @@ begin
       AddOrUpdate(Tag.ID, Tag.DataType, Tag.ElementCount, Tag.Data^)
 end;
 
-{ TObjectTagValue }
-
-constructor TObjectTagValue.Create(const AOwner: TCustomExifData);
-begin
-  inherited Create;
-  FOwner := AOwner;
-end;
-
-function TObjectTagValue.GetOwner: TPersistent;
-begin
-  Result := FOwner;
-end;
-
-{$IFNDEF HasToString}
-function TObjectTagValue.ToString: string;
-begin
-  Result := ClassName;
-end;
-{$ENDIF}
-
-{ TEnumObjectTagValue }
-
-function TEnumObjectTagValue.GetValidCharsToAssign: TSysCharSet;
-var
-  I: Integer;
-  Map: IEnumToCharMapper;
-  MapEx: IEnumToCharMapperEx;
-begin
-  if FValidCharsToAssign = [] then
-  begin
-    if not Supports(Self, IEnumToCharMapper, Map) then
-      FValidCharsToAssign := [Low(AnsiChar)..High(AnsiChar)]
-    else
-    begin
-      MapEx := GetEnumToCharMapperEx(Map);
-      for I := MapEx.MinEnumValue to MapEx.MaxEnumValue do
-        Include(FValidCharsToAssign, Map.EnumValueToChar(I))
-    end;
-  end;
-  Result := FValidCharsToAssign;
-end;
-
 { TExifFlashInfo }
 
 function DoGetMode(const BitSet: TWordBitSet): TExifFlashMode;
@@ -3159,6 +2771,12 @@ begin
     Result := esNoDetectionFunction;
 end;
 
+constructor TExifFlashInfo.Create(AOwner: TCustomExifData);
+begin
+  inherited Create;
+  FOwner := AOwner;
+end;
+
 procedure TExifFlashInfo.Assign(Source: TPersistent);
 begin
   if not (Source is TExifFlashInfo) and (Source <> nil) then
@@ -3166,7 +2784,7 @@ begin
     inherited;
     Exit;
   end;
-  Owner.BeginUpdate;
+  FOwner.BeginUpdate;
   try
     if Source = nil then
     begin
@@ -3179,20 +2797,20 @@ begin
       StrobeEnergy := TExifFlashInfo(Source).StrobeEnergy;
     end;
   finally
-    Owner.EndUpdate;
+    FOwner.EndUpdate;
   end;
 end;
 
 function TExifFlashInfo.MissingOrInvalid: Boolean;
 begin
-  with Owner[esDetails] do
+  with FOwner[esDetails] do
     Result := not TagExists(ttFlash, [tdWord, tdSmallInt]) and
       not TagExists(ttFlashEnergy, [tdLongWordFraction, tdLongIntFraction]);
 end;
 
 function TExifFlashInfo.GetBitSet: TWordBitSet;
 begin
-  if not Owner[esDetails].TryGetWordValue(ttFlash, 0, Result) then
+  if not FOwner[esDetails].TryGetWordValue(ttFlash, 0, Result) then
     Result := [];
 end;
 
@@ -3206,21 +2824,21 @@ var
 begin
   if Value = [] then
   begin
-    Owner[esDetails].Remove(ttFlash);
-    Owner.XMPPacket.RemoveProperty(xsExif, XMPRoot);
+    FOwner[esDetails].Remove(ttFlash);
+    FOwner.XMPPacket.RemoveProperty(xsExif, XMPRoot);
     Exit;
   end;
-  Owner[esDetails].ForceSetElement(ttFlash, tdWord, 0, Value);
-  if Owner.XMPWritePolicy = xwRemove then
+  FOwner[esDetails].ForceSetElement(ttFlash, tdWord, 0, Value);
+  if FOwner.XMPWritePolicy = xwRemove then
   begin
-    Owner.XMPPacket.RemoveProperty(xsExif, XMPRoot);
+    FOwner.XMPPacket.RemoveProperty(xsExif, XMPRoot);
     Exit;
   end;
-  if not Owner.XMPPacket[xsExif].FindProperty(XMPRoot, Root) then
-    if Owner.XMPWritePolicy = xwUpdateIfExists then
+  if not FOwner.XMPPacket[xsExif].FindProperty(XMPRoot, Root) then
+    if FOwner.XMPWritePolicy = xwUpdateIfExists then
       Exit
     else
-      Root := Owner.XMPPacket[xsExif].AddProperty(XMPRoot);
+      Root := FOwner.XMPPacket[xsExif].AddProperty(XMPRoot);
   Root.Kind := xpStructure;
   Root.UpdateSubProperty('Fired', FiredBit in Value);
   Root.UpdateSubProperty('Function', NotPresentBit in Value);
@@ -3312,50 +2930,48 @@ end;
 
 function TExifFlashInfo.GetStrobeEnergy: TExifFraction;
 begin
-  Result := Owner[esDetails].GetFractionValue(ttFlashEnergy, 0);
+  Result := FOwner[esDetails].GetFractionValue(ttFlashEnergy, 0);
 end;
 
 procedure TExifFlashInfo.SetStrobeEnergy(const Value: TExifFraction);
 begin
-  Owner[esDetails].SetFractionValue(ttFlashEnergy, 0, Value);
-  Owner.XMPPacket.UpdateProperty(xsExif, 'FlashEnergy', Value.ToString);
+  FOwner[esDetails].SetFractionValue(ttFlashEnergy, 0, Value);
+  FOwner.XMPPacket.UpdateProperty(xsExif, 'FlashEnergy', Value.AsString);
 end;
 
 { TCustomExifVersion }
 
-constructor TCustomExifVersion.Create(const AOwner: TCustomExifData);
+constructor TCustomExifVersion.Create(AOwner: TCustomExifData);
 begin
-  inherited Create(AOwner);
-  FMajorIndex := 1;
+  inherited Create;
+  FOwner := AOwner;
+  FMajorIndex := 0;
   FStoreAsChar := True;
   FTiffDataType := tdUndefined;
   Initialize;
 end;
 
 procedure TCustomExifVersion.Assign(Source: TPersistent);
+var
+  src: TCustomExifVersion;
 begin
   if Source = nil then
-    Clear
+    Owner[FSectionKind].Remove(FTagID)
   else if not (Source is TCustomExifVersion) then
     inherited
-  else if TCustomExifVersion(Source).MissingOrInvalid then
-    Clear
-  else
-  begin
-    Major := TCustomExifVersion(Source).Major;
-    Minor := TCustomExifVersion(Source).Minor;
-    Release := TCustomExifVersion(Source).Release;
+  else begin
+    src := TCustomExifVersion(Source);
+    if src.MissingOrInvalid then
+      Owner[FSectionKind].Remove(FTagID)
+    else begin
+      SetAll(src.Major, src.Minor, src.Release, src.FourthPart);
+    end;
   end;
-end;
-
-procedure TCustomExifVersion.Clear;
-begin
-  Owner[FSectionKind].Remove(FTagID);
 end;
 
 function TCustomExifVersion.MissingOrInvalid: Boolean;
 begin
-  Result := (Major = 0) and (Minor = 0) and (Release = 0);
+  Result := (Major = 0);
 end;
 
 function TCustomExifVersion.GetAsString: string;
@@ -3363,12 +2979,25 @@ begin
   if MissingOrInvalid then
     Result := ''
   else
-    FmtStr(Result, '%d%s%d%s%d', [Major, DecimalSeparator, Minor, DecimalSeparator, Release]);
+    FmtStr(Result, '%d%s%d%d', [Major, DecimalSeparator, Minor, Release]);
+end;
+
+procedure TCustomExifVersion.SetAll(_Major, _Minor, _Release: TExifVersionElement;
+  _FourthPart: TExifVersionElement = 0);
+begin
+  SetValue(FMajorIndex, _Major);
+  SetValue(FMajorIndex + 1, _Minor);
+  SetValue(FMajorIndex + 2, _Release);
+  SetValue(FMajorIndex + 3, _FourthPart);
 end;
 
 procedure TCustomExifVersion.SetAsString(const Value: string);
 var
   SeekPtr: PChar;
+  lMajor: TExifVersionElement;
+  lMinor: TExifVersionElement;
+  lRelease: TExifVersionElement;
+  lFourthPart: TExifVersionElement;
 
   function GetElement: TExifVersionElement;
   begin
@@ -3389,25 +3018,30 @@ begin
     Assign(nil);
     Exit;
   end;
-  Major := GetElement;
+
+  lMajor := GetElement;
   if SeekPtr^ <> #0 then
   begin
     Inc(SeekPtr); //skip past separator, whatever that may precisely be
-    Minor := GetElement;
-    if not IsCharIn(SeekPtr^, [#0, '0'..'9']) then Inc(SeekPtr); //ditto, though allow no separator too
-    Release := GetElement;
+    lMinor := GetElement;
+    lRelease := GetElement;
+    lFourthPart := GetElement;
   end
   else
   begin
-    Minor := 0;
-    Release := 0;
+    lMinor := 0;
+    lRelease := 0;
+    lFourthPart := 0;
   end;
+  SetAll(lMajor, lMinor, lRelease, lFourthPart);
 end;
 
+{$IFDEF HasToString}
 function TCustomExifVersion.ToString: string;
 begin
   Result := AsString;
 end;
+{$ENDIF}
 
 function TCustomExifVersion.GetValue(Index: Integer): TExifVersionElement;
 var
@@ -3445,61 +3079,32 @@ begin
   Result := GetValue(FMajorIndex + 2);
 end;
 
-procedure TCustomExifVersion.SetMajor(Value: TExifVersionElement);
+function TCustomExifVersion.GetFourthPart: TExifVersionElement;
 begin
-  SetValue(FMajorIndex, Value);
+  Result := GetValue(FMajorIndex + 3);
 end;
 
-procedure TCustomExifVersion.SetMinor(Value: TExifVersionElement);
-begin
-  SetValue(FMajorIndex + 1, Value);
-end;
+//procedure TCustomExifVersion.SetMajor(Value: TExifVersionElement);
+//begin
+//  SetValue(FMajorIndex, Value);
+//end;
 
-procedure TCustomExifVersion.SetRelease(Value: TExifVersionElement);
-begin
-  SetValue(FMajorIndex + 2, Value);
-end;
+//procedure TCustomExifVersion.SetMinor(Value: TExifVersionElement);
+//begin
+//  SetValue(FMajorIndex + 1, Value);
+//end;
+
+//procedure TCustomExifVersion.SetRelease(Value: TExifVersionElement);
+//begin
+//  SetValue(FMajorIndex + 2, Value);
+//end;
 
 { TExifVersion }
-
-constructor TExifVersion.Create(const AOwner: TCustomExifData);
-begin
-  inherited Create(AOwner);
-end;
-
-constructor TExifVersion.Create;
-begin
-  Create(nil);
-end;
 
 procedure TExifVersion.Initialize;
 begin
   FSectionKind := esDetails;
   FTagID := ttExifVersion;
-end;
-
-procedure TExifVersion.Clear;
-begin
-  if Owner = nil then
-    FillChar(FValues, SizeOf(FValues), 0)
-  else
-    inherited;
-end;
-
-function TExifVersion.GetValue(Index: Integer): TExifVersionElement;
-begin
-  if Owner = nil then
-    Result := FValues[Index]
-  else
-    Result := inherited GetValue(Index);
-end;
-
-procedure TExifVersion.SetValue(Index: Integer; Value: TExifVersionElement);
-begin
-  if Owner = nil then
-    FValues[Index] := Value
-  else
-    inherited SetValue(Index, Value);
 end;
 
 { TFlashPixVersion }
@@ -3531,16 +3136,17 @@ end;
 
 { TCustomExifResolution }
 
-constructor TCustomExifResolution.Create(const AOwner: TCustomExifData);
+constructor TCustomExifResolution.Create(AOwner: TCustomExifData);
 var
   SectionKind: TExifSectionKind;
 begin
-  inherited Create(AOwner);
+  inherited Create;
+  FOwner := AOwner;
   FXTagID := ttXResolution;
   FYTagID := ttYResolution;
   FUnitTagID := ttResolutionUnit;
   GetTagInfo(SectionKind, FXTagID, FYTagID, FUnitTagID, FSchema, FXName, FYName, FUnitName);
-  if AOwner <> nil then FSection := AOwner[SectionKind];
+  FSection := AOwner[SectionKind];
 end;
 
 procedure TCustomExifResolution.Assign(Source: TPersistent);
@@ -3550,15 +3156,15 @@ begin
     inherited;
     Exit;
   end;
-  Owner.BeginUpdate;
+  FOwner.BeginUpdate;
   try
     if (Source = nil) or TCustomExifResolution(Source).MissingOrInvalid then
     begin
       Section.Remove(FXTagID);
       Section.Remove(FYTagID);
       Section.Remove(FUnitTagID);
-      if FSchema <> xsUnknown then
-        Owner.XMPPacket.RemoveProperties(FSchema, [FXName, FYName, FUnitName]);
+      if FSchema <> xsUnknown then 
+        FOwner.XMPPacket.RemoveProperties(FSchema, [FXName, FYName, FUnitName]);
     end
     else
     begin
@@ -3567,7 +3173,7 @@ begin
       Units := TCustomExifResolution(Source).Units;
     end;
   finally
-    Owner.EndUpdate;
+    FOwner.EndUpdate;
   end;
 end;
 
@@ -3598,105 +3204,36 @@ begin
   Section.SetWordValue(FUnitTagID, 0, Ord(Value));
   if FSchema <> xsUnknown then
     if Value = trNone then
-      Owner.XMPPacket.RemoveProperty(FSchema, FUnitName)
+      FOwner.XMPPacket.RemoveProperty(FSchema, FUnitName)
     else
-      Owner.XMPPacket.UpdateProperty(FSchema, FUnitName, Integer(Value));
+      FOwner.XMPPacket.UpdateProperty(FSchema, FUnitName, Integer(Value));
 end;
 
 procedure TCustomExifResolution.SetX(const Value: TExifFraction);
 begin
   Section.SetFractionValue(FXTagID, 0, Value);
   if FSchema <> xsUnknown then
-    Owner.XMPPacket.UpdateProperty(FSchema, FXName, Value.ToString);
+    FOwner.XMPPacket.UpdateProperty(FSchema, FXName, Value.AsString);
 end;
 
 procedure TCustomExifResolution.SetY(const Value: TExifFraction);
 begin
   Section.SetFractionValue(FYTagID, 0, Value);
   if FSchema <> xsUnknown then
-    Owner.XMPPacket.UpdateProperty(FSchema, FYName, Value.ToString);
+    FOwner.XMPPacket.UpdateProperty(FSchema, FYName, Value.AsString);
 end;
 
+{$IFDEF HasToString}
 function TCustomExifResolution.ToString: string;
 begin
-  if MissingOrInvalid then
-  begin
-    Result := '';
-    Exit;
-  end;
+  if MissingOrInvalid then Exit('');
   case Units of
     trInch: Result := '"';
     trCentimetre: Result := 'cm';
   end;
   FmtStr(Result, '%g%s x %g%1:s', [X.Quotient, Result, Y.Quotient]);
 end;
-
-{ TExifResolution }
-
-constructor TExifResolution.Create;
-begin
-  inherited Create(nil);
-  Assign(nil);
-end;
-
-procedure TExifResolution.Assign(Source: TPersistent);
-begin
-  if Source = nil then
-  begin
-    FX := NullFraction;
-    FY := NullFraction;
-    FUnit := trNone;
-    Exit;
-  end;
-  if Source is TCustomExifResolution then
-  begin
-    FX := TCustomExifResolution(Source).X;
-    FY := TCustomExifResolution(Source).Y;
-    FUnit := TCustomExifResolution(Source).Units;
-    Exit;
-  end;
-  inherited;
-end;
-
-procedure TExifResolution.GetTagInfo(var Section: TExifSectionKind; var XTag, YTag,
-  UnitTag: TExifTagID; var Schema: TXMPNamespace; var XName, YName, UnitName: UnicodeString);
-begin
-end;
-
-function TExifResolution.GetUnit: TExifResolutionUnit;
-begin
-  Result := FUnit;
-end;
-
-function TExifResolution.GetX: TExifFraction;
-begin
-  Result := FX;
-end;
-
-function TExifResolution.GetY: TExifFraction;
-begin
-  Result := FY;
-end;
-
-function TExifResolution.MissingOrInvalid: Boolean;
-begin
-  Result := X.MissingOrInvalid or Y.MissingOrInvalid;
-end;
-
-procedure TExifResolution.SetUnit(const Value: TExifResolutionUnit);
-begin
-  FUnit := Value;
-end;
-
-procedure TExifResolution.SetX(const Value: TExifFraction);
-begin
-  FX := Value;
-end;
-
-procedure TExifResolution.SetY(const Value: TExifFraction);
-begin
-  FY := Value;
-end;
+{$ENDIF}
 
 { TImageResolution }
 
@@ -3737,6 +3274,11 @@ end;
 
 { TISOSpeedRatings }
 
+constructor TISOSpeedRatings.Create(AOwner: TCustomExifData);
+begin
+  FOwner := AOwner;
+end;
+
 procedure TISOSpeedRatings.Assign(Source: TPersistent);
 var
   SourceTag, DestTag: TExifTag;
@@ -3753,10 +3295,10 @@ begin
         DestTag.UpdateData(tdWord, SourceTag.ElementCount, PWord(SourceTag.Data)^)
       else
       begin
-        DestTag := Owner[esDetails].Add(ttISOSpeedRatings, tdWord, SourceTag.ElementCount);
+        DestTag := FOwner[esDetails].Add(ttISOSpeedRatings, tdWord, SourceTag.ElementCount);
         Move(PWord(SourceTag.Data)^, DestTag.Data^, SourceTag.DataSize);
       end;
-      Owner.XMPPacket.UpdateProperty(XMPSchema, XMPName, XMPKind, DestTag.AsString);
+      FOwner.XMPPacket.UpdateProperty(XMPSchema, XMPName, XMPKind, DestTag.AsString);
     end;
   end
   else
@@ -3765,13 +3307,13 @@ end;
 
 procedure TISOSpeedRatings.Clear;
 begin
-  Owner[esDetails].Remove(ttISOSpeedRatings);
-  Owner.XMPPacket.RemoveProperty(XMPSchema, XMPName);
+  FOwner[esDetails].Remove(ttISOSpeedRatings);
+  FOwner.XMPPacket.RemoveProperty(XMPSchema, XMPName);
 end;
 
 function TISOSpeedRatings.FindTag(VerifyDataType: Boolean; out Tag: TExifTag): Boolean;
 begin
-  Result := Owner[esDetails].Find(ttISOSpeedRatings, Tag);
+  Result := FOwner[esDetails].Find(ttISOSpeedRatings, Tag);
   if Result and VerifyDataType and not (Tag.DataType in [tdWord, tdShortInt]) then
   begin
     Tag := nil;
@@ -3826,15 +3368,17 @@ begin
     Exit;
   end;
   if not FindTag(False, Tag) then
-    Tag := Owner[esDetails].Add(ttISOSpeedRatings, tdWord, 0);
+    Tag := FOwner[esDetails].Add(ttISOSpeedRatings, tdWord, 0);
   Tag.AsString := Value;
-  Owner.XMPPacket.UpdateProperty(XMPSchema, XMPName, XMPKind, Value);
+  FOwner.XMPPacket.UpdateProperty(XMPSchema, XMPName, XMPKind, Value);
 end;
 
+{$IFDEF HasToString}
 function TISOSpeedRatings.ToString: string;
 begin
   Result := AsString;
 end;
+{$ENDIF}
 
 procedure TISOSpeedRatings.SetCount(const Value: Integer);
 var
@@ -3845,13 +3389,13 @@ begin
   else if FindTag(False, Tag) then
     Tag.ElementCount := Value
   else
-    Owner[esDetails].Add(ttISOSpeedRatings, tdWord, Value);
+    FOwner[esDetails].Add(ttISOSpeedRatings, tdWord, Value);
 end;
 
 procedure TISOSpeedRatings.SetItem(Index: Integer; const Value: Word);
   procedure WriteXMP;
   begin
-    with Owner.XMPPacket[XMPSchema][XMPName] do
+    with FOwner.XMPPacket[XMPSchema][XMPName] do
     begin
       Kind := XMPKind;
       Count := Max(Count, Succ(Index));
@@ -3865,431 +3409,63 @@ var
 begin
   if not FindTag(True, Tag) or (Index >= Tag.ElementCount) then
     raise EListError.CreateFmt(SListIndexError, [Index]);
-  Owner[esDetails].ForceSetElement(ttISOSpeedRatings, tdWord, Index, Value);
-  case Owner.XMPWritePolicy of
-    xwRemove: Owner.XMPPacket.RemoveProperty(XMPSchema, XMPName);
-    xwAlwaysUpdate: if Owner.XMPPacket.FindSchema(XMPSchema, Schema) and
+  FOwner[esDetails].ForceSetElement(ttISOSpeedRatings, tdWord, Index, Value);
+  case FOwner.XMPWritePolicy of
+    xwRemove: FOwner.XMPPacket.RemoveProperty(XMPSchema, XMPName);
+    xwAlwaysUpdate: if FOwner.XMPPacket.FindSchema(XMPSchema, Schema) and
       Schema.FindProperty(XMPName, Prop) then WriteXMP;
   else WriteXMP;
   end
 end;
 
-{ TCustomGPSFraction }
+{ TGPSCoordinate }
 
-constructor TCustomGPSFraction.Create(const AOwner: TCustomExifData;
-  AMainTagID, ARefTagID: TExifTagID);
+constructor TGPSCoordinate.Create(AOwner: TCustomExifData; ATagID: TExifTagID);
 begin
-  inherited Create(AOwner);
-  FMainTagID := AMainTagID;
-  FRefTagID := ARefTagID;
-end;
-
-procedure TCustomGPSFraction.Assign(Source: TPersistent);
-var
-  SourceAsFrac: TCustomGPSFraction;
-begin
-  if Source = nil then
-  begin
-    SetValue(NullFraction);
-    SetRefChar(#0);
-    Exit;
-  end;
-  if Source is TCustomGPSFraction then
-  begin
-    SourceAsFrac := TCustomGPSFraction(Source);
-    if SourceAsFrac.InheritsFrom(ClassType) or (SourceAsFrac.Ref in ValidCharsToAssign) then
-    begin
-      SetValue(SourceAsFrac.Value);
-      SetRefChar(SourceAsFrac.Ref);
-      Exit;
-    end;
-  end;
-  inherited;
-end;
-
-function TCustomGPSFraction.GetDenominator: LongWord;
-begin
-  Result := Value.Denominator;
-end;
-
-function TCustomGPSFraction.GetNumerator: LongWord;
-begin
-  Result := Value.Numerator;
-end;
-
-function TCustomGPSFraction.GetQuotient: Extended;
-begin
-  Result := Value.Quotient;
-end;
-
-function TCustomGPSFraction.GetRefChar: AnsiChar;
-var
-  Tag: TExifTag;
-begin
-  if Owner[esGPS].Find(FRefTagID, Tag) and (Tag.DataType = tdAscii) and (Tag.ElementCount >= 2) then
-    Result := UpCase(PAnsiChar(Tag.Data)^)
-  else
-    Result := #0;
-end;
-
-function TCustomGPSFraction.GetValue: TExifFraction;
-begin
-  Result := Owner.GetGPSFraction(FMainTagID);
-end;
-
-function TCustomGPSFraction.MissingOrInvalid: Boolean;
-begin
-  Result := Value.MissingOrInvalid;
-end;
-
-procedure TCustomGPSFraction.SetValue(const Value: TExifFraction);
-begin
-  Owner.SetGPSFraction(FMainTagID, Value);
-end;
-
-procedure TCustomGPSFraction.SetRefChar(const Value: AnsiChar);
-var
-  S: string;
-begin
-  if Value = #0 then
-    S := ''
-  else
-    S := string(Value);
-  Owner[esGPS].SetStringValue(FRefTagID, S);
-  Owner.XMPPacket.UpdateProperty(xsExif, GetGPSTagXMPName(FRefTagID), S);
-end;
-
-function TCustomGPSFraction.ToString: string;
-begin
-  if MissingOrInvalid then
-    Result := ''
-  else
-    Result := Value.ToString;
-end;
-
-{ TGPSFraction }
-
-constructor TGPSFraction.Create;
-begin
-  inherited Create(nil);
-end;
-
-function TGPSFraction.GetRefChar: AnsiChar;
-begin
-  Result := FRefChar;
-end;
-
-function TGPSFraction.GetValue: TExifFraction;
-begin
-  Result := FValue;
-end;
-
-procedure TGPSFraction.SetRefChar(const Value: AnsiChar);
-begin
-  FRefChar := Value;
-end;
-
-procedure TGPSFraction.SetValue(const NewValue: TExifFraction);
-begin
-  FValue := NewValue;
-end;
-
-{ TGPSAltitude }
-
-function TGPSAltitude.CharToEnumValue(Ch: AnsiChar): Integer;
-begin
-  case Ch of
-    'A': Result := Ord(alAboveSeaLevel);
-    'B': Result := Ord(alBelowSeaLevel);
-  else Result := Ord(alTagMissing);
-  end;
-end;
-
-function TGPSAltitude.EnumValueToChar(OrdValue: Integer): AnsiChar;
-begin
-  case TGPSAltitudeRef(OrdValue) of
-    alAboveSeaLevel: Result := 'A';
-    alBelowSeaLevel: Result := 'B';
-  else Result := #0;
-  end;
-end;
-
-function TGPSAltitude.GetEnumName(OrdValue: Integer): string;
-begin
-  case TGPSAltitudeRef(OrdValue) of
-    alAboveSeaLevel: Result := 'alAboveSeaLevel';
-    alBelowSeaLevel: Result := 'alBelowSeaLevel';
-  else Result := 'alTagMissing';
-  end;
-end;
-
-function TGPSAltitude.GetEnumTypeInfo: PTypeInfo;
-begin
-  Result := nil;
-end;
-
-function TGPSAltitude.GetMaxEnumValue: Integer;
-begin
-  Result := Ord(High(TGPSAltitudeRef));
-end;
-
-function TGPSAltitude.GetMinEnumValue: Integer;
-begin
-  Result := Ord(Low(TGPSAltitudeRef));
-end;
-
-function TGPSAltitude.GetRef: TGPSAltitudeRef;
-begin
-  if Owner[esGPS].TryGetByteValue(RefTagID, 0, Result) then
-    if not Owner.EnsureEnumsInRange then
-      Exit
-    else
-      case Ord(Result) of
-        Ord(Low(TGPSAltitudeRef))..Ord(High(TGPSAltitudeRef)): Exit;
-      end;
-  Result := alTagMissing;
-end;
-
-function TGPSAltitude.GetRefChar: AnsiChar;
-begin
-  Result := EnumValueToChar(Ord(GetRef));
-end;
-
-procedure TGPSAltitude.SetRef(const Value: TGPSAltitudeRef);
-begin
-  if Value = alTagMissing then
-  begin
-    Owner[esGPS].Remove(RefTagID);
-    Owner.XMPPacket.RemoveProperty(xsExif, GetGPSTagXMPName(RefTagID));
-    Exit;
-  end;
-  Owner[esGPS].SetByteValue(RefTagID, 0, Ord(Value));
-  Owner.XMPPacket.UpdateProperty(xsExif, GetGPSTagXMPName(RefTagID), Ord(Value));
-end;
-
-procedure TGPSAltitude.SetRefChar(const Value: AnsiChar);
-begin
-  SetRef(TGPSAltitudeRef(CharToEnumValue(Value)));
-end;
-
-function TGPSAltitude.ToString: string;
-begin
-  case Ref of
-    alAboveSeaLevel: FmtStr(Result, SAboveSeaLevelValue, [Value.ToString]);
-    alBelowSeaLevel: FmtStr(Result, SBelowSeaLevelValue, [Value.ToString]);
-  else Result := inherited ToString;
-  end;
-end;
-
-{ TGPSSpeed }
-
-function TGPSSpeed.CharToEnumValue(Ch: AnsiChar): Integer;
-begin
-  case Ch of
-    'K': Result := Ord(srKilometresPerHour);
-    'M': Result := Ord(srMilesPerHour);
-    'N': Result := Ord(srKnots);
-  else Result := Ord(srMissingOrInvalid);
-  end;
-end;
-
-function TGPSSpeed.EnumValueToChar(OrdValue: Integer): AnsiChar;
-begin
-  case TGPSSpeedRef(OrdValue) of
-    srKilometresPerHour: Result := 'K';
-    srMilesPerHour: Result := 'M';
-    srKnots: Result := 'N';
-  else Result := #0;
-  end;
-end;
-
-function TGPSSpeed.GetEnumTypeInfo: PTypeInfo;
-begin
-  Result := TypeInfo(TGPSSpeedRef)
-end;
-
-function TGPSSpeed.GetRef: TGPSSpeedRef;
-begin
-  Result := TGPSSpeedRef(CharToEnumValue(GetRefChar));
-end;
-
-function TGPSSpeed.ToString: string;
-begin
-  case Ref of
-    srKilometresPerHour: Result := Value.ToString + ' km/h';
-    srMilesPerHour: Result := Value.ToString + ' mph';
-    srKnots:  Result := Value.ToString + ' kt';
-  else Result := inherited ToString;
-  end;
-end;
-
-procedure TGPSSpeed.SetRef(const Value: TGPSSpeedRef);
-begin
-  SetRefChar(EnumValueToChar(Ord(Value)));
-end;
-
-{ TCustomGPSFractionWithDirection }
-
-function TCustomGPSFractionWithDirection.CharToEnumValue(Ch: AnsiChar): Integer;
-begin
-  case Ch of
-    'T': Result := Ord(drTrueNorth);
-    'M': Result := Ord(drMagneticNorth);
-  else Result := Ord(drMissingOrInvalid);
-  end;
-end;
-
-function TCustomGPSFractionWithDirection.EnumValueToChar(OrdValue: Integer): AnsiChar;
-begin
-  case TGPSDirectionRef(OrdValue) of
-    drTrueNorth: Result := 'T';
-    drMagneticNorth: Result := 'M';
-  else Result := #0;
-  end;
-end;
-
-function TCustomGPSFractionWithDirection.GetEnumTypeInfo: PTypeInfo;
-begin
-  Result := TypeInfo(TGPSDirectionRef)
-end;
-
-function TCustomGPSFractionWithDirection.GetRef: TGPSDirectionRef;
-begin
-  Result := TGPSDirectionRef(CharToEnumValue(GetRefChar));
-end;
-
-procedure TCustomGPSFractionWithDirection.SetRef(const Value: TGPSDirectionRef);
-begin
-  SetRefChar(EnumValueToChar(Ord(Value)));
-end;
-
-function TCustomGPSFractionWithDirection.ToString: string;
-begin
-  case Ref of
-    drTrueNorth: FmtStr(Result, STrueNorthValue, [Value.ToString]);
-    drMagneticNorth: FmtStr(Result, SMagneticNorthValue, [Value.ToString]);
-  else Result := inherited ToString;
-  end;
-end;
-
-{ TGPSDestDistance }
-
-function TGPSDestDistance.CharToEnumValue(Ch: AnsiChar): Integer;
-begin
-  case Ch of
-    'K': Result := Ord(dsKilometres);
-    'M': Result := Ord(dsMiles);
-    'N': Result := Ord(dsKnots);
-  else Result := Ord(dsMissingOrInvalid);
-  end;
-end;
-
-function TGPSDestDistance.EnumValueToChar(OrdValue: Integer): AnsiChar;
-begin
-  case TGPSDistanceRef(OrdValue) of
-    dsKilometres: Result := 'K';
-    dsMiles: Result := 'M';
-    dsKnots: Result := 'N';
-  else Result := #0;
-  end;
-end;
-
-function TGPSDestDistance.GetEnumTypeInfo: PTypeInfo;
-begin
-  Result := TypeInfo(TGPSDistanceRef)
-end;
-
-function TGPSDestDistance.GetRef: TGPSDistanceRef;
-begin
-  Result := TGPSDistanceRef(CharToEnumValue(GetRefChar));
-end;
-
-procedure TGPSDestDistance.SetRef(const Value: TGPSDistanceRef);
-begin
-  SetRefChar(EnumValueToChar(Ord(Value)));
-end;
-
-function TGPSDestDistance.ToString: string;
-begin
-  case Ref of
-    dsKilometres: Result := Value.ToString + ' km';
-    dsMiles: Result := Value.ToString + ' mi';
-    dsKnots: Result := Value.ToString + ' kt';
-  else Result := '';
-  end;
-end;
-
-{ TCustomGPSCoordinate }
-
-constructor TCustomGPSCoordinate.Create(const AOwner: TCustomExifData; const ATagID: TExifTagID);
-begin
-  inherited Create(AOwner);
+  FOwner := AOwner;
   FRefTagID := Pred(ATagID);
   FTagID := ATagID;
   FXMPName := GetGPSTagXMPName(ATagID)
 end;
 
-function TCustomGPSCoordinate.TryGetTag(out Tag: TExifTag): Boolean;
-begin
-  Result := (Owner <> nil) and Owner[esGPS].Find(FTagID, Tag);
-end;
-
-procedure TCustomGPSCoordinate.AssignCoordinate(Source: TCustomGPSCoordinate);
+procedure TGPSCoordinate.Assign(Source: TPersistent);
 var
+  SourceAsCoord: TGPSCoordinate absolute Source;
   SourceTag, DestTag: TExifTag;
 begin
-  if Source = nil then
-    Assign(nil)
-  else if (Owner <> nil) and Source.InheritsFrom(Self.ClassType) then
+  if (Source <> nil) and not (Source is ClassType) then
   begin
-    if not Source.TryGetTag(SourceTag) then
-      Assign(nil)
-    else
-    begin
-      Owner.BeginUpdate;
-      try
-        if not Owner[esGPS].Find(FTagID, DestTag) then
-          DestTag := Owner[esGPS].Add(FTagID, SourceTag.DataType, SourceTag.ElementCount);
-        DestTag.Assign(SourceTag);
-        Direction := Source.Direction;
-      finally
-        Owner.EndUpdate;
-      end;
-    end;
-  end
-  else if Source.Direction in ValidCharsToAssign then
-    Assign(Source.Degrees, Source.Minutes, Source.Seconds, Source.Direction)
-  else
-    Source.AssignTo(Self);
-end;
-
-procedure TCustomGPSCoordinate.Assign(Source: TPersistent);
-begin
-  if Source is TCustomGPSCoordinate then
-    AssignCoordinate(TCustomGPSCoordinate(Source))
-  else if Source = nil then
-    if Owner = nil then
-      Assign(NullFraction, NullFraction, NullFraction, Direction)
-    else
-    begin
-      Owner[esGPS].Remove([FTagID, Pred(FTagID)]);
-      Owner.XMPPacket.RemoveProperty(xsExif, XMPName);
-    end
-  else
     inherited;
+    Exit;
+  end;
+  if (Source = nil) or not SourceAsCoord.Owner[esGPS].Find(FTagID, SourceTag) then
+  begin
+    FOwner[esGPS].Remove([FTagID, Pred(FTagID)]);
+    FOwner.XMPPacket.RemoveProperty(xsExif, XMPName);
+    Exit;
+  end;
+  FOwner.BeginUpdate;
+  try
+    if not FOwner[esGPS].Find(FTagID, DestTag) then
+      DestTag := FOwner[esGPS].Add(FTagID, SourceTag.DataType, SourceTag.ElementCount);
+    DestTag.Assign(SourceTag);
+    Direction := SourceAsCoord.Direction;
+  finally
+    FOwner.EndUpdate;
+  end;
 end;
 
-procedure TCustomGPSCoordinate.Assign(const ADegrees, AMinutes, ASeconds: TExifFraction;
+procedure TGPSCoordinate.Assign(const ADegrees, AMinutes, ASeconds: TExifFraction;
   ADirectionChar: AnsiChar);
 var
   NewElemCount: Integer;
   Tag: TExifTag;
 begin
   if ASeconds.MissingOrInvalid then NewElemCount := 2 else NewElemCount := 3;
-  if Owner[esGPS].Find(FTagID, Tag) then
+  if FOwner[esGPS].Find(FTagID, Tag) then
     Tag.UpdateData(tdLongWordFraction, NewElemCount, PByte(nil)^)
   else
-    Tag := Owner[esGPS].Add(FTagID, tdLongWordFraction, NewElemCount);
+    Tag := FOwner[esGPS].Add(FTagID, tdLongWordFraction, NewElemCount);
   PExifFractionArray(Tag.Data)[0] := ADegrees;
   PExifFractionArray(Tag.Data)[1] := AMinutes;
   if NewElemCount > 2 then PExifFractionArray(Tag.Data)[2] := ASeconds;
@@ -4297,7 +3473,7 @@ begin
   Direction := ADirectionChar;
 end;
 
-function TCustomGPSCoordinate.MissingOrInvalid: Boolean;
+function TGPSCoordinate.MissingOrInvalid: Boolean;
 var
   Mins, Degs: TExifFraction; //needed for D2006 compatibility - the D2006 compiler is buggy as hell with record methods
 begin
@@ -4305,9 +3481,8 @@ begin
   Result := Mins.MissingOrInvalid or Degs.MissingOrInvalid or (Direction = #0);
 end;
 
-function TCustomGPSCoordinate.ToString: string;
+function TGPSCoordinate.GetAsString: string;
 var
-  Ch: AnsiChar;
   Direction: string;
   Degrees, Minutes, Seconds: TExifFraction;
 begin
@@ -4319,93 +3494,56 @@ begin
     Result := '';
     Exit;
   end;
-  //Direction := FOwner[esGPS].GetStringValue(RefTagID);
-  Ch := GetDirectionChar;
-  if Ch = #0 then
-    Direction := ''
-  else
-    Direction := string(Ch);
+  Direction := FOwner[esGPS].GetStringValue(RefTagID);
   if Seconds.MissingOrInvalid then
-    FmtStr(Result, '%s,%g%s', [Degrees.ToString, Minutes.Quotient, Direction])
+    FmtStr(Result, '%s,%g%s', [Degrees.AsString, Minutes.Quotient, Direction])
   else //if we do *exactly* what the XMP spec says, the value won't be round-trippable...
-    FmtStr(Result, '%s,%s,%s%s', [Degrees.ToString, Minutes.ToString, Seconds.ToString, Direction]);
+    FmtStr(Result, '%s,%s,%s%s', [Degrees.AsString, Minutes.AsString, Seconds.AsString, Direction]);
 end;
 
-function TCustomGPSCoordinate.GetDirectionChar: AnsiChar;
+{$IFDEF HasToString}
+function TGPSCoordinate.ToString: string;
+begin
+  Result := AsString;
+end;
+{$ENDIF}
+
+function TGPSCoordinate.GetDirectionChar: AnsiChar;
 var
   Tag: TExifTag;
 begin
-  if Owner[esGPS].Find(RefTagID, Tag) and (Tag.DataType = tdAscii) and (Tag.ElementCount >= 2) then
+  if FOwner[esGPS].Find(RefTagID, Tag) and (Tag.DataType = tdAscii) and (Tag.ElementCount >= 2) then
     Result := UpCase(PAnsiChar(Tag.Data)^)
   else
     Result := #0;
 end;
 
-procedure TCustomGPSCoordinate.SetDirectionChar(NewChar: AnsiChar);
+procedure TGPSCoordinate.SetDirectionChar(NewChar: AnsiChar);
 var
   ValueAsString, XMPValue: string;
   I: Integer;
 begin
   if NewChar = #0 then 
   begin
-    Owner[esGPS].Remove(RefTagID);
-    Owner.XMPPacket.RemoveProperty(xsExif, XMPName);
+    FOwner[esGPS].Remove(RefTagID);
+    FOwner.XMPPacket.RemoveProperty(xsExif, XMPName);
     Exit;
   end;
   ValueAsString := string(UpCase(NewChar));
   XMPValue := AsString;
-  Owner[esGPS].SetStringValue(RefTagID, ValueAsString);
+  FOwner[esGPS].SetStringValue(RefTagID, ValueAsString);
   for I := Length(XMPValue) downto 1 do
-    if not IsCharIn(XMPValue[I], ['A'..'Z', 'a'..'z']) then
+    if not CharInSet(XMPValue[I], ['A'..'Z', 'a'..'z']) then
     begin
       XMPValue := Copy(XMPValue, 1, I) + ValueAsString;
-      Owner.XMPPacket.UpdateProperty(xsExif, XMPName, XMPValue);
+      FOwner.XMPPacket.UpdateProperty(xsExif, XMPName, XMPValue);
       Break;
     end; 
 end;
 
-function TCustomGPSCoordinate.GetValue(Index: Integer): TExifFraction;
-begin
-  Result := Owner[esGPS].GetFractionValue(TagID, Index);
-end;
-
-{ TGPSCoordinate }
-
-constructor TGPSCoordinate.Create;
-begin
-  inherited Create(nil);
-end;
-
-procedure TGPSCoordinate.Assign(const ADegrees, AMinutes, ASeconds: TExifFraction;
-  ADirectionChar: AnsiChar);
-begin
-  Degrees := ADegrees;
-  Minutes := AMinutes;
-  Seconds := ASeconds;
-  Direction := ADirectionChar;
-end;
-
-procedure TGPSCoordinate.AssignTo(Dest: TPersistent);
-begin
-  if (Dest is TCustomGPSCoordinate) and (Direction in TCustomGPSCoordinate(Dest).ValidCharsToAssign) then
-    TCustomGPSCoordinate(Dest).Assign(Degrees, Minutes, Seconds, Direction)
-  else
-    inherited;
-end;
-
-function TGPSCoordinate.GetDirectionChar: AnsiChar;
-begin
-  Result := FDirectionChar;
-end;
-
 function TGPSCoordinate.GetValue(Index: Integer): TExifFraction;
 begin
-  Result := FValues[Index]
-end;
-
-procedure TGPSCoordinate.SetDirectionChar(NewChar: AnsiChar);
-begin
-  FDirectionChar := NewChar;
+  Result := FOwner[esGPS].GetFractionValue(TagID, Index);
 end;
 
 { TGPSLatitude }
@@ -4439,32 +3577,13 @@ begin
     TExifFraction.Create(ASeconds), ADirection);
 end;
 
-function TGPSLatitude.CharToEnumValue(Ch: AnsiChar): Integer;
-begin
-  case Ch of
-    'N': Result := Ord(ltNorth);
-    'S': Result := Ord(ltSouth);
-  else Result := Ord(ltMissingOrInvalid);
-  end;
-end;
-
-function TGPSLatitude.EnumValueToChar(OrdValue: Integer): AnsiChar;
-begin
-  case TGPSLatitudeRef(OrdValue) of
-    ltNorth: Result := 'N';
-    ltSouth: Result := 'S';
-  else Result := #0;
-  end;
-end;
-
 function TGPSLatitude.GetDirection: TGPSLatitudeRef;
 begin
-  Result := TGPSLatitudeRef(CharToEnumValue(GetDirectionChar));
-end;
-
-function TGPSLatitude.GetEnumTypeInfo: PTypeInfo;
-begin
-  Result := TypeInfo(TGPSLatitudeRef)
+  case inherited Direction of
+    'N': Result := ltNorth;
+    'S': Result := ltSouth;
+  else Result := ltMissingOrInvalid;
+  end;
 end;
 
 { TGPSLongitude }
@@ -4498,32 +3617,13 @@ begin
     TExifFraction.Create(ASeconds), ADirection);
 end;
 
-function TGPSLongitude.CharToEnumValue(Ch: AnsiChar): Integer;
-begin
-  case Ch of
-    'W': Result := Ord(lnWest);
-    'E': Result := Ord(lnEast);
-  else Result := Ord(lnMissingOrInvalid);
-  end;
-end;
-
-function TGPSLongitude.EnumValueToChar(OrdValue: Integer): AnsiChar;
-begin
-  case TGPSLongitudeRef(OrdValue) of
-    lnWest: Result := 'W';
-    lnEast: Result := 'E';
-  else Result := #0;
-  end;
-end;
-
 function TGPSLongitude.GetDirection: TGPSLongitudeRef;
 begin
-  Result := TGPSLongitudeRef(CharToEnumValue(GetDirectionChar));
-end;
-
-function TGPSLongitude.GetEnumTypeInfo: PTypeInfo;
-begin
-  Result := TypeInfo(TGPSLongitudeRef)
+  case inherited Direction of
+    'W': Result := lnWest;
+    'E': Result := lnEast;
+  else Result := lnMissingOrInvalid;
+  end;
 end;
 
 { TCustomExifData.TEnumerator }
@@ -4569,16 +3669,10 @@ begin
   FExifVersion := TExifVersion.Create(Self);
   FFlashPixVersion := TFlashPixVersion.Create(Self);
   FGPSVersion := TGPSVersion.Create(Self);
-  FGPSAltitude := TGPSAltitude.Create(Self, ttGPSAltitude, ttGPSAltitudeRef);
   FGPSLatitude := TGPSLatitude.Create(Self, ttGPSLatitude);
   FGPSLongitude := TGPSLongitude.Create(Self, ttGPSLongitude);
-  FGPSDestBearing := TGPSDestBearing.Create(Self, ttGPSDestBearing, ttGPSDestBearingRef);
-  FGPSDestDistance := TGPSDestDistance.Create(Self, ttGPSDestDistance, ttGPSDestDistanceRef);
   FGPSDestLatitude := TGPSLatitude.Create(Self, ttGPSDestLatitude);
   FGPSDestLongitude := TGPSLongitude.Create(Self, ttGPSDestLongitude);
-  FGPSImgDirection := TGPSImgDirection.Create(Self, ttGPSImgDirection, ttGPSImgDirectionRef);
-  FGPSSpeed := TGPSSpeed.Create(Self, ttGPSSpeed, ttGPSSpeedRef);
-  FGPSTrack := TGPSTrack.Create(Self, ttGPSTrack, ttGPSTrackRef);
   for Kind := Low(TExifSectionKind) to High(TExifSectionKind) do
     FSections[Kind] := SectionClass.Create(Self, Kind);
   FFlash := TExifFlashInfo.Create(Self);
@@ -4602,16 +3696,10 @@ begin
   FResolution.Free;
   FISOSpeedRatings.Free;
   FInteropVersion.Free;
-  FGPSTrack.Free;
-  FGPSSpeed.Free;
-  FGPSImgDirection.Free;
   FGPSDestLongitude.Free;
   FGPSDestLatitude.Free;
-  FGPSDestDistance.Free;
-  FGPSDestBearing.Free;
   FGPSLongitude.Free;
   FGPSLatitude.Free;
-  FGPSAltitude.Free;
   FGPSVersion.Free;
   FFocalPlaneResolution.Free;
   FFlash.Free;
@@ -4626,20 +3714,6 @@ end;
 class function TCustomExifData.SectionClass: TExifSectionClass;
 begin
   Result := TExifSection;
-end;
-
-class procedure TCustomExifData.InitializeClass(const MakerNoteClasses: array of TExifMakerNoteClass);
-var
-  I: Integer;
-begin
-  FMakerNoteClasses := TClassList.Create;
-  for I := Low(MakerNoteClasses) to High(MakerNoteClasses) do
-    FMakerNoteClasses.Add(MakerNoteClasses[I]);
-end;
-
-class procedure TCustomExifData.FinalizeClass;
-begin
-  FMakerNoteClasses.Free;
 end;
 
 class procedure TCustomExifData.RegisterMakerNoteType(AClass: TExifMakerNoteClass;
@@ -4909,7 +3983,6 @@ var
   Directory: IFoundTiffDirectory;
   ExifTag: TExifTag;
   I: Integer;
-  PossibleType: TExifMakerNoteClass;
   TiffTag: ITiffTag;
 begin
   if Stream.TryReadHeader(TJPEGSegment.ExifHeader, SizeOf(TJPEGSegment.ExifHeader)) then
@@ -4951,14 +4024,11 @@ begin
     begin
       FMakerNoteType := THeaderlessMakerNote;
       for I := FMakerNoteClasses.Count - 1 downto 0 do
-      begin
-        PossibleType := TExifMakerNoteClass(FMakerNoteClasses[I]);
-        if PossibleType.FormatIsOK(ExifTag) then
+        if TExifMakerNoteClass(FMakerNoteClasses.List[I]).FormatIsOK(ExifTag) then
         begin
-          FMakerNoteType := PossibleType;
+          FMakerNoteType := FMakerNoteClasses.List[I];
           Break;
         end;
-      end;
     end;
   finally
     FChangedWhileUpdating := False;
@@ -5029,18 +4099,24 @@ begin
     GPSVersion := GPSVersion;
     GPSLatitude := GPSLatitude;
     GPSLongitude := GPSLongitude;
+    GPSAltitudeRef := GPSAltitudeRef;
     GPSAltitude := GPSAltitude;
     GPSSatellites := GPSSatellites;
     GPSStatus := GPSStatus;
     GPSMeasureMode := GPSMeasureMode;
     GPSDOP := GPSDOP;
+    GPSSpeedRef := GPSSpeedRef;
     GPSSpeed := GPSSpeed;
+    GPSTrackRef := GPSTrackRef;
     GPSTrack := GPSTrack;
+    GPSImgDirectionRef := GPSImgDirectionRef;
     GPSImgDirection := GPSImgDirection;
     GPSMapDatum := GPSMapDatum;
     GPSDestLatitude := GPSDestLatitude;
     GPSDestLongitude := GPSDestLongitude;
+    GPSDestBearingRef := GPSDestBearingRef;
     GPSDestBearing := GPSDestBearing;
+    GPSDestDistanceRef := GPSDestDistanceRef;
     GPSDestDistance := GPSDestDistance;
     GPSDifferential := GPSDifferential;
     GPSDateTimeUTC := GPSDateTimeUTC;
@@ -5237,13 +4313,6 @@ begin
   Result := FSections[esDetails].GetStringValue(TagID)
 end;
 
-{$IFNDEF CANINLINE}
-function GetQuotient(const Fraction: TExifFraction): Extended;
-begin
-  Result := Fraction.Quotient;
-end;
-{$ENDIF}
-
 function TCustomExifData.GetFocalLengthIn35mmFilm: TWordTagValue;
 var
   CCDWidth, CCDHeight, ResUnit, FinalValue: Extended;
@@ -5262,23 +4331,14 @@ begin
     trCentimetre: ResUnit := 10.0;
   else Exit;
   end;
-  {$IFDEF CANINLINE}
   CCDWidth := FocalPlaneResolution.X.Quotient;
   CCDHeight := FocalPlaneResolution.Y.Quotient;
-  {$ELSE} //crappy D2006 compiler!
-  CCDWidth := GetQuotient(FocalPlaneResolution.X);
-  CCDHeight := GetQuotient(FocalPlaneResolution.Y);
-  {$ENDIF}
   if (CCDWidth = 0) or (CCDHeight = 0) then Exit;
   CCDWidth := ExifWidth * ResUnit / CCDWidth;
   CCDHeight := ExifHeight * ResUnit / CCDHeight;
   if Diag35mm = 0 then
     Diag35mm := Sqrt(Sqr(24) + Sqr(36));
-  {$IFDEF CANINLINE}
   FinalValue := FocalLengthFrac.Quotient * Diag35mm / Sqrt(Sqr(CCDWidth) + Sqr(CCDHeight));
-  {$ELSE} //crappy D2006 compiler!
-  FinalValue := GetQuotient(FocalLengthFrac) * Diag35mm / Sqrt(Sqr(CCDWidth) + Sqr(CCDHeight));
-  {$ENDIF}
   if InRange(FinalValue, 0, High(Word)) then
     Result := Trunc(FinalValue);
 end;
@@ -5346,6 +4406,21 @@ begin
   Result := FSections[esGeneral].GetWindowsStringValue(TagID)
 end;
 
+function TCustomExifData.GetGPSAltitudeRef: TGPSAltitudeRef;
+// Bugfix: The conversion between the Exif values the enums was wrong
+// 2021-05-28 twm
+var
+  Value: Byte;
+begin
+  Result := alTagMissing;
+  if FSections[esGPS].TryGetByteValue(ttGPSAltitudeRef, 0, Value) then
+    case Value of
+      0: Result := alAboveSeaLevel;
+      1: Result := alBelowSeaLevel;
+    end;
+// end bugfix
+end;
+
 function TCustomExifData.GetGPSDateTimeUTC: TDateTimeTagValue;
 var
   DatePart, TimePart: TDateTime;
@@ -5373,8 +4448,8 @@ begin
   end;
   if DatePart = 0 then
   begin
-    DatePart := DateTime.Value;
-    if DatePart = 0 then DatePart := DateTimeOriginal.Value;
+    DatePart := DateTime;
+    if DatePart = 0 then DatePart := DateTimeOriginal;
     DatePart := DateOf(DatePart);
   end;
   if DatePart >= 0 then
@@ -5386,6 +4461,19 @@ end;
 function TCustomExifData.GetGPSFraction(TagID: Integer): TExifFraction;
 begin
   Result := FSections[esGPS].GetFractionValue(TagID, 0);
+end;
+
+function TCustomExifData.GetGPSDestDistanceRef: TGPSDistanceRef;
+var
+  S: string;
+begin
+  Result := dsMissingOrInvalid;
+  if FSections[esGPS].TryGetStringValue(ttGPSDestDistanceRef, S) and (S <> '') then
+    case UpCase(S[1]) of
+      'K': Result := dsKilometres;
+      'M': Result := dsMiles;
+      'N': Result := dsKnots;
+    end;
 end;
 
 function TCustomExifData.GetGPSDifferential: TGPSDifferential;
@@ -5400,6 +4488,18 @@ begin
   Result := dfTagMissing;
 end;
 
+function TCustomExifData.GetGPSDirection(TagID: Integer): TGPSDirectionRef;
+var
+  S: string;
+begin
+  Result := drMissingOrInvalid;
+  if FSections[esGPS].TryGetStringValue(TagID, S) and (S <> '') then
+    case UpCase(S[1]) of
+      'T': Result := drTrueNorth;
+      'M': Result := drMagneticNorth;
+    end;
+end;
+
 function TCustomExifData.GetGPSMeasureMode: TGPSMeasureMode;
 var
   S: string;
@@ -5409,6 +4509,19 @@ begin
     case UpCase(S[1]) of
       '2': Result := mm2D;
       '3': Result := mm3D;
+    end;
+end;
+
+function TCustomExifData.GetGPSSpeedRef: TGPSSpeedRef;
+var
+  S: string;
+begin
+  Result := srMissingOrInvalid;
+  if FSections[esGPS].TryGetStringValue(ttGPSSpeedRef, S) and (S <> '') then
+    case UpCase(S[1]) of
+      'K': Result := srKilometresPerHour;
+      'M': Result := srMilesPerHour;
+      'N': Result := srKnots;
     end;
 end;
 
@@ -5619,11 +4732,9 @@ end;
 { TCustomExifData - tag setters }
 
 procedure TCustomExifData.SetAuthor(const Value: UnicodeString);
-{ While Windows Explorer always writes both XMP properties, it always sets its own Unicode
-  Exif tag and clears the 'standard' ASCII one; we'll be a bit more intelligent though. }
-var
-  Tag: TExifTag;
-begin
+var              //While it always writes both XMP properties, Windows Explorer always
+  Tag: TExifTag; //set its own unicode Exif tag and clears the 'standard' ASCII one;
+begin            //we'll be a bit more intelligent though.
   XMPPacket.UpdateSeqProperty(xsDublinCore, 'creator', Value);
   XMPPacket.UpdateProperty(xsTIFF, 'Artist', Value);
   if Length(Value) = 0 then
@@ -5633,22 +4744,16 @@ begin
     Exit;
   end;
   if not ContainsOnlyASCII(Value) then
-    if EnforceASCII then
-      FSections[esGeneral].Remove(ttArtist)
-    else                                                   //This 'else' clause suggested by
-      FSections[esGeneral].SetStringValue(ttArtist, Value) //Thomas Mueller (*), and implemented in v1.5.2.
+    FSections[esGeneral].Remove(ttArtist)
   else
     if FSections[esGeneral].Find(ttArtist, Tag) then
     begin
       Tag.UpdateData(tdAscii, Length(Value), TiffString(Value)[1]);
       if not FSections[esGeneral].Find(ttWindowsAuthor, Tag) then
         Exit;
-    end
-    else                                                    //Ditto for this 'else' clause.
-      FSections[esGeneral].SetStringValue(ttArtist, Value);
+    end;
   FSections[esGeneral].SetWindowsStringValue(ttWindowsAuthor, Value);
 end;
-//(*) http://delphihaven.wordpress.com/2012/01/16/xe2-update-for-my-image-metadata-readingwriting-library-ccr-exif/comment-page-1/#comment-4998
 
 procedure TCustomExifData.SetColorSpace(Value: TExifColorSpace);
 begin
@@ -5730,7 +4835,7 @@ begin
     ttSubjectDistance: XMPName := 'SubjectDistance';
   else Exit;
   end;
-  XMPPacket.UpdateProperty(xsExif, XMPName, Value.ToString);
+  XMPPacket.UpdateProperty(xsExif, XMPName, Value.AsString);
 end;
 
 procedure TCustomExifData.SetDetailsSFraction(TagID: Integer;
@@ -5745,7 +4850,7 @@ begin
     ttShutterSpeedValue: PropName := 'ShutterSpeedValue';
   else Exit;
   end;
-  XMPPacket.UpdateProperty(xsExif, PropName, Value.ToString);
+  XMPPacket.UpdateProperty(xsExif, PropName, Value.AsString);
 end;
 
 procedure TCustomExifData.SetOffsetSchema(const Value: TLongIntTagValue);
@@ -5925,9 +5030,24 @@ begin
   end;
 end;
 
-procedure TCustomExifData.SetGPSAltitude(const Value: TGPSAltitude);
+procedure TCustomExifData.SetGPSAltitudeRef(const Value: TGPSAltitudeRef);
 begin
-  FGPSAltitude.Assign(Value);
+// Bugfix: The conversion between the Exif values the enums was wrong
+// 2021-05-28 twm
+  case Value of
+    alAboveSeaLevel: begin
+        FSections[esGPS].SetByteValue(ttGPSAltitudeRef, 0, 0);
+        XMPPacket.UpdateProperty(xsExif, GetGPSTagXMPName(ttGPSAltitudeRef), Ord(Value));
+      end;
+    alBelowSeaLevel: begin
+        FSections[esGPS].SetByteValue(ttGPSAltitudeRef, 0, 1);
+        XMPPacket.UpdateProperty(xsExif, GetGPSTagXMPName(ttGPSAltitudeRef), Ord(Value));
+      end;
+  else //     alTagMissing:
+    FSections[esGPS].Remove(ttGPSAltitudeRef);
+    XMPPacket.RemoveProperty(xsExif, GetGPSTagXMPName(ttGPSAltitudeRef));
+  end;
+// end bugfix
 end;
 
 procedure TCustomExifData.SetGPSDateTimeUTC(const Value: TDateTimeTagValue);
@@ -5956,14 +5076,12 @@ begin
   end;
 end;
 
-procedure TCustomExifData.SetGPSDestBearing(const Value: TGPSDestBearing);
+procedure TCustomExifData.SetGPSDestDistanceRef(const Value: TGPSDistanceRef);
+const
+  Strings: array[TGPSDistanceRef] of string = ('', 'K', 'M', 'N');
 begin
-  FGPSDestBearing.Assign(Value);
-end;
-
-procedure TCustomExifData.SetGPSDestDistance(const Value: TGPSDestDistance);
-begin
-  FGPSDestDistance.Assign(Value);
+  FSections[esGPS].SetStringValue(ttGPSDestDistanceRef, Strings[Value]);
+  XMPPacket.UpdateProperty(xsExif, GetGPSTagXMPName(ttGPSDestDistanceRef), Strings[Value]);
 end;
 
 procedure TCustomExifData.SetGPSDestLatitude(Value: TGPSLatitude);
@@ -5988,18 +5106,21 @@ begin
   XMPPacket.UpdateProperty(xsExif, GetGPSTagXMPName(ttGPSDifferential), Ord(Value));
 end;
 
+procedure TCustomExifData.SetGPSDirection(TagID: Integer; Value: TGPSDirectionRef);
+const
+  Strings: array[TGPSDirectionRef] of string = ('', 'T', 'M');
+begin
+  FSections[esGPS].SetStringValue(TagID, Strings[Value]);
+  XMPPacket.UpdateProperty(xsExif, GetGPSTagXMPName(TagID), Strings[Value]);
+end;
+
 procedure TCustomExifData.SetGPSFraction(TagID: Integer; const Value: TExifFraction);
 var
   XMPName: string;
 begin
   FSections[esGPS].SetFractionValue(TagID, 0, Value);
-  if FindGPSTagXMPName(TagID, XMPName) then
-    XMPPacket.UpdateProperty(xsExif, XMPName, Value.ToString);
-end;
-
-procedure TCustomExifData.SetGPSImgDirection(const Value: TGPSImgDirection);
-begin
-  FGPSImgDirection.Assign(Value)
+  if FindGPSTagXMPName(TagID, XMPName) then 
+    XMPPacket.UpdateProperty(xsExif, XMPName, Value.AsString);
 end;
 
 procedure TCustomExifData.SetGPSLatitude(Value: TGPSLatitude);
@@ -6020,9 +5141,12 @@ begin
   XMPPacket.UpdateProperty(xsExif, GetGPSTagXMPName(ttGPSMeasureMode), Strings[Value]);
 end;
 
-procedure TCustomExifData.SetGPSSpeed(const Value: TGPSSpeed);
+procedure TCustomExifData.SetGPSSpeedRef(const Value: TGPSSpeedRef);
+const
+  Strings: array[TGPSSpeedRef] of string = ('', 'K', 'M', 'N');
 begin
-  FGPSSpeed.Assign(Value);
+  FSections[esGPS].SetStringValue(ttGPSSpeedRef, Strings[Value]);
+  XMPPacket.UpdateProperty(xsExif, 'GPSSpeedRef', Strings[Value]);
 end;
 
 procedure TCustomExifData.SetGPSStatus(const Value: TGPSStatus);
@@ -6048,11 +5172,6 @@ begin
   FSections[esGPS].SetFractionValue(ttGPSTimeStamp, Index, Value);
   if FUpdateCount = 0 then
     XMPPacket.RemoveProperty(xsExif, GetGPSTagXMPName(ttGPSTimeStamp));
-end;
-
-procedure TCustomExifData.SetGPSTrack(const Value: TGPSTrack);
-begin
-  FGPSTrack.Assign(Value)
 end;
 
 procedure TCustomExifData.SetGPSVersion(Value: TCustomExifVersion);
@@ -6143,7 +5262,7 @@ const
 var
   Tag: TExifTag;
 begin
-  if Value.MissingOrInvalid then
+  if InvalidPoint(Value) then
   begin
     FSections[esDetails].Remove(ttSubjectDistance);
     XMPPacket.RemoveProperty(xsExif, XMPName);
@@ -6215,7 +5334,7 @@ begin
 end;
 
 {$IF CompilerVersion >= 22}
-procedure TExifDataPatcher.GetImage<T>(const Dest: T);
+procedure TExifDataPatcher.GetImage<T>(Dest: T);
 {$ELSE}
 procedure TExifDataPatcher.GetImage(const Dest: IStreamPersist);
 {$IFEND}
@@ -6226,7 +5345,7 @@ begin
 end;
 
 {$IF CompilerVersion >= 22}
-procedure TExifDataPatcher.GetThumbnail<T>(const Dest: T);
+procedure TExifDataPatcher.GetThumbnail<T>(Dest: T);
 {$ELSE}
 procedure TExifDataPatcher.GetThumbnail(Dest: TPersistent);
 {$IFEND}
@@ -6241,7 +5360,7 @@ begin
 {$IFDEF MSWINDOWS}                                        {$WARN SYMBOL_PLATFORM OFF}
   FileSetDate(FStream.Handle, DateTimeToFileDate(Value)); {$WARN SYMBOL_PLATFORM ON}
 {$ELSE}
-  FileSetDate(FStream.FileName, DateTimeToFileDate(Value)); //does actually work on OS X at least
+  FileSetDate(FStream.FileName, DateTimeToFileDate(Value)); //!!!does this actually work?
 {$ENDIF}
 end;
 
@@ -6249,7 +5368,7 @@ procedure TExifDataPatcher.OpenFile(const JPEGFileName: string);
 begin
   CloseFile;
   if JPEGFileName = '' then Exit;
-  FStream := TFileStream.Create(JPEGFileName, fmOpenReadWrite or fmShareDenyWrite);
+  FStream := TFileStream.Create(JPEGFileName, fmOpenReadWrite);
   if not HasJPEGHeader(FStream) then
   begin
     FreeAndNil(FStream);
@@ -6271,7 +5390,7 @@ end;
 procedure TExifDataPatcher.UpdateFile;
 var
   DataOffsetFix: Int64;
-  OldDate, WrittenLen: Integer;
+  OldDate: Integer;
   Section: TExifSection;
   SectionEndianness: TEndianness;
   Tag: TExifTag;
@@ -6311,13 +5430,12 @@ begin
     try
       XMPStream.WriteBuffer(TJPEGSegment.XMPHeader, SizeOf(TJPEGSegment.XMPHeader));
       XMPPacket.SaveToStream(XMPStream);
-      WrittenLen := XMPStream.Size;
-      if WrittenLen <= FXMPPacketSizeInSource then
+      if XMPStream.Size <= FXMPPacketSizeInSource then
       begin
         Assert(mkXMP in MetadataInSource);
         XMPStream.Size := FXMPPacketSizeInSource;
-        FillChar(PAnsiChar(XMPStream.Memory)[WrittenLen], //!!!was a no-op until fixed v1.5.2
-          FXMPPacketSizeInSource - WrittenLen, $20);
+        FillChar(PAnsiChar(XMPStream.Memory)[XMPStream.Size],
+          FXMPPacketSizeInSource - XMPStream.Size, $20);
       end
       else
       begin
@@ -6331,7 +5449,7 @@ begin
           FXMPSegmentPosition := Stream.Position;
           Include(FMetadataInSource, mkXMP);
         end;
-        FXMPPacketSizeInSource := WrittenLen;
+        FXMPPacketSizeInSource := XMPStream.Size;
         SetLength(BytesToRewrite, Stream.Size - Stream.Position);
         Stream.ReadBuffer(BytesToRewrite[0], Length(BytesToRewrite));
       end;
@@ -6416,45 +5534,6 @@ begin
   Result := TExtendableExifSection(inherited Sections[Section]);
 end;
 
-class function TExifData.IsSupportedGraphic(Stream: TStream): Boolean;
-begin
-  Result := HasJPEGHeader(Stream) or HasPSDHeader(Stream) or HasTiffHeader(Stream);
-end;
-
-class function TExifData.IsSupportedGraphic(const FileName: string): Boolean;
-var
-  Stream: TFileStream;
-begin
-  Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
-  try
-    Result := IsSupportedGraphic(Stream);
-  finally
-    Stream.Free;
-  end;
-end;
-
-{$IFDEF FMX}
-function TExifData.LoadFromBitmap(const Bitmap: TBitmap): Boolean;
-begin
-  Result := LoadFromGraphic(Bitmap);
-end;
-
-function TExifData.LoadFromBitmap(const FileName: string): Boolean;
-begin
-  Result := LoadFromGraphic(FileName);
-end;
-
-procedure TExifData.SaveToBitmap(const Bitmap: TBitmap);
-begin
-  SaveToGraphic(Bitmap);
-end;
-
-procedure TExifData.SaveToBitmap(const FileName: string);
-begin
-  SaveToGraphic(FileName);
-end;
-{$ENDIF FMX}
-
 function TExifData.LoadFromGraphic(Stream: TStream): Boolean;
 begin
   Result := inherited LoadFromGraphic(Stream);
@@ -6485,6 +5564,36 @@ begin
     Stream.Free;
   end;
 end;
+
+{$IF DECLARED(TJPEGData)}
+procedure TExifData.LoadFromJPEG(JPEGStream: TStream);
+begin
+  if HasJPEGHeader(JPEGStream) then
+    LoadFromGraphic(JPEGStream)
+  else
+    raise EInvalidJPEGHeader.CreateRes(@SInvalidJPEGHeader);
+end;
+
+procedure TExifData.LoadFromJPEG(JPEGImage: TJPEGImage);
+begin
+  LoadFromGraphic(JPEGImage)
+end;
+
+procedure TExifData.LoadFromJPEG(const FileName: string);
+var
+  Stream: TFileStream;
+begin
+  Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
+  try
+    if HasJPEGHeader(Stream) then
+      inherited LoadFromGraphic(Stream)
+    else
+      raise EInvalidJPEGHeader.CreateRes(@SInvalidJPEGHeader);
+  finally
+    Stream.Free;
+  end;
+end;
+{$IFEND}
 
 procedure TExifData.LoadFromStream(Stream: TStream);
 begin
@@ -6595,11 +5704,17 @@ begin
   DoSaveToGraphic(Graphic, GetGraphicSaveMethod);
 end;
 
-procedure TExifData.SaveToGraphic(const InMemoryGraphic: TCustomMemoryStream);
+{$IF DECLARED(TJPEGData)}
+procedure TExifData.SaveToJPEG(const JPEGFileName: string; Dummy: Boolean = True);
 begin
-  InMemoryGraphic.Position := 0;
-  DoSaveToGraphic(InMemoryGraphic, GetGraphicSaveMethod);
+  SaveToGraphic(JPEGFileName);
 end;
+
+procedure TExifData.SaveToJPEG(JPEGImage: TJPEGImage);
+begin
+  SaveToGraphic(JPEGImage);
+end;
+{$IFEND}
 
 type
   TSectionSavingInfo = record
@@ -7066,21 +6181,6 @@ begin
   Result := True;
 end;
 
-{ TAppleMakerNote }
-
-class function TAppleMakerNote.FormatIsOK(SourceTag: TExifTag; out HeaderSize: Integer): Boolean;
-begin
-  HeaderSize := SizeOf(Header);
-  Result := (SourceTag.ElementCount > HeaderSize) and
-    CompareMem(SourceTag.Data, @Header, HeaderSize);
-end;
-
-procedure TAppleMakerNote.GetIFDInfo(SourceTag: TExifTag; var ProbableEndianness: TEndianness;
-  var DataOffsetsType: TExifDataOffsetsType);
-begin
-  DataOffsetsType := doFromExifStart;
-end;
-
 { TCanonMakerNote }
 
 class function TCanonMakerNote.FormatIsOK(SourceTag: TExifTag; out HeaderSize: Integer): Boolean;
@@ -7095,34 +6195,23 @@ begin
   ProbableEndianness := SmallEndian;
 end;
 
-
-{ TCasioMakerNote }
-
-class function TCasioMakerNote.FormatIsOK(SourceTag: TExifTag; out HeaderSize: Integer): Boolean;
-begin
-  HeaderSize := 0;
-  Result := (SourceTag.Section.Owner.CameraMake = 'CASIO');
-end;
-
-{ TCasio2MakerNote }
-
-class function TCasio2MakerNote.FormatIsOK(SourceTag: TExifTag; out HeaderSize: Integer): Boolean;
-begin
-  HeaderSize := SizeOf(Header);
-  Result := (SourceTag.ElementCount > HeaderSize) and
-    CompareMem(SourceTag.Data, @Header, HeaderSize);
-end;
-
 { TKodakMakerNote }
+
+function StrLComp(const Str1, Str2: PAnsiChar; MaxLen: Cardinal): Integer;
+begin
+{$IF CompilerVersion >= 24} // Delphi XE3 / BDS 10
+  Result := AnsiStrings.StrLComp(Str1, Str2, MaxLen);
+{$ELSE}
+  Result := SysUtils.StrLComp(Str1, Str2, MaxLen);
+{$IFEND}
+end;
 
 class function TKodakMakerNote.FormatIsOK(SourceTag: TExifTag;
   out HeaderSize: Integer): Boolean;
-const
-  MinHeader: array[0..2] of AnsiChar = 'KDK';
 begin
-  HeaderSize := TKodakMakerNote.HeaderSize;
+  HeaderSize := HeaderSize;
   Result := (SourceTag.ElementCount > HeaderSize) and
-    CompareMem(SourceTag.Data, @MinHeader, SizeOf(MinHeader));
+    (StrLComp(PAnsiChar(SourceTag.Data), 'KDK', 3) = 0);
 end;
 
 procedure TKodakMakerNote.GetIFDInfo(SourceTag: TExifTag;
@@ -7169,15 +6258,6 @@ begin
   TagSpecs[3] := TTagSpec.Create(tdWord); //width
   TagSpecs[4] := TTagSpec.Create(tdWord); //height
   TagSpecs[5] := TTagSpec.Create(tdWord); //year
-end;
-
-{ TKonicaMinoltaMakerNote }
-
-class function TKonicaMinoltaMakerNote.FormatIsOK(SourceTag: TExifTag;
-  out HeaderSize: Integer): Boolean;
-begin
-  HeaderSize := 0;
-  Result := (SourceTag.Section.Owner.CameraMake = 'KONICA MINOLTA');
 end;
 
 { TPanasonicMakerNote }
@@ -7385,20 +6465,15 @@ end;
 {$ENDIF}
 
 initialization
-  TCustomExifData.InitializeClass([
-    TCasioMakerNote,
-    TKonicaMinoltaMakerNote,
-    TNikonType2MakerNote,
-    TCanonMakerNote,
-    TPentaxMakerNote,
-    //TKodakMakerNote,
-    TSonyMakerNote,
-    TNikonType1MakerNote,
-    TNikonType3MakerNote,
-    TPanasonicMakerNote,
-    TCasio2MakerNote,
-    TAppleMakerNote
-  ]);
+  TCustomExifData.FMakerNoteClasses := TList.Create;
+  TCustomExifData.FMakerNoteClasses.Add(TNikonType2MakerNote);
+  TCustomExifData.FMakerNoteClasses.Add(TCanonMakerNote);
+  TCustomExifData.FMakerNoteClasses.Add(TPentaxMakerNote);
+  //TCustomExifData.FMakerNoteClasses.Add(TKodakMakerNote);
+  TCustomExifData.FMakerNoteClasses.Add(TSonyMakerNote);
+  TCustomExifData.FMakerNoteClasses.Add(TNikonType1MakerNote);
+  TCustomExifData.FMakerNoteClasses.Add(TNikonType3MakerNote);
+  TCustomExifData.FMakerNoteClasses.Add(TPanasonicMakerNote);
 finalization
-  TCustomExifData.FinalizeClass;
+  TCustomExifData.FMakerNoteClasses.Free;
 end.
